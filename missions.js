@@ -129,16 +129,16 @@ function renderMissions() {
           if (missionData[findRank].Remaining.length == missionData[findRank].StartingCount) {
             // This is a full rank, the lowest rank is actually the previous one.
             let prevStartCount = missionData[findRank - 1].StartingCount;
-            rankTitle = `${(findRank - 1)} ${prevStartCount - 1}/${prevStartCount}`
+            rankTitle = `${(findRank - 1)} (${prevStartCount - 1}/${prevStartCount})`
           } else {
             let missingCount = missionData[findRank].StartingCount - missionData[findRank].Remaining.length;
-            rankTitle = `${findRank} ${missingCount - 1}/${missionData[findRank].StartingCount}`;
+            rankTitle = `${findRank} (${missingCount - 1}/${missionData[findRank].StartingCount})`;
           }
           break;
         }
       }
       
-      title = `Current <span class="currentRank ml-4">(Rank ${rankTitle})</span>`;
+      title = `Current <span class="currentRank ml-4">Rank ${rankTitle}</span>`;
     } else {
       title = `Rank ${rank}`;
     }
