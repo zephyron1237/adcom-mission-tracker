@@ -120,7 +120,7 @@ function renderMissions() {
       } else {        
         bodyStyle = "style='display: none;'";
       }
-      title = `${rank} <label class="switch ml-3"><input type="checkbox" ${checked} onclick="toggleCompleted()"><span class="slider round"></span>`; 
+      title = `${rank} <label class="switch float-right"><input type="checkbox" ${checked} onclick="toggleCompleted()"><span class="slider round"></span>`; 
     } else if (rank == "Current") {
       // Find lowest rank with a remaining mission.
       let rankTitle = "Complete!";
