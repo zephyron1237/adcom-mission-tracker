@@ -259,25 +259,25 @@ function describeMission(mission) {
   let condition = mission.Condition;
   switch (condition.ConditionType) {
     case "TradesSinceSubscription":
-      return `Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
+      return `&#129309; Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     case "ResearchersUpgradedSinceSubscription":
-      return `Upgrade Cards (${condition.Threshold})`;
+      return `&#10548; Upgrade Cards (${condition.Threshold})`;
       break;
     case "ResourceQuantity":
-      return `Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
+      return `&#127960; Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
       break;
     case "IndustryUnlocked":
-      return `Unlock ${industryName(condition.ConditionId)}`;
+      return `&#57669; Unlock ${industryName(condition.ConditionId)}`;
       break;
     case "ResourcesEarnedSinceSubscription":
-      return `Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
+      return `&#128200; Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
       break;
     case "ResearcherCardsEarnedSinceSubscription":
-      return `Collect Cards (${condition.Threshold})`;
+      return `&#127183; Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      return `Spend Dark Science (${condition.Threshold})`;
+      return `&#9879; Spend Dark Science (${condition.Threshold})`;
       break;
     default:
       return `Unknown mission condition: ${condition.ConditionType}`;

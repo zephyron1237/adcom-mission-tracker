@@ -10,7 +10,7 @@ Click on missions in the "Current" area to mark them as Completed.  Click missio
 
 ## Thanks
 
-The Atlantis json data was provided by The_Random_Guy on the AdCom discord.
+The Atlantis and Crusade json data was provided by The_Random_Guy on the AdCom discord.  Emoji selection mostly taken from the discord #mission-list (currently maintained by Julian).
 
 ## Contributing
 
