@@ -268,7 +268,7 @@ function describeMission(mission) {
       return `&#127960; Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
       break;
     case "IndustryUnlocked":
-      return `&#57669; Unlock ${industryName(condition.ConditionId)}`;
+      return `&#128275; Unlock ${industryName(condition.ConditionId)}`;
       break;
     case "ResourcesEarnedSinceSubscription":
       return `&#128200; Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
