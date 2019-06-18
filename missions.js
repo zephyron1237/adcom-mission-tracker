@@ -107,7 +107,7 @@ function renderMissions() {
   sortedRanks.unshift("Completed");
   
   for (let rank of sortedRanks) {
-    if (missionData[rank].Remaining.length == 0) {
+    if (missionData[rank].Remaining.length == 0 && rank != 'Completed') {
       continue;
     }
     
@@ -144,6 +144,12 @@ function renderMissions() {
     }
     
     missionHtml += `<div class='card mx-2 mt-1'><h4 class="card-header">${title}</h4><div id="${rank}-body" class="card-body" ${bodyStyle}><ul>`;
+    
+    if (rank == "Completed" && missionData.Completed.Remaining.length == 0) {
+      missionHtml += `<li class="my-1">Click <strong>Current</strong> missions to move them to Completed.</li>`;
+      missionHtml += `<li class="my-1">Click <strong>Completed</strong> missions to move them back to Current.</li>`;
+      missionHtml += `<li class="my-1">Click this tab's toggle in the top-right to hide Completed missions.</li>`;
+    }
     
     for (let mission of missionData[rank].Remaining) {
       missionHtml += `<li class="my-1">${renderMissionButton(mission)}</li>`;
