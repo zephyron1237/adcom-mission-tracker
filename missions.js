@@ -192,7 +192,7 @@ function renderMissionButton(mission, rank) {
     buttonClass += `${buttonOutlineStyle}-secondary`;
   }
   
-  return `<button class="btn ${buttonClass}" style="width:22em" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button>`;
+  return `<button class="btn ${buttonClass}" style="width:300px" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button>`;
 }
 
 function clickMission(missionId) {
