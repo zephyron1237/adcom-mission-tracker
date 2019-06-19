@@ -54,7 +54,7 @@ function loadSaveData() {
       /* This is a little inefficient, but it preserves the completion order. */
       let completedIds = dataString.split(',');
       for (let completedId of completedIds) {
-        if (completedId == null) {
+        if (!completedId) {
           break;
         }
         
@@ -62,6 +62,7 @@ function loadSaveData() {
           if (rank == "Completed") {
             continue;
           }
+          
           for (let missionIndex = 0; missionIndex < missionData[rank].Remaining.length; missionIndex++) {
             let mission = missionData[rank].Remaining[missionIndex];          
             if (completedId == mission.Id) {
@@ -152,7 +153,7 @@ function renderMissions() {
     }
     
     for (let mission of missionData[rank].Remaining) {
-      missionHtml += `<li class="my-1">${renderMissionButton(mission)}</li>`;
+      missionHtml += `<li class="my-1">${renderMissionButton(mission, rank)}</li>`;
     }    
     missionHtml += "</ul></div></div>";
   }
@@ -160,7 +161,7 @@ function renderMissions() {
   document.getElementById('missions').innerHTML = missionHtml;
 }
 
-function renderMissionButton(mission) {
+function renderMissionButton(mission, rank) {
   let type = mission.Condition.ConditionType;
   let buttonClass = "";
   
@@ -168,12 +169,14 @@ function renderMissionButton(mission) {
     buttonClass = "disabled ";
   }
   
+  let buttonOutlineStyle = (rank == "Completed") ? "btn" : "btn-outline";
+  
   if (type == "ResourcesSpentSinceSubscription" || type == "ResearchersUpgradedSinceSubscription") {
-    buttonClass += "btn-outline-danger";
+    buttonClass += `${buttonOutlineStyle}-danger`;
   } else if (type == "ResearcherCardsEarnedSinceSubscription") {
-    buttonClass += "btn-outline-success";
+    buttonClass += `${buttonOutlineStyle}-success`;
   } else {
-    buttonClass += "btn-outline-secondary";
+    buttonClass += `${buttonOutlineStyle}-secondary`;
   }
   
   return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')">${describeMission(mission)}</button>`;
