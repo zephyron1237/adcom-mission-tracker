@@ -365,13 +365,60 @@ function setStyle(styleType) {
 }
 
 function advanceProgressTo() {
-  // TODO: Implement this before next release.
-  //
-  // *****************************************
-  //
+  /* Maybe do a post-1990 solution to this? */
+  let inputRank = prompt("Complete all missions BEFORE which rank?");
+  if (inputRank == null || inputRank == "") {
+    return;
+  }
+  
+  let rank = parseInt(inputRank);
+  if (!rank || rank <= 1 || rank >= DATA.Ranks.length) {
+    alert(`Invalid rank: "${inputRank}".`);
+  }
+  
+  // Go through every mission in every rank and move all with Rank < rank to Completed.
+  for (let clearRank in missionData) {
+    if (clearRank == "Completed") {
+      continue;
+    }
+    
+    let rankData = missionData[clearRank].Remaining;
+    for (let clearIndex = 0; clearIndex < rankData.length; clearIndex++) {
+      let mission = rankData[clearIndex];
+      if (mission.Rank < rank) {
+        rankData.splice(clearIndex, 1);
+        missionData.Completed.Remaining.push(mission);
+        clearIndex -= 1;
+      }
+    }
+  }
+  
+  // Now fill in Current
+  for (let fillRank = rank;
+        fillRank < DATA.Ranks.length &&
+          missionData.Current.Remaining.length < missionData.Current.StartingCount;
+        fillRank++) {
+    
+      let rankData = missionData[fillRank].Remaining;
+      console.log(`starting fillrank ${fillRank} with rankData: ${rankData}. (Current ${missionData.Current.Remaining})`);
+      for (let fillIndex = 0;
+            fillIndex < rankData.length &&
+              missionData.Current.Remaining.length < missionData.Current.StartingCount;
+            fillIndex++) {
+        
+        let mission = rankData[fillIndex];
+        rankData.splice(fillIndex, 1);
+        missionData.Current.Remaining.push(mission);
+        fillIndex -= 1;
+      }
+  }
+  
+  updateSaveData();
+  renderMissions();
 }
 
 function resetProgress() {
+  /* Maybe do a post-1990 solution to this? */
   if (confirm("Are you sure you want to RESET your mission progress?")) {
     localStorage.removeItem("event-Completed");
     initializeMissionData();
