@@ -150,18 +150,18 @@ function renderMissions() {
       title = `Rank ${rank}`;
     }
     
-    missionHtml += `<div class='card mx-2 mt-1'><h4 class="card-header">${title}</h4><div id="${rank}-body" class="card-body" ${bodyStyle}><ul>`;
+    missionHtml += `<div class='card mx-2 mt-1'><h4 class="card-header">${title}</h4><div id="${rank}-body" class="card-body" ${bodyStyle}>`;
     
     if (rank == "Completed" && missionData.Completed.Remaining.length == 0) {
-      missionHtml += `<li class="my-1">Click <strong>Current</strong> missions to move them to Completed.</li>`;
+      missionHtml += `<ul><li class="my-1">Click <strong>Current</strong> missions to move them to Completed.</li>`;
       missionHtml += `<li class="my-1">Click <strong>Completed</strong> missions to move them back to Current.</li>`;
-      missionHtml += `<li class="my-1">Click this tab's toggle in the top-right to hide Completed missions.</li>`;
+      missionHtml += `<li class="my-1">Click this tab's toggle in the top-right to hide Completed missions.</li></ul>`;
     }
     
     for (let mission of missionData[rank].Remaining) {
-      missionHtml += `<li class="my-1">${renderMissionButton(mission, rank)}</li>`;
+      missionHtml += `<span class="my-1 mx-4" style="display: inline-block;">${renderMissionButton(mission, rank)}</span>`;
     }    
-    missionHtml += "</ul></div></div>";
+    missionHtml += "</div></div>";
   }
   
   document.getElementById('missions').innerHTML = missionHtml;
@@ -177,6 +177,13 @@ function renderMissionButton(mission, rank) {
   
   let buttonOutlineStyle = (rank == "Completed") ? "btn" : "btn-outline";
   
+  let buttonDescription = "";
+  if (rank == "Completed") {
+    buttonDescription = "Uncomplete mission"
+  } else if (rank == "Current") {
+    buttonDescription = "Complete mission"
+  }
+  
   if (type == "ResourcesSpentSinceSubscription" || type == "ResearchersUpgradedSinceSubscription") {
     buttonClass += `${buttonOutlineStyle}-danger`;
   } else if (type == "ResearcherCardsEarnedSinceSubscription") {
@@ -185,7 +192,7 @@ function renderMissionButton(mission, rank) {
     buttonClass += `${buttonOutlineStyle}-secondary`;
   }
   
-  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')">${describeMission(mission)}</button>`;
+  return `<button class="btn ${buttonClass}" style="width:22em" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button>`;
 }
 
 function clickMission(missionId) {
