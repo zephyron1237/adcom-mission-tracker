@@ -1,7 +1,5 @@
 var missionData = {};
 
-main();
-
 function main() {
   initializeMissionData();
   loadSaveData();
@@ -40,6 +38,14 @@ function initializeMissionData() {
 }
 
 function loadSaveData() {
+  // Load configuration first
+  let iconConfig = localStorage.getItem("IconConfig") || "image";
+  setIcons(iconConfig);
+  
+  let styleConfig = localStorage.getItem("StyleConfig") || "light";
+  setStyle(styleConfig);
+  
+  // Now load mission progress
   let loadedEventId = localStorage.getItem("event-Id");
   if (loadedEventId != null && loadedEventId != EVENT_ID) {
     // This save is from a previous event, so let's clear our save.
@@ -268,28 +274,52 @@ function describeMission(mission) {
   let condition = mission.Condition;
   switch (condition.ConditionType) {
     case "TradesSinceSubscription":
-      return `&#129309; Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
+      return `${getMissionIcon(condition.ConditionId, condition.ConditionType)} Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     case "ResearchersUpgradedSinceSubscription":
-      return `&#10548; Upgrade Cards (${condition.Threshold})`;
+      return `${getMissionIcon("upgrade", condition.ConditionType)} Upgrade Cards (${condition.Threshold})`;
       break;
     case "ResourceQuantity":
-      return `&#127960; Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
+      return `${getMissionIcon(condition.ConditionId, condition.ConditionType)} Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
       break;
     case "IndustryUnlocked":
-      return `&#128275; Unlock ${industryName(condition.ConditionId)}`;
+      // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
+      let industryIndex = DATA.Industries.findIndex(i => i.Id = condition.ConditionId);
+      let resourceId = DATA.Resources[industryIndex].Id;
+      return `${getMissionIcon(resourceId, condition.ConditionType)} Unlock ${resourceName(resourceId)}`;
       break;
     case "ResourcesEarnedSinceSubscription":
-      return `&#128200; Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
+      return `${getMissionIcon(condition.ConditionId, condition.ConditionType)} Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;      
       break;
     case "ResearcherCardsEarnedSinceSubscription":
-      return `&#127183; Collect Cards (${condition.Threshold})`;
+      return `${getMissionIcon("card", condition.ConditionType)} Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      return `&#9879; Spend Dark Science (${condition.Threshold})`;
+      return `${getMissionIcon("darkscience", condition.ConditionType)} Spend Dark Science (${condition.Threshold})`;
       break;
     default:
       return `Unknown mission condition: ${condition.ConditionType}`;
+  }
+}
+
+var MISSION_EMOJI = {
+  TradesSinceSubscription: "&#129309;",
+  ResearchersUpgradedSinceSubscription: "&#10548;",
+  ResourceQuantity: "&#127960;",
+  IndustryUnlocked: "&#128275;",
+  ResourcesEarnedSinceSubscription: "&#128200;",
+  ResearcherCardsEarnedSinceSubscription: "&#127183;",
+  ResourcesSpentSinceSubscription: "&#9879;"
+};
+
+function getMissionIcon(resourceId, missionConditionType) {
+  let iconConfig = localStorage.getItem("IconConfig");
+  if (iconConfig == "none") {
+    return "";
+  } else if (iconConfig == "emoji") {
+    return MISSION_EMOJI[missionConditionType];
+  } else {
+    return `<span style="background-image: url('img/${resourceId}.png');" class="resourceIcon">&nbsp;</span>`;
   }
 }
 
@@ -303,3 +333,44 @@ function toggleCompleted() {
     element.style.display = "block";
   }
 }
+
+function setIcons(iconType) {
+  localStorage.setItem('IconConfig', iconType);
+  $('.config-icon').removeClass('active');
+  $(`#config-icon-${iconType}`).addClass('active');
+  
+  renderMissions();
+}
+
+var StylesheetUrls = {
+  light: "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css",
+  dark: "https://stackpath.bootstrapcdn.com/bootswatch/4.3.1/cyborg/bootstrap.min.css"
+};
+
+function setStyle(styleType) {
+  localStorage.setItem('StyleConfig', styleType);
+  $('.config-style').removeClass('active');
+  $(`#config-style-${styleType}`).addClass('active');
+  
+  if (styleType in StylesheetUrls) {
+    $('#stylesheet').attr('href', StylesheetUrls[styleType]);
+  }
+}
+
+function advanceProgressTo() {
+  // TODO: Implement this before next release.
+  //
+  // *****************************************
+  //
+}
+
+function resetProgress() {
+  if (confirm("Are you sure you want to RESET your mission progress?")) {
+    localStorage.removeItem("event-Completed");
+    initializeMissionData();
+    renderMissions();
+  }
+}
+
+
+main();
