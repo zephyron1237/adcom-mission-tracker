@@ -291,7 +291,7 @@ function describeMission(mission) {
       break;
     case "IndustryUnlocked":
       // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
-      let industryIndex = DATA.Industries.findIndex(i => i.Id = condition.ConditionId);
+      let industryIndex = DATA.Industries.findIndex(i => i.Id == condition.ConditionId);
       let resourceId = DATA.Resources[industryIndex].Id;
       return `${getMissionIcon(resourceId, condition.ConditionType)} Unlock ${resourceName(resourceId)}`;
       break;
