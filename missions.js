@@ -159,7 +159,7 @@ function renderMissions() {
     }
     
     for (let mission of missionData[rank].Remaining) {
-      missionHtml += `<span class="my-1 mx-1 missionContainer">${renderMissionButton(mission, rank)}</span>`;
+      missionHtml += `<span class="missionContainer">${renderMissionButton(mission, rank)}</span>`;
     }
     missionHtml += "</div></div>";
   }
@@ -192,7 +192,7 @@ function renderMissionButton(mission, rank) {
     buttonClass += `${buttonOutlineStyle}-secondary`;
   }
   
-  return `<button class="btn ${buttonClass}" style="width:300px" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button>`;
+  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button>`;
 }
 
 function clickMission(missionId) {

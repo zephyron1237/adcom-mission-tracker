@@ -80,3 +80,22 @@ input:checked + .slider:before {
   display: inline-block;
 }
 
+@media screen and (max-width: 600px) {
+  .missionContainer { margin: .25rem .25rem .25rem .25rem }
+  .missionContainer > button { width: 300px; }
+}
+
+@media screen and (min-width: 601px) and (max-width: 700px) {
+  .missionContainer { margin: .25rem .25rem .25rem .25rem }
+  .missionContainer > button { width: 250px; }
+}
+
+@media screen and (min-width: 701px) and (max-width: 1100px) {
+  .missionContainer { margin: .25rem .25rem .25rem .25rem }
+  .missionContainer > button { width: 300px; }
+}
+
+@media screen and (min-width: 1101px) {
+  .missionContainer { margin: .25rem 1rem .25rem 1rem }
+  .missionContainer > button { width: 300px; }
+}
