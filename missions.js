@@ -159,8 +159,8 @@ function renderMissions() {
     }
     
     for (let mission of missionData[rank].Remaining) {
-      missionHtml += `<span class="my-1 mx-4" style="display: inline-block;">${renderMissionButton(mission, rank)}</span>`;
-    }    
+      missionHtml += `<span class="my-1 mx-1 missionContainer">${renderMissionButton(mission, rank)}</span>`;
+    }
     missionHtml += "</div></div>";
   }
   
