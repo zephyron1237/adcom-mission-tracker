@@ -145,7 +145,7 @@ function renderMissions() {
         }
       }
       
-      title = `Current <span class="currentRank ml-4">Rank ${rankTitle}</span>`;
+      title = `Current <span class="currentRank float-right">Rank ${rankTitle}</span>`;
     } else {
       title = `Rank ${rank}`;
     }
@@ -400,7 +400,6 @@ function advanceProgressTo() {
         fillRank++) {
     
       let rankData = missionData[fillRank].Remaining;
-      console.log(`starting fillrank ${fillRank} with rankData: ${rankData}. (Current ${missionData.Current.Remaining})`);
       for (let fillIndex = 0;
             fillIndex < rankData.length &&
               missionData.Current.Remaining.length < missionData.Current.StartingCount;
