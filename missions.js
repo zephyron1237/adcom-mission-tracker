@@ -45,6 +45,11 @@ function loadSaveData() {
   let styleConfig = localStorage.getItem("StyleConfig") || "light";
   setStyle(styleConfig);
   
+  if (localStorage.getItem("event-CompletedVisible") == null) {
+    let isNewSave = (localStorage.getItem("event-Completed") == null);
+    localStorage.setItem("event-CompletedVisible", isNewSave.toString());  // New saves start open
+  }
+  
   // Now load mission progress
   let loadedEventId = localStorage.getItem("event-Id");
   if (loadedEventId != null && loadedEventId != EVENT_ID) {
@@ -56,7 +61,7 @@ function loadSaveData() {
   } else {
     let dataString = localStorage.getItem("event-Completed");
     if (dataString) {
-      // Iterate through every mission in every rank, move completed ones to Completed.      
+      // Iterate through every mission in every rank, move completed ones to Completed.
       /* This is a little inefficient, but it preserves the completion order. */
       let completedIds = dataString.split(',');
       for (let completedId of completedIds) {
@@ -99,7 +104,7 @@ function loadSaveData() {
 }
 
 function updateSaveData() {
-	let saveData = missionData.Completed.Remaining.map(m => m.Id).join(',');
+  let saveData = missionData.Completed.Remaining.map(m => m.Id).join(',');
   localStorage.setItem("event-Completed", saveData);
   localStorage.setItem("event-Id", EVENT_ID);
 }
@@ -333,7 +338,7 @@ function getMissionIcon(resourceId, missionConditionType) {
 function toggleCompleted() {
   let element = document.getElementById('Completed-body');
   if (localStorage.getItem("event-CompletedVisible") == "true") {
-    localStorage.removeItem("event-CompletedVisible");
+    localStorage.setItem("event-CompletedVisible", "false");
     element.style.display = "none";
   } else {
     localStorage.setItem("event-CompletedVisible", "true");
