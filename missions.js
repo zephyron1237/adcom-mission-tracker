@@ -2,6 +2,7 @@ var missionData = {};
 
 function main() {
   initializeMissionData();
+  initializeInfoPopup();
   loadSaveData();
   renderMissions();
 }
@@ -35,6 +36,26 @@ function initializeMissionData() {
     // TODO: Refactor if a first rank has 2 or less missions
     missionData.Current.Remaining.push(missionData[1].Remaining.shift());
   }
+}
+
+function initializeInfoPopup() {
+  /* Based on code from https://getbootstrap.com/docs/4.0/components/modal/ */
+  $('#infoPopup').on('show.bs.modal', function (event) {
+    let button = $(event.relatedTarget); // Button that triggered the modal
+    let missionId = button.data('mission'); // Extract info from data-* attributes
+    if (!missionId) {
+      return;
+    }
+    
+    let mission = DATA.Missions.find(m => m.Id == missionId);
+    
+    let modal = $(this);
+    modal.find('.modal-title').text(describeMission(mission, "none"));
+    modal.find('#infoReward').html(describeReward(mission.Reward));
+    $(function () {
+      $('[data-toggle="popover"]').popover()
+    });
+  });
 }
 
 function loadSaveData() {
@@ -197,7 +218,7 @@ function renderMissionButton(mission, rank) {
     buttonClass += `${buttonOutlineStyle}-secondary`;
   }
   
-  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button>`;
+  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}"><strong>&#9432;</strong></a>`;
 }
 
 function clickMission(missionId) {
@@ -266,11 +287,14 @@ function getResource(id) {
 
 function resourceName(name) {
   let resource = getResource(name);
+  return resource.Plural;
+  /* Let's test without for a bit and see how it feels
   if ('StartingQty' in resource) {
     return resource.Plural;
   } else {
     return resource.Singular;
   }
+  */
 }
 
 function industryName(name) {
@@ -281,37 +305,140 @@ function industryName(name) {
   }
 }
 
-function describeMission(mission) {
+function describeMission(mission, overrideIcon = "") {
   // TODO: Maybe make this (whole codebase) Object-Oriented at some point?
   let condition = mission.Condition;
+  let iconHtml = "";
+  let textHtml = "";
   switch (condition.ConditionType) {
     case "TradesSinceSubscription":
-      return `${getMissionIcon(condition.ConditionId, condition.ConditionType)} Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
+      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
+      textHtml =`Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     case "ResearchersUpgradedSinceSubscription":
-      return `${getMissionIcon("upgrade", condition.ConditionType)} Upgrade Cards (${condition.Threshold})`;
+      iconHtml = getMissionIcon("upgrade", condition.ConditionType, overrideIcon);
+      textHtml = `Upgrade Cards (${condition.Threshold})`;
       break;
     case "ResourceQuantity":
-      return `${getMissionIcon(condition.ConditionId, condition.ConditionType)} Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
+      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
+      textHtml = `Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
       break;
     case "IndustryUnlocked":
-      // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
-      let industryIndex = DATA.Industries.findIndex(i => i.Id == condition.ConditionId);
-      let resourceId = DATA.Resources[industryIndex].Id;
-      return `${getMissionIcon(resourceId, condition.ConditionType)} Unlock ${resourceName(resourceId)}`;
+      let resourceId = getResourceByIndustry(condition.ConditionId).Id;      
+      iconHtml = getMissionIcon(resourceId, condition.ConditionType, overrideIcon);
+      textHtml = `Unlock ${resourceName(resourceId)}`;
       break;
     case "ResourcesEarnedSinceSubscription":
-      return `${getMissionIcon(condition.ConditionId, condition.ConditionType)} Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;      
+      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
+      textHtml = `Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;      
       break;
     case "ResearcherCardsEarnedSinceSubscription":
-      return `${getMissionIcon("card", condition.ConditionType)} Collect Cards (${condition.Threshold})`;
+      iconHtml = getMissionIcon("card", condition.ConditionType, overrideIcon);
+      textHtml = `Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      return `${getMissionIcon("darkscience", condition.ConditionType)} Spend Dark Science (${condition.Threshold})`;
+      iconHtml = getMissionIcon("darkscience", condition.ConditionType, overrideIcon);
+      textHtml = `Spend Dark Science (${condition.Threshold})`;
       break;
     default:
       return `Unknown mission condition: ${condition.ConditionType}`;
   }
+  
+  return `${iconHtml} ${textHtml}`;
+}
+
+function describeReward(reward) {
+  if (reward.Reward == "Resources") {
+    return `${bigNum(reward.Value)} ${resourceName(reward.RewardId)}`;
+  
+  } else if (reward.Reward == "Gacha") {
+    let gacha = DATA.GachaLootTable.find(g => g.Id == reward.RewardId);
+    if (!gacha) { return `Unknown gacha reward id: ${reward.RewardId}`; }
+    
+    if (gacha.Type == "Scripted") {
+      let script = DATA.GachaScripts.find(s => s.GachaId == gacha.Id);
+      if (!script) { return `Unknown gacha script id: ${gacha.Id}`; }      
+            
+      let gold = script.Gold ? `${script.Gold} Gold` : null;
+      let science = script.Science ? `${script.Science} <span class="resourceIcon darkscience">&nbsp;</span>` : null;      
+      let cards = script.Card.map(card => `${cardValueCount(card)}${describeResearcher(DATA.Researchers.find(r => r.Id == card.Id))}`).join(', ') || null;
+      
+      let rewards = [gold, science, cards].filter(x => x != null).join('. ');
+      
+      return `Scripted <span class="capsule ${script.MimicGachaId}">&nbsp;</span>: ${rewards}`;
+    } else {
+      return `Random <span class="capsule ${reward.RewardId}">&nbsp;</span>`;
+    }
+    
+  } else {    
+    return `Unknown reward: ${reward.Reward}`;
+  }
+}
+
+function describeResearcher(researcher) {
+  let details = "";
+  let vals, resources;
+  switch (researcher.ModType) {
+    case "GenManagerAndSpeedMult":
+      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
+      details = `Speeds up ${resourceName(researcher.TargetIds[0])} by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      break;
+    case "TradePayoutMultiplier":
+      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
+      resources = researcher.TargetIds[0].split(/, ?/).map(res => resourceName(res)).join('/');
+      details = `Trading ${resources} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
+      break;
+    case "GeneratorPayoutMultiplier":
+      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
+      resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
+      details = `Multiplies output of every ${resources}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      break;
+    case "GeneratorCritChance":
+      vals = [researcher.BasePower + 1 * researcher.CurveModifier + 1 * researcher.UpgradePower,
+              researcher.BasePower + 2 * researcher.CurveModifier + 4 * researcher.UpgradePower,
+              researcher.BasePower + 3 * researcher.CurveModifier + 9 * researcher.UpgradePower];
+      vals = vals.map(v => `${+(v * 100).toFixed(2)}%`);
+      resources = researcher.TargetIds[0].split(/, ?/)
+      console.log(resources);
+      resources = resources.map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
+      details = `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
+      break;
+    case "GeneratorCostReduction":
+      // TODO once I implement Motherland
+      break;
+    case "GeneratorCritPowerMult":
+      // TODO once I implement Motherland
+      break;  
+    case "GachaCardsPayoutMultiplier":
+      // TODO once I implement Motherland
+      break;
+    case "GachaSciencePayoutMultiplier":
+      // TODO once I implement Motherland
+      break;
+    case "GachaResourcePayoutMultiplier":
+      // TODO once I implement Motherland
+      break;
+    default:
+      details = `Unknown researcher ModType "${researcher.ModType}"`;
+  }
+  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-content="${details}">${researcher.Name}</a>`;
+}
+
+function getResourceByIndustry(industryId) {
+  // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
+  let industryIndex = DATA.Industries.findIndex(i => i.Id == industryId);
+  return DATA.Resources[industryIndex];
+}
+
+function cardValueCount(card) {
+  // Trying to decide between hiding 1x. I think I want it.
+  return `${card.Value}x `;
 }
 
 var MISSION_EMOJI = {
@@ -324,8 +451,8 @@ var MISSION_EMOJI = {
   ResourcesSpentSinceSubscription: "&#9879;"
 };
 
-function getMissionIcon(resourceId, missionConditionType) {
-  let iconConfig = localStorage.getItem("IconConfig");
+function getMissionIcon(resourceId, missionConditionType, overrideIcon = "") {
+  let iconConfig = overrideIcon || localStorage.getItem("IconConfig");
   if (iconConfig == "none") {
     return "";
   } else if (iconConfig == "emoji") {
@@ -382,14 +509,14 @@ function advanceProgressTo() {
   }
   
   // Go through every mission in every rank and move all with Rank < rank to Completed.
-  for (let clearRank in missionData) {
-    if (clearRank == "Completed") {
-      continue;
-    }
-    
+  // Start with current, then just the numbered ranks.
+  let clearRanks = ["Current", ...Object.keys(missionData).filter(r => r <= rank)];
+  for (let clearRank of clearRanks) {  
     let rankData = missionData[clearRank].Remaining;
+
     for (let clearIndex = 0; clearIndex < rankData.length; clearIndex++) {
       let mission = rankData[clearIndex];
+      
       if (mission.Rank < rank) {
         rankData.splice(clearIndex, 1);
         missionData.Completed.Remaining.push(mission);

@@ -67,6 +67,16 @@ input:checked + .slider:before {
   color: #788781;	
 }
 
+.researcherName {
+  text-decoration: underline dotted;
+  color: inherit;
+}
+
+.researcherName:hover {
+  text-decoration: underline dotted;
+  color: inherit;
+}
+
 .resourceIcon {
   height:1.5em;
   width:1.5em;
@@ -74,6 +84,27 @@ input:checked + .slider:before {
   background-repeat: no-repeat;
   background-position: center;
   display: inline-block;
+}
+
+.capsule {
+  height: 1.5em;
+  width: 1.2em;
+  background-size: contain;
+  background-repeat: no-repeat;
+	background-position: center;  
+  display: inline-block;
+}
+
+.plastic {
+  background-image: url("img/plastic.png");
+}
+
+.armored {
+  background-image: url("img/armored.png");
+}
+
+.darkscience {
+  background-image: url("img/darkscience.png");
 }
 
 .missionContainer {
