@@ -55,6 +55,7 @@ function initializeInfoPopup() {
     $(function () {
       $('[data-toggle="popover"]').popover()
     });
+    modal.find('#calc').html(renderCalculator(mission));
   });
 }
 
@@ -273,6 +274,39 @@ function bigNum(x) {
   return `${+mantissa.toFixed(2)} ${POWERS[thousands - 2]}`;
 }
 
+function fromBigNum(x) {
+  // TODO: make a better regex that can pick up non-spaces maybe?
+  if (x == null) {
+    return NaN;
+  }
+
+  let split = x.toString().trim().split(/ +/);
+  
+  if (split.length == 1) {
+    return Number(split[0]);
+  } else if (split.length == 2) {
+    let powerIndex = POWERS.indexOf(split[1].toUpperCase());
+    let mantissa = Number(split[0]);
+    if (powerIndex != -1 && !isNaN(mantissa)) {
+      return mantissa * Math.pow(1000, powerIndex + 2);
+    }
+  }
+  
+  return NaN;
+}
+
+var generatorsById = null;
+function getGenerator(id) {
+  if (generatorsById == null) {
+    generatorsById = {};
+    for (let generator of DATA.Generators) {
+      generatorsById[generator.Id] = generator;
+    }
+  }
+  
+  return generatorsById[id];
+}
+
 var resourcesById = null;
 function getResource(id) {
   if (resourcesById == null) {
@@ -404,8 +438,7 @@ function describeResearcher(researcher) {
               researcher.BasePower + 2 * researcher.CurveModifier + 4 * researcher.UpgradePower,
               researcher.BasePower + 3 * researcher.CurveModifier + 9 * researcher.UpgradePower];
       vals = vals.map(v => `${+(v * 100).toFixed(2)}%`);
-      resources = researcher.TargetIds[0].split(/, ?/)
-      console.log(resources);
+      resources = researcher.TargetIds[0].split(/, ?/);
       resources = resources.map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
       details = `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
       break;
@@ -435,7 +468,13 @@ function getResourceByIndustry(industryId) {
   let industryIndex = DATA.Industries.findIndex(i => i.Id == industryId);
   return DATA.Resources[industryIndex];
 }
-
+  
+function getIndustryByResource(resourceId) {
+  // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
+  let resourceIndex = DATA.Resources.findIndex(r => r.Id == resourceId);
+  return DATA.Industries[resourceIndex];
+}
+  
 function cardValueCount(card) {
   // Trying to decide between hiding 1x. I think I want it.
   return `${card.Value}x `;
@@ -557,5 +596,206 @@ function resetProgress() {
   }
 }
 
+function renderCalculator(mission) {
+  let condition = mission.Condition;
+  let conditionType = condition.ConditionType;
+  if (["ResourceQuantity", "IndustryUnlocked", "ResourcesEarnedSinceSubscription"].includes(conditionType)) {
+    // First figure out which industry to display and calculate
+    let industryId = "";
+    if (conditionType == "ResourceQuantity") {
+      industryId = getGenerator(condition.ConditionId).IndustryId;
+    } else if (conditionType == "IndustryUnlocked") {
+      // Choose the industry to the left of the one to unlock.
+      let unlockableIndustryIndex = DATA.Industries.findIndex(i => i.Id == condition.ConditionId);
+      industryId = DATA.Industries[unlockableIndustryIndex - 1].Id;
+    } else if (conditionType == "ResourcesEarnedSinceSubscription") {
+      industryId = getIndustryByResource(condition.ConditionId).Id;
+    }
+    
+    // Display comrade inputs, shared inputs, and generator inputs
+    let html = `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon comrades">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="comrades" placeholder="# of Comrades"></div><div class="col-sm-1 my-auto resourceIcon comradesPerSec">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="comradesPerSec" placeholder="Comrades/second"></div></div>`;
+    html += `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon power">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="power" placeholder="Power"></div><div class="col-sm-1 my-auto resourceIcon discount">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="discount" placeholder="Discount"></div></div>`;
+    html += `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon critChance">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="critChance" placeholder="Crit Chance %"></div><div class="col-sm-1 my-auto resourceIcon critPower">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="critPower" placeholder="Crit Power"></div></div>`;
+    
+    let generators = DATA.Generators.filter(g => g.IndustryId == industryId);
+    for (let generator of generators) {
+      let id = generator.Id;
+      let name = resourceName(id);
+      html += `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon" style="background-image: url('img/${id}.png');">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></div><div class="col-sm-1 my-auto resourceIcon speed">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></div></div>`;
+    }
+    
+    let resource = getResourceByIndustry(industryId);
+    html += `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon" style="background-image: url('img/${resource.Id}.png');">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="resources" placeholder="# of ${resourceName(resource.Id)}"></div>`;
+    if (conditionType == "ResourcesEarnedSinceSubscription") {
+      html += `<div class="col-sm-1 my-auto resourceIcon" style="background-image: url('img/${resource.Id}.png');">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></div>`;
+    }
+    html += "</div>";
+    
+    html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
+    html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
+    html += `<p><button id="calcButton" class="btn btn-primary" type="button" onclick="doProductionSim()">Calculate!</button></p>`;
+    
+    return html;
+  } else {
+    return "Mission type currently unsupported.  Check back next event!";
+  }
+}
+
+function doProductionSim() {
+  let simData = getProductionSimDataFromForm();
+  
+  if (simData.Errors != 0) {
+    $('#result').text(`Please fix ${simData.Errors} issue${(simData.Errors > 1)?"s":""}, and Calculate again.`);
+    return;
+  } else {
+    $('#result').text("");
+  }
+  
+  $('#calcButton').attr('disabled', 'true');
+  $('#calcButton').addClass('disabled');
+  
+  let result = simulateProductionMission(simData);
+  
+  $('#calcButton').removeAttr('disabled');
+  $('#calcButton').removeClass('disabled');
+  
+  if (result == -1) {
+    $('#result').text(`ETA: More than 24 hours.`);
+  } else {
+    /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
+    $('#result').text(`ETA: ${new Date(result * 1000).toISOString().substr(11, 8)}`);
+  }
+}
+
+function getProductionSimDataFromForm() {
+  let industryId = $('#industryId').val();
+  let resourceId = getResourceByIndustry(industryId).Id;
+  let missionId = $('#missionId').val();
+  let mission = DATA.Missions.find(m => m.Id == missionId);
+  let generators = DATA.Generators.filter(g => g.IndustryId == industryId);
+  
+  let simData = { Generators: [], Counts: {}, Errors: 0, Mission: mission };
+  
+  // Dig out and parse each number in the form.
+  let comrades = getValueFromForm('#comrades', 0, simData);
+  let comradesPerSec = getValueFromForm('#comradesPerSec', 0, simData);
+  let power = getValueFromForm('#power', 1, simData);
+  let discount = getValueFromForm('#discount', 1, simData);
+  let critChance = getValueFromForm('#critChance', 0, simData) / 100;
+  let critPower = getValueFromForm('#critPower', generators[0].Crit.Multiplier, simData);
+  
+  simData.Generators.push({Id: "comradegenerator", Resource: "comrade", QtyPerSec: comradesPerSec, Cost: []});
+  simData.Counts["comrade"] = comrades;
+  simData.Counts["comradegenerator"] = 1;
+    
+  for (let generator of generators) {
+    let genCount = getValueFromForm(`#${generator.Id}-count`, 0, simData);
+    let genSpeed = getValueFromForm(`#${generator.Id}-speed`, 0, simData);
+    
+    let costs = generator.Cost.map(c => ({ Resource: c.Resource.toLowerCase(), Qty: Number(c.Qty) }));
+    
+    simData.Generators.push(({
+      Id: generator.Id,
+      Resource: generator.Generate.Resource,
+      QtyPerSec: generator.Generate.Qty / generator.BaseCompletionTime * power * genSpeed * (critChance * critPower + 1 - critChance),      
+      Cost: costs
+    }));
+    
+    simData.Counts[generator.Id] = genCount;
+  }
+  
+  let resources = getValueFromForm('#resources', 0, simData);
+  simData.Counts[resourceId] = resources;
+
+  let resourceProgress = 0;
+  if (mission.Condition.ConditionType == "ResourcesEarnedSinceSubscription") {
+    resourceProgress = getValueFromForm('#resourceProgress', 0, simData);    
+  }
+  simData.Counts["resourceProgress"] = resourceProgress;
+  
+  return simData;
+}
+
+function getValueFromForm(inputId, defaultValue, simData) {
+  let value = fromBigNum($(inputId).val());
+  if (isNaN(value)) {
+    $(inputId).addClass('is-invalid');
+    simData.Errors += 1;
+  } else {
+    $(inputId).removeClass('is-invalid');
+  }
+  
+  return value || defaultValue;
+}
+
+function simulateProductionMission(simData) {
+  const DELTA_TIME = 0.2;
+  const MAX_TIME = 60 * 60 * 24; // 24h
+  
+  // First determine the goals, e.g. { Resource: "potato", Qty: 150 }
+  let goals = [];
+  let condition = simData.Mission.Condition;
+  switch(condition.ConditionType) {
+    case "ResourcesEarnedSinceSubscription":
+      goals = [{ Resource: "resourceProgress", Qty: condition.Threshold }];
+      break;
+    case "IndustryUnlocked":
+      let industry = DATA.Industries.find(i => i.Id == condition.ConditionId);
+      goals = [{ Resource: industry.UnlockCostResourceId, Qty: industry.UnlockCostResourceQty }];
+      break;
+    case "ResourceQuantity":
+      // Instead of directly waiting until we get N generators, we figure out the cost difference
+      // This allows us to be forced into autobuying (which actually isn't always better anyway!)
+      let gensNeeded = condition.Threshold - simData.Counts[condition.ConditionId];
+      for (let cost of simData.Generators.find(g => g.Id == condition.ConditionId).Cost) {
+        if (cost.Resource == "comrade") {
+          goals.push(({ Resource: "comradeProgress", Qty: cost.Qty * gensNeeded }));
+          simData.Counts["comradeProgress"] = simData.Counts["comrade"];
+        } else if (cost.Resource == simData.Generators[1].Resource) {
+          goals.push(({ Resource: "resourceProgress", Qty: cost.Qty * gensNeeded }));
+          simData.Counts["resourceProgress"] = simData.Counts[simData.Generators[1].Resource];
+        } else {
+          // the generator before it
+          goals.push(({ Resource: cost.Resource, Qty: cost.Qty * gensNeeded }));
+        }
+      }
+      //goal = { Resource: condition.ConditionId, Qty: condition.Threshold };
+      break;
+    default:
+      console.log(`Error: Weird situation! Simulating unknown ConditionType=${condition.ConditionType}`);
+  }
+  
+  // Now do the iteration
+  let time;
+  for (time = 0; time < MAX_TIME && !metGoals(simData, goals); time += DELTA_TIME) {
+    for (let genIndex in simData.Generators) {
+      let generator = simData.Generators[genIndex];
+      simData.Counts[generator.Resource] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
+      
+      // index 0 & 1 make comrades & resources, so they also counts toward "comradeProgress" & "resourceProgress"
+      if (genIndex == 0) {
+        simData.Counts["comradeProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
+      } else if (genIndex == 1) {
+        simData.Counts["resourceProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
+      }
+    }
+  }
+  
+  if (time >= MAX_TIME) {
+    return -1;
+  } else {
+    return time;
+  }
+}
+
+function metGoals(simData, goals) {
+  for (let goal of goals) {
+    if (simData.Counts[goal.Resource] < goal.Qty) {
+      return false;
+    }
+  }
+  
+  return true;
+}
 
 main();

@@ -107,6 +107,34 @@ input:checked + .slider:before {
   background-image: url("img/darkscience.png");
 }
 
+.comrades {
+  background-image: url("img/comrade.png");
+}
+
+.comradesPerSec {
+  background-image: url("img/comrades_per_second.png");
+}
+
+.power {
+  background-image: url("img/boost_power.png");
+}
+
+.discount {
+  background-image: url("img/discount.png");
+}
+
+.critChance {
+  background-image: url("img/crit_chance.png");
+}
+
+.critPower {
+  background-image: url("img/crit_power.png");
+}
+
+.speed {
+  background-image: url("img/speed.png");
+}
+
 .missionContainer {
   display: inline-block;
 }
