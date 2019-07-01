@@ -53,6 +53,15 @@
         <div class="modal-body">
           <form>
             <p><strong>Reward:</strong> <span id="infoReward"></span></p>
+            <div class ="alert alert-warning" role="alert">
+              Calculator is in <strong>BETA</strong>. Be wary of results. <a href="#calcDetails" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="calcDetails" class="alert-link">(Details/Tips)</a>
+              <div class="collapse" id="calcDetails"><div><strong>Details:</strong> The calculator does a basic simulation, normalizing each generator's output rate and running until the goal is met or it reaches 24h.  This averages out things like crits and long run speeds, which introduces some error.  The calculator currently does not take airdrops or unlocking new generators into account.  Please let me know if you find any issues or have a suggestion.</div>
+                <div><strong>Tips:</strong><ul>
+                  <li>Enter numbers like <code>1.52 AA</code> with a space in-between.</li>
+                  <li>Leave <var>Speed</var> blank or <code>0</code> if not running, use <code>1</code> if you are manually running it constantly, <code>0.5</code> if you're manually running it half the time, etc.</li>
+                </ul></div>
+              </div>
+            </div>
             <p><strong>Calculator:</strong> <div id="calc"></div></p>
           </form>
         </div>

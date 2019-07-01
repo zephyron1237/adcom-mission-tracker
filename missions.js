@@ -52,10 +52,12 @@ function initializeInfoPopup() {
     let modal = $(this);
     modal.find('.modal-title').text(describeMission(mission, "none"));
     modal.find('#infoReward').html(describeReward(mission.Reward));
-    $(function () {
-      $('[data-toggle="popover"]').popover()
-    });
     modal.find('#calc').html(renderCalculator(mission));
+    
+    $(function () {
+      $('[data-toggle="popover"]').popover();
+      loadFormValues();
+    });
   });
 }
 
@@ -79,6 +81,7 @@ function loadSaveData() {
     // TODO: It might be nice to inform the user this just happened besides the log.
     console.log(`Event ${loadedEventId} is outdated.  Clearing save data.`);
     localStorage.removeItem("event-Completed");
+    localStorage.removeItem("event-FormValues");
     localStorage.setItem("event-Id", EVENT_ID);
   } else {
     let dataString = localStorage.getItem("event-Completed");
@@ -271,7 +274,7 @@ function bigNum(x) {
   let digits = Math.floor(Math.log10(x));
   let thousands = Math.floor(digits / 3);
   let mantissa = x / Math.pow(10, thousands * 3);
-  return `${+mantissa.toFixed(2)} ${POWERS[thousands - 2]}`;
+  return `${+mantissa.toFixed(2)} ${POWERS[thousands - 1]}`;
 }
 
 function fromBigNum(x) {
@@ -284,11 +287,12 @@ function fromBigNum(x) {
   
   if (split.length == 1) {
     return Number(split[0]);
-  } else if (split.length == 2) {
+    
+  } else if (split.length == 2) {    
     let powerIndex = POWERS.indexOf(split[1].toUpperCase());
     let mantissa = Number(split[0]);
     if (powerIndex != -1 && !isNaN(mantissa)) {
-      return mantissa * Math.pow(1000, powerIndex + 2);
+      return mantissa * Math.pow(1000, powerIndex + 1);
     }
   }
   
@@ -591,6 +595,7 @@ function resetProgress() {
   /* Maybe do a post-1990 solution to this? */
   if (confirm("Are you sure you want to RESET your mission progress?")) {
     localStorage.removeItem("event-Completed");
+    localStorage.removeItem("event-FormValues");
     initializeMissionData();
     renderMissions();
   }
@@ -630,6 +635,8 @@ function renderCalculator(mission) {
       html += `<div class="col-sm-1 my-auto resourceIcon" style="background-image: url('img/${resource.Id}.png');">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></div>`;
     }
     html += "</div>";
+    
+    html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label></div>`;
     
     html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
@@ -674,23 +681,25 @@ function getProductionSimDataFromForm() {
   let mission = DATA.Missions.find(m => m.Id == missionId);
   let generators = DATA.Generators.filter(g => g.IndustryId == industryId);
   
-  let simData = { Generators: [], Counts: {}, Errors: 0, Mission: mission };
+  let simData = { Generators: [], Counts: {}, Mission: mission, IndustryId: industryId, Errors: 0, Config: {} };
   
   // Dig out and parse each number in the form.
-  let comrades = getValueFromForm('#comrades', 0, simData);
-  let comradesPerSec = getValueFromForm('#comradesPerSec', 0, simData);
-  let power = getValueFromForm('#power', 1, simData);
-  let discount = getValueFromForm('#discount', 1, simData);
-  let critChance = getValueFromForm('#critChance', 0, simData) / 100;
-  let critPower = getValueFromForm('#critPower', generators[0].Crit.Multiplier, simData);
+  let formValues = {};
+  let globalFormValues = {};
+  let comrades = getValueFromForm('#comrades', 0, simData, null);
+  let comradesPerSec = getValueFromForm('#comradesPerSec', 0, simData, globalFormValues);
+  let power = getValueFromForm('#power', 1, simData, formValues);
+  let discount = getValueFromForm('#discount', 1, simData, formValues);
+  let critChance = getValueFromForm('#critChance', 0, simData, formValues) / 100;
+  let critPower = getValueFromForm('#critPower', generators[0].Crit.Multiplier, simData, formValues);
   
   simData.Generators.push({Id: "comradegenerator", Resource: "comrade", QtyPerSec: comradesPerSec, Cost: []});
   simData.Counts["comrade"] = comrades;
   simData.Counts["comradegenerator"] = 1;
     
   for (let generator of generators) {
-    let genCount = getValueFromForm(`#${generator.Id}-count`, 0, simData);
-    let genSpeed = getValueFromForm(`#${generator.Id}-speed`, 0, simData);
+    let genCount = getValueFromForm(`#${generator.Id}-count`, 0, simData, null);
+    let genSpeed = getValueFromForm(`#${generator.Id}-speed`, 0, simData, formValues);
     
     let costs = generator.Cost.map(c => ({ Resource: c.Resource.toLowerCase(), Qty: Number(c.Qty) }));
     
@@ -704,35 +713,90 @@ function getProductionSimDataFromForm() {
     simData.Counts[generator.Id] = genCount;
   }
   
-  let resources = getValueFromForm('#resources', 0, simData);
+  let resources = getValueFromForm('#resources', 0, simData, null);
   simData.Counts[resourceId] = resources;
 
   let resourceProgress = 0;
   if (mission.Condition.ConditionType == "ResourcesEarnedSinceSubscription") {
-    resourceProgress = getValueFromForm('#resourceProgress', 0, simData);    
+    resourceProgress = getValueFromForm('#resourceProgress', 0, simData, null);
   }
   simData.Counts["resourceProgress"] = resourceProgress;
+  
+  simData.Config.Autobuy = $('#configAutobuy').is(':checked');
+  
+  saveFormValues(formValues, industryId);
+  saveFormValues(globalFormValues, "global");
   
   return simData;
 }
 
-function getValueFromForm(inputId, defaultValue, simData) {
+function getValueFromForm(inputId, defaultValue, simData, formValues) {
   let value = fromBigNum($(inputId).val());
+  let result = value || defaultValue;
+
   if (isNaN(value)) {
     $(inputId).addClass('is-invalid');
     simData.Errors += 1;
   } else {
     $(inputId).removeClass('is-invalid');
+    
+    if (formValues) {
+      formValues[inputId] = result;
+    }
+
+    if (value == "") {
+      // If the input was empty, fill it in automatically
+      $(inputId).val(bigNum(result));
+    }
   }
   
-  return value || defaultValue;
+  return result;
+}
+
+function saveFormValues(formValues, industryId) {
+  let allFormValues = {};
+  
+  let valuesString = localStorage.getItem("event-FormValues");
+  if (valuesString) {
+    allFormValues = JSON.parse(valuesString);
+  }
+  
+  allFormValues[industryId] = formValues;
+  
+  localStorage.setItem("event-FormValues", JSON.stringify(allFormValues));
+}
+
+function loadFormValues() {
+  let valuesString = localStorage.getItem("event-FormValues");
+  if (!valuesString) {
+    return;
+  }
+  
+  let industryId = $('#industryId').val();
+  let formValues = JSON.parse(valuesString);
+  let industryValues = [...formValues[industryId], ...formValues["global"]];
+  for (let inputId in industryValues) {
+    $(inputId).val(bigNum(industryValues[inputId]));
+  }
 }
 
 function simulateProductionMission(simData) {
   const DELTA_TIME = 0.2;
   const MAX_TIME = 60 * 60 * 24; // 24h
   
-  // First determine the goals, e.g. { Resource: "potato", Qty: 150 }
+  // First, handle autobuy, if enabled.
+  let autobuyGenerator = null;
+  if (simData.Config.Autobuy) {
+    // search backwards through the generators for the first one with >0
+    for (let genIndex = simData.Generators.length - 1; genIndex >= 0; genIndex--) {
+      if (simData.Counts[simData.Generators[genIndex].Id] > 0) {
+        autobuyGenerator = simData.Generators[genIndex];
+        break;
+      }
+    }
+  }
+  
+  // Second, determine the goals, e.g. { Resource: "potato", Qty: 150 }
   let goals = [];
   let condition = simData.Mission.Condition;
   switch(condition.ConditionType) {
@@ -745,7 +809,7 @@ function simulateProductionMission(simData) {
       break;
     case "ResourceQuantity":
       // Instead of directly waiting until we get N generators, we figure out the cost difference
-      // This allows us to be forced into autobuying (which actually isn't always better anyway!)
+      // This allows us not to be forced into autobuying (which actually isn't always better anyway!)
       let gensNeeded = condition.Threshold - simData.Counts[condition.ConditionId];
       for (let cost of simData.Generators.find(g => g.Id == condition.ConditionId).Cost) {
         if (cost.Resource == "comrade") {
@@ -764,10 +828,11 @@ function simulateProductionMission(simData) {
     default:
       console.log(`Error: Weird situation! Simulating unknown ConditionType=${condition.ConditionType}`);
   }
-  
+    
   // Now do the iteration
   let time;
   for (time = 0; time < MAX_TIME && !metGoals(simData, goals); time += DELTA_TIME) {
+    // Run each generator, starting from comrades and lowest-tier first.
     for (let genIndex in simData.Generators) {
       let generator = simData.Generators[genIndex];
       simData.Counts[generator.Resource] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
@@ -778,6 +843,15 @@ function simulateProductionMission(simData) {
       } else if (genIndex == 1) {
         simData.Counts["resourceProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
       }
+    }
+    
+    // After generating, handle autobuying
+    if (autobuyGenerator) {
+      let buyCount = getBuyCount(simData, autobuyGenerator);
+      for (let cost of autobuyGenerator.Cost) {
+        simData.Counts[cost.Resource] -= cost.Qty * buyCount;
+      }
+      simData.Counts[autobuyGenerator.Id] += buyCount;
     }
   }
   
@@ -796,6 +870,12 @@ function metGoals(simData, goals) {
   }
   
   return true;
+}
+
+// Calculates how many of a given generator can be bought with the current resources
+function getBuyCount(simData, generator) {
+  let buyCounts = generator.Cost.map(cost => Math.floor(simData.Counts[cost.Resource] / cost.Qty));
+  return Math.min(...buyCounts);  
 }
 
 main();
