@@ -141,7 +141,7 @@ input:checked + .slider:before {
 
 @media screen and (max-width: 600px) {
   .missionContainer { margin: .25rem .25rem .25rem .25rem }
-  .missionContainer > button { width: 300px; }
+  .missionContainer > button { width: 250px; }
 }
 
 @media screen and (min-width: 601px) and (max-width: 700px) {
@@ -156,5 +156,5 @@ input:checked + .slider:before {
 
 @media screen and (min-width: 1101px) {
   .missionContainer { margin: .25rem 1rem .25rem 1rem }
-  .missionContainer > button { width: 250px; }
+  .missionContainer > button { width: 300px; }
 }
