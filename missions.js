@@ -370,7 +370,7 @@ function describeMission(mission, overrideIcon = "") {
       break;
     case "ResourceQuantity":
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
-      textHtml = `Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;
+      textHtml = `Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold).replace(/ /g, '&nbsp;')})`;
       break;
     case "IndustryUnlocked":
       let resourceId = getResourceByIndustry(condition.ConditionId).Id;      
@@ -379,7 +379,7 @@ function describeMission(mission, overrideIcon = "") {
       break;
     case "ResourcesEarnedSinceSubscription":
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
-      textHtml = `Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold)})`;      
+      textHtml = `Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold).replace(/ /g, '&nbsp;')})`;
       break;
     case "ResearcherCardsEarnedSinceSubscription":
       iconHtml = getMissionIcon("card", condition.ConditionType, overrideIcon);
