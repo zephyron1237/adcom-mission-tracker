@@ -95,6 +95,16 @@ input:checked + .slider:before {
   display: inline-block;
 }
 
+.calcTable {
+  width: 100%;
+  border-collapse:separate;
+  border-spacing: 0 .5rem;
+}
+
+.calcTable td {
+  width: 50%;  
+}
+
 .plastic {
   background-image: url("img/plastic.png");
 }
@@ -137,6 +147,11 @@ input:checked + .slider:before {
 
 .missionContainer {
   display: inline-block;
+}
+
+.calcInputContainer {
+  overflow: hidden;
+  display: block;
 }
 
 @media screen and (max-width: 400px) {

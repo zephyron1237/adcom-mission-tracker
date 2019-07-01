@@ -629,23 +629,25 @@ function renderCalculator(mission) {
     }
     
     // Display comrade inputs, shared inputs, and generator inputs
-    let html = `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon comrades">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="comrades" placeholder="# of Comrades"></div><div class="col-sm-1 my-auto resourceIcon comradesPerSec">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="comradesPerSec" placeholder="Comrades/second"></div></div>`;
-    html += `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon power">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="power" placeholder="Power"></div><div class="col-sm-1 my-auto resourceIcon discount">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="discount" placeholder="Discount"></div></div>`;
-    html += `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon critChance">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="critChance" placeholder="Crit Chance %"></div><div class="col-sm-1 my-auto resourceIcon critPower">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="critPower" placeholder="Crit Power"></div></div>`;
+    let html = `<table class="calcTable"><tr><td class="pr-3"><span class="mt-1 resourceIcon comrades float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="comrades" placeholder="# of Comrades"></span></td><td><span class="mt-1 resourceIcon comradesPerSec float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="comradesPerSec" placeholder="Comrades/second"></span></td></tr>`;
+    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon power float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="power" placeholder="Power"></span></td><td><span class="mt-1 resourceIcon discount float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="discount" placeholder="Discount"></span></td></tr>`;
+    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon critChance float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="critChance" placeholder="Crit Chance"></span></td><td><span class="mt-1 resourceIcon critPower float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="critPower" placeholder="Crit Power"></span></td></tr>`;
     
     let generators = DATA.Generators.filter(g => g.IndustryId == industryId);
     for (let generator of generators) {
       let id = generator.Id;
       let name = resourceName(id);
-      html += `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon" style="background-image: url('img/${id}.png');">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></div><div class="col-sm-1 my-auto resourceIcon speed">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></div></div>`;
+      html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></span></td><td><span class="mt-1 resourceIcon speed float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></span></td></tr>`;
     }
     
     let resource = getResourceByIndustry(industryId);
-    html += `<div class="form-group row"><div class="col-sm-1 my-auto resourceIcon" style="background-image: url('img/${resource.Id}.png');">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="resources" placeholder="# of ${resourceName(resource.Id)}"></div>`;
+    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resources" placeholder="# of ${resourceName(resource.Id)}"></span></td>`;
     if (conditionType == "ResourcesEarnedSinceSubscription") {
-      html += `<div class="col-sm-1 my-auto resourceIcon" style="background-image: url('img/${resource.Id}.png');">&nbsp;</div><div class="col-sm-5 pl-0"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></div>`;
+      html += `<td><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></span></td></tr>`;
+    } else {
+      html += "<td></td></tr>";
     }
-    html += "</div>";
+    html += "</table>";
     
     html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label></div>`;
     
