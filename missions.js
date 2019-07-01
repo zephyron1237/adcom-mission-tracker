@@ -286,17 +286,28 @@ function fromBigNum(x) {
   let split = x.toString().trim().split(/ +/);
   
   if (split.length == 1) {
-    return Number(split[0]);
+    return parseLocaleNumber(split[0]);
     
   } else if (split.length == 2) {    
     let powerIndex = POWERS.indexOf(split[1].toUpperCase());
-    let mantissa = Number(split[0]);
+    let mantissa = parseLocaleNumber(split[0]);
     if (powerIndex != -1 && !isNaN(mantissa)) {
       return mantissa * Math.pow(1000, powerIndex + 1);
     }
   }
   
   return NaN;
+}
+
+/* From https://stackoverflow.com/questions/12004808/does-javascript-take-local-decimal-separators-into-account/42213804#42213804 */
+function parseLocaleNumber(stringNumber) {
+  var thousandSeparator = (1111).toLocaleString().replace(/1/g, '');
+  var decimalSeparator = (1.1).toLocaleString().replace(/1/g, '');
+
+  return Number(stringNumber
+    .replace(new RegExp('\\' + thousandSeparator, 'g'), '')
+    .replace(new RegExp('\\' + decimalSeparator), '.')
+  );
 }
 
 var generatorsById = null;
@@ -638,6 +649,10 @@ function renderCalculator(mission) {
     
     html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label></div>`;
     
+    if (conditionType == "ResourceQuantity") {
+      html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configComradeLimited" onclick="clickComradeLimited('${condition.ConditionId}')"><label class="form-check-label" for="configComradeLimited">Limited by comrades only</label></div>`;
+    }
+    
     html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
     html += `<p><button id="calcButton" class="btn btn-primary" type="button" onclick="doProductionSim()">Calculate!</button></p>`;
@@ -646,6 +661,11 @@ function renderCalculator(mission) {
   } else {
     return "Mission type currently unsupported.  Check back next event!";
   }
+}
+
+function clickComradeLimited(generatorId) {
+  let checked = $('#configComradeLimited').is(':checked');
+  $("#calc input[type='text']").not(`#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
 }
 
 function doProductionSim() {
@@ -661,7 +681,12 @@ function doProductionSim() {
   $('#calcButton').attr('disabled', 'true');
   $('#calcButton').addClass('disabled');
   
-  let result = simulateProductionMission(simData);
+  let result;
+  if (simData.Config.ComradeLimited) {
+    result = calcLimitedComrades(simData);
+  } else {
+    result = simulateProductionMission(simData);
+  }
   
   $('#calcButton').removeAttr('disabled');
   $('#calcButton').removeClass('disabled');
@@ -723,6 +748,7 @@ function getProductionSimDataFromForm() {
   simData.Counts["resourceProgress"] = resourceProgress;
   
   simData.Config.Autobuy = $('#configAutobuy').is(':checked');
+  simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');
   
   saveFormValues(formValues, industryId);
   saveFormValues(globalFormValues, "global");
@@ -774,9 +800,33 @@ function loadFormValues() {
   
   let industryId = $('#industryId').val();
   let formValues = JSON.parse(valuesString);
-  let industryValues = [...formValues[industryId], ...formValues["global"]];
-  for (let inputId in industryValues) {
-    $(inputId).val(bigNum(industryValues[inputId]));
+  
+  // combine any values that may exist for the industry or globally
+  let industryValues = formValues[industryId] || {};
+  let globalValues = formValues["global"] || {};
+  let combinedValues = {...industryValues, ...globalValues};
+  
+  for (let inputId in combinedValues) {
+    $(inputId).val(bigNum(combinedValues[inputId]));
+  }
+}
+
+function calcLimitedComrades(simData) {
+  let condition = simData.Mission.Condition;
+  
+  let generator = simData.Generators.find(g => g.Id == condition.ConditionId);
+  let comradeCost = generator.Cost.find(c => c.Resource == "comrade");
+  
+  let comradeGenerator = simData.Generators[0]; // Assumes the first Generator is for comrades.
+  if (!comradeCost || !comradeGenerator || comradeGenerator.QtyPerSec == 0) {
+    return -1;
+  }
+  
+  let gensNeeded = condition.Threshold - simData.Counts[condition.ConditionId];
+  if (gensNeeded <= 0) {
+    return 0;
+  } else {
+    return gensNeeded * comradeCost.Qty / comradeGenerator.QtyPerSec;
   }
 }
 

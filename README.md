@@ -8,9 +8,11 @@ Hosted at: <https://zephyron1237.github.io/adcom-mission-tracker/>
 
 Click on missions in the "Current" area to mark them as Completed.  Click missions in the "Completed" area to undo that, kicking the newest mission back out.
 
+Each mission has a (i) button next to it.  Clicking this brings up a pop-up with details on the mission, as well as a calculator.  Click "Details" on the calculator for more info.
+
 ## Thanks
 
-The Atlantis and Crusade json data was provided by The_Random_Guy on the AdCom discord.  Emoji selection mostly taken from the discord #mission-list (currently maintained by Julian).
+Images taken from the wiki. Some json data was provided by The_Random_Guy on the AdCom discord.  Emoji selection mostly taken from the Discord #mission-list (currently maintained by Julian).
 
 ## Contributing
 
