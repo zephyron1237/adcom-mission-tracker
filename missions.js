@@ -56,6 +56,7 @@ function initializeInfoPopup() {
     
     $(function () {
       $('[data-toggle="popover"]').popover();
+      $('#numberExample').html(bigNum(1530000000000000));
       loadFormValues();
     });
   });
