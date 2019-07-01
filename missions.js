@@ -50,7 +50,7 @@ function initializeInfoPopup() {
     let mission = DATA.Missions.find(m => m.Id == missionId);
     
     let modal = $(this);
-    modal.find('.modal-title').text(describeMission(mission, "none"));
+    modal.find('.modal-title').html(describeMission(mission, "none"));
     modal.find('#infoReward').html(describeReward(mission.Reward));
     modal.find('#calc').html(renderCalculator(mission));
     
