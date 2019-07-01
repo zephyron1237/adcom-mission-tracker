@@ -475,7 +475,7 @@ function describeResearcher(researcher) {
     default:
       details = `Unknown researcher ModType "${researcher.ModType}"`;
   }
-  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-content="${details}">${researcher.Name}</a>`;
+  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-content="${details}">${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
 }
 
 function getResourceByIndustry(industryId) {
@@ -492,7 +492,7 @@ function getIndustryByResource(resourceId) {
   
 function cardValueCount(card) {
   // Trying to decide between hiding 1x. I think I want it.
-  return `${card.Value}x `;
+  return `${card.Value}x&nbsp;`;
 }
 
 var MISSION_EMOJI = {
