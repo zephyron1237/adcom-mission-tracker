@@ -77,13 +77,16 @@ function loadSaveData() {
   
   // Now load mission progress
   let loadedEventId = localStorage.getItem("event-Id");
-  if (loadedEventId != null && loadedEventId != EVENT_ID) {
+  let loadedEventVersion = localStorage.getItem("event-Version");
+  if ((loadedEventId != null && loadedEventId != EVENT_ID) ||
+       (loadedEventVersion != null && loadedEventVersion != EVENT_VERSION)) {
     // This save is from a previous event, so let's clear our save.
     // TODO: It might be nice to inform the user this just happened besides the log.
-    console.log(`Event ${loadedEventId} is outdated.  Clearing save data.`);
+    console.log(`Event ${loadedEventId} version ${loadedEventVersion} is outdated.  Clearing save data.`);
     localStorage.removeItem("event-Completed");
     localStorage.removeItem("event-FormValues");
     localStorage.setItem("event-Id", EVENT_ID);
+    localStorage.setItem("event-Version", EVENT_VERSION);
   } else {
     let dataString = localStorage.getItem("event-Completed");
     if (dataString) {
@@ -133,6 +136,7 @@ function updateSaveData() {
   let saveData = missionData.Completed.Remaining.map(m => m.Id).join(',');
   localStorage.setItem("event-Completed", saveData);
   localStorage.setItem("event-Id", EVENT_ID);
+  localStorage.setItem("event-Version", EVENT_VERSION);
 }
 
 function renderMissions() {
