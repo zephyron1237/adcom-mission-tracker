@@ -75,6 +75,11 @@ function loadSaveData() {
     localStorage.setItem("event-CompletedVisible", isNewSave.toString());  // New saves start open
   }
   
+  // Show permanent alert when DATA is unconfirmed
+  if (!IS_DATA_FINAL) {
+    $('#alertUnconfirmed').addClass('show');
+  }
+  
   // Now load mission progress
   let loadedEventId = localStorage.getItem("event-Id");
   let loadedEventVersion = localStorage.getItem("event-Version");
@@ -87,6 +92,7 @@ function loadSaveData() {
     localStorage.removeItem("event-FormValues");
     localStorage.setItem("event-Id", EVENT_ID);
     localStorage.setItem("event-Version", EVENT_VERSION);
+    $('#alertReset').addClass('show');
   } else {
     let dataString = localStorage.getItem("event-Completed");
     if (dataString) {
