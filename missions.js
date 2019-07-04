@@ -15,8 +15,15 @@ function initializeMissionData() {
   let missionsLeft = 0;
   for (let missionIndex in DATA.Missions) {
     if (missionsLeft == 0) {
-      rank += 1;      
-      missionsLeft = parseInt(DATA.Ranks[rank].Missions);      
+      rank += 1;
+      
+      if (rank >= DATA.Ranks.length) {
+        // I'm not sure how the game presents this, but the stretch goals will be considered of one next rank
+        missionsLeft = DATA.Ranks.length - missionIndex;
+      } else {
+        missionsLeft = parseInt(DATA.Ranks[rank].Missions);      
+      }
+      
       missionData[rank] = {StartingCount: missionsLeft, Remaining: []};
     
       if (rank == 1) {
