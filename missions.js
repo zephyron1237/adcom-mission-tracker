@@ -577,7 +577,10 @@ function setStyle(styleType) {
   
   if (styleType in StylesheetUrls) {
     $('#stylesheet').attr('href', StylesheetUrls[styleType]);
-  }
+    
+    let styleIds = Object.keys(StylesheetUrls).join(" ");
+    $('#body').removeClass(styleIds).addClass(styleType);
+  }  
 }
 
 function advanceProgressTo() {
