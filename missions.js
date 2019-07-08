@@ -240,7 +240,19 @@ function renderMissionButton(mission, rank) {
     buttonClass += `${buttonOutlineStyle}-secondary`;
   }
   
-  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}"><strong>&#9432;</strong></a>`;
+  let infoClass = hasScriptedReward(mission) ? "scriptedRewardInfo" : ""; 
+  
+  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link ${infoClass}" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}">&#9432;</a>`;
+}
+
+var scriptedRewardIds = null;
+function hasScriptedReward(mission) {
+  if (scriptedRewardIds == null) {
+    // Build a cache of scripted gacha ids
+    scriptedRewardIds = new Set(DATA.GachaScripts.map(gs => gs.GachaId));
+  }
+  
+  return scriptedRewardIds.has(mission.Reward.RewardId);
 }
 
 function clickMission(missionId) {
