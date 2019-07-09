@@ -779,6 +779,7 @@ function doProductionSim() {
   
   if (simData.Errors != 0) {
     $('#result').text(`Please fix ${simData.Errors} issue${(simData.Errors > 1)?"s":""}, and Calculate again.`);
+    $('#result').effect('highlight', {}, 2000);
     return;
   } else {
     $('#result').text("");
@@ -803,6 +804,8 @@ function doProductionSim() {
     /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
     $('#result').text(`ETA: ${new Date(result * 1000).toISOString().substr(11, 8)}`);
   }
+  
+  $('#result').effect('highlight', {}, 2000);
 }
 
 function getProductionSimDataFromForm() {
