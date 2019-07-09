@@ -1,4 +1,5 @@
 var missionData = {};
+var missionCompletionTimes = {};
 
 function main() {
   initializeMissionData();
@@ -9,6 +10,7 @@ function main() {
 
 // e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, Completed: {...}, Current: {...}}
 function initializeMissionData() {
+  missionCompletionTimes = {};
   missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: 3, Remaining: []}};
   
   let rank = 0;
@@ -61,6 +63,13 @@ function initializeInfoPopup() {
     modal.find('#infoReward').html(describeReward(mission.Reward));
     modal.find('#calc').html(renderCalculator(mission));
     
+    if (missionId in missionCompletionTimes) {
+      modal.find('#completionTimeContainer').addClass('show');
+      modal.find('#completionTime').text(new Date(missionCompletionTimes[missionId]));
+    } else {
+      modal.find('#completionTimeContainer').removeClass('show');
+    }
+    
     $(function () {
       $('[data-toggle="popover"]').popover();
       $('#numberExample').html(`${(1.58).toLocaleString()} AA`);
@@ -97,6 +106,7 @@ function loadSaveData() {
     console.log(`Event ${loadedEventId} version ${loadedEventVersion} is outdated.  Clearing save data.`);
     localStorage.removeItem("event-Completed");
     localStorage.removeItem("event-FormValues");
+    localStorage.removeItem("event-CompletionTimes");
     localStorage.setItem("event-Id", EVENT_ID);
     localStorage.setItem("event-Version", EVENT_VERSION);
     $('#alertReset').addClass('show');
@@ -143,6 +153,16 @@ function loadSaveData() {
       }
     }
   }
+  
+  // Finally load up the completion time data
+  missionCompletionTimes = {};
+  let loadedCompletionTimes = localStorage.getItem("event-CompletionTimes");
+  if (loadedCompletionTimes != null) {
+    let completionTimesHash = JSON.parse(loadedCompletionTimes);
+    for (let missionId in completionTimesHash) {
+      missionCompletionTimes[missionId] = parseInt(completionTimesHash[missionId]);
+    }
+  }
 }
 
 function updateSaveData() {
@@ -150,6 +170,7 @@ function updateSaveData() {
   localStorage.setItem("event-Completed", saveData);
   localStorage.setItem("event-Id", EVENT_ID);
   localStorage.setItem("event-Version", EVENT_VERSION);
+  localStorage.setItem("event-CompletionTimes", JSON.stringify(missionCompletionTimes));
 }
 
 function renderMissions() {
@@ -311,6 +332,8 @@ function clickMission(missionId) {
       }
     }
     
+    missionCompletionTimes[missionId] = (new Date()).getTime();
+    
     updateSaveData();
     renderMissions();
   } else if (-1 != (foundIndex = missionData.Completed.Remaining.findIndex(m => m.Id == missionId))) {
@@ -329,6 +352,10 @@ function clickMission(missionId) {
     missionData.Completed.Remaining.splice(foundIndex, 1);
     missionData.Current.Remaining.push(completedMission);
     missionData.Current.Remaining.sort((a, b) => a.Index - b.Index);
+    
+    if (missionId in missionCompletionTimes) {
+      delete missionCompletionTimes[missionId];
+    }
     
     updateSaveData();
     renderMissions();
@@ -683,6 +710,7 @@ function resetProgress() {
   if (confirm("Are you sure you want to RESET your mission progress?")) {
     localStorage.removeItem("event-Completed");
     localStorage.removeItem("event-FormValues");
+    localStorage.removeItem("event-CompletionTimes");
     initializeMissionData();
     renderMissions();
   }
