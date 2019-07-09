@@ -155,6 +155,8 @@ function updateSaveData() {
 function renderMissions() {
   let missionHtml = "";
   
+  let eventScheduleInfo = SCHEDULE.Schedule.find(s => s.LteId == EVENT_ID);
+  
   let sortedRanks = Object.keys(missionData);
   sortedRanks.splice(sortedRanks.indexOf("Completed"), 1);
   sortedRanks.splice(sortedRanks.indexOf("Current"), 1);
@@ -195,7 +197,21 @@ function renderMissions() {
       
       title = `Current <span class="currentRank float-right">Rank ${rankTitle}</span>`;
     } else {
-      title = `Rank ${rank}`;
+      let rankReward = eventScheduleInfo.Rewards[rank - 1];
+      let popupHtml = rankReward ? `<strong>Completion Reward:</strong><br />${describeScheduleRankReward(rankReward)}` : "";
+      
+      let rankResearchers = DATA.Researchers.filter(r => r.PlayerRankUnlock == rank);
+      if (rankResearchers.length > 0) {
+        let rankResearcherDescriptions = rankResearchers.map(r => `${r.Name}: <em>${getResearcherDetails(r)}</em>`);
+        let rankResearcherText = `<strong>New Researchers:</strong><br />${rankResearcherDescriptions.join("<br /><br />")}`;
+        popupHtml += `${popupHtml ? "<hr />" : ""}${rankResearcherText}`;
+      }
+      
+      if (popupHtml) {
+        title = `Rank ${rank} <button class="btn btn-link float-right" tabindex="0" role="button" data-toggle="popover" data-placement="left" data-trigger="focus" data-title="Rank ${rank}" data-content="${popupHtml}" data-html="true">&#9432;</button>`;
+      } else {
+        title = `Rank ${rank}`;
+      }
     }
     
     missionHtml += `<div class='card mx-2 mt-1'><h4 class="card-header">${title}</h4><div id="${rank}-body" class="card-body" ${bodyStyle}>`;
@@ -213,6 +229,29 @@ function renderMissions() {
   }
   
   document.getElementById('missions').innerHTML = missionHtml;
+  
+  // enable popovers
+  $(function () {
+    $('[data-toggle="popover"]').popover();
+  });
+}
+
+function describeScheduleRankReward(reward) {
+  let upperReward = upperCaseFirstLetter(reward.RewardId);
+  switch (reward.Reward) {
+    case "Resources":
+      if (upperReward == "Scientist") { upperReward = "Science"; }
+      return `${reward.Value} ${upperReward}`;
+      break;
+      
+    case "Gacha":
+      return `${upperReward} capsule.`;
+      break;
+      
+    case "Researcher":
+      return `${reward.Value} ${upperReward} researchers.`;
+      break;
+  }
 }
 
 function renderMissionButton(mission, rank) {
@@ -296,6 +335,7 @@ function clickMission(missionId) {
   }
 }
 
+// Converts numbers to AdCom style. bigNum(1E21) => "1 CC"
 function bigNum(x) {
   if (x < 1e+6) {
     return x.toLocaleString();
@@ -307,6 +347,7 @@ function bigNum(x) {
   return `${+mantissa.toFixed(2)} ${POWERS[thousands - 1]}`;
 }
 
+// Converts AdCom style numbers to normal. fromBigNum("1 CC") => 1E21
 function fromBigNum(x) {
   // TODO: make a better regex that can pick up non-spaces maybe?
   if (x == null) {
@@ -377,6 +418,10 @@ function resourceName(name) {
 }
 
 function industryName(name) {
+  upperCaseFirstLetter(name);
+}
+
+function upperCaseFirstLetter(name) {
   if (name) {
     return name.charAt(0).toUpperCase() + name.slice(1);
   } else {
@@ -455,28 +500,32 @@ function describeReward(reward) {
 }
 
 function describeResearcher(researcher) {
-  let details = "";
+  let details = getResearcherDetails(researcher);
+  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-content="${details}">${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
+}
+
+function getResearcherDetails(researcher) {
   let vals, resources;
   switch (researcher.ModType) {
     case "GenManagerAndSpeedMult":
       vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
-      details = `Speeds up ${resourceName(researcher.TargetIds[0])} by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      return `Speeds up ${resourceName(researcher.TargetIds[0])} by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       break;
     case "TradePayoutMultiplier":
       vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       resources = researcher.TargetIds[0].split(/, ?/).map(res => resourceName(res)).join('/');
-      details = `Trading ${resources} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
+      return `Trading ${resources} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
       break;
     case "GeneratorPayoutMultiplier":
       vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
-      details = `Multiplies output of every ${resources}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      return `Multiplies output of every ${resources}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       break;
     case "GeneratorCritChance":
       vals = [researcher.BasePower + 1 * researcher.CurveModifier + 1 * researcher.UpgradePower,
@@ -485,27 +534,21 @@ function describeResearcher(researcher) {
       vals = vals.map(v => `${+(v * 100).toFixed(2)}%`);
       resources = researcher.TargetIds[0].split(/, ?/);
       resources = resources.map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
-      details = `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
+      return `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
       break;
     case "GeneratorCostReduction":
       // TODO once I implement Motherland
-      break;
     case "GeneratorCritPowerMult":
       // TODO once I implement Motherland
-      break;  
     case "GachaCardsPayoutMultiplier":
       // TODO once I implement Motherland
-      break;
     case "GachaSciencePayoutMultiplier":
       // TODO once I implement Motherland
-      break;
     case "GachaResourcePayoutMultiplier":
       // TODO once I implement Motherland
-      break;
     default:
-      details = `Unknown researcher ModType "${researcher.ModType}"`;
+      return `Unknown researcher ModType "${researcher.ModType}"`;
   }
-  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-content="${details}">${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
 }
 
 function getResourceByIndustry(industryId) {

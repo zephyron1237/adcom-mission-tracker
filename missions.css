@@ -108,11 +108,13 @@ input:checked + .slider:before {
 .researcherName {
   text-decoration: underline dotted;
   color: inherit;
+  cursor: pointer;
 }
 
 .researcherName:hover {
   text-decoration: underline dotted;
   color: inherit;
+  cursor: pointer;
 }
 
 .resourceIcon {
