@@ -1,42 +1,91 @@
 var missionData = {};
 var missionCompletionTimes = {};
+var currentMode = "main";
+var currentMainRank = 1;
 
 function main() {
+  loadModeSettings();
   initializeMissionData();
   initializeInfoPopup();
   loadSaveData();
   renderMissions();
 }
 
-// e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, Completed: {...}, Current: {...}}
+function loadModeSettings() {
+  // Parse url for a ?rank=X, where X is "event" or 1-MAX_RANK
+  let splitUrl = window.location.href.split('?');
+  if (splitUrl.length == 2) {
+    let arguments = splitUrl[1].split('&');
+    for (let arg of arguments) {
+      let keyValue = arg.split('=');
+      if (keyValue.length == 2 && keyValue[0] == "rank") {
+        if (keyValue[1] == "event") {
+          localStorage.setItem("CurrentMode", "event");
+        } else if (keyValue[1] == "main") {
+          localStorage.setItem("CurrentMode", "main");
+        } else if (parseInt(keyValue[1])) {
+          localStorage.setItem("CurrentMode", "main");
+          setLocal("main", "CurrentRank", keyValue[1]);
+        }
+      }
+    }
+  }
+  
+  // Get values from URL params > previous save > defaults.
+  currentMode = localStorage.getItem("CurrentMode") || currentMode;
+  currentMainRank = parseInt(getLocal("main", "CurrentRank")) || currentMainRank;
+  
+  $(`#mode-select-main,#mode-select-event`).removeClass("active");
+  $(`#mode-select-${currentMode}`).addClass("active");
+  
+  let title = (currentMode == "main") ? "Motherland Missions" : "Event Missions"
+  $('#mode-select-title').text(title);
+  $('#mode-select-title').addClass("show");
+}
+
 function initializeMissionData() {
+  // TODO: Make this object-oriented at some point?
+  if (currentMode == "main") {
+    initializeMainMissionData();
+  } else {
+    initializeEventMissionData();
+  }
+}
+
+// e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, Completed: {...}, Current: {...}}
+function initializeEventMissionData() {
   missionCompletionTimes = {};
   missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: 3, Remaining: []}};
   
   let rank = 0;
   let missionsLeft = 0;
-  for (let missionIndex in DATA.Missions) {
+  for (let missionIndex in getData().Missions) {
     if (missionsLeft == 0) {
       rank += 1;
       
-      if (rank >= DATA.Ranks.length) {
+      if (rank >= getData().Ranks.length) {
         // I'm not sure how the game presents this, but the stretch goals will be considered of one next rank
-        missionsLeft = DATA.Ranks.length - missionIndex;
+        missionsLeft = getData().Ranks.length - missionIndex;
       } else {
-        missionsLeft = parseInt(DATA.Ranks[rank].Missions);      
+        missionsLeft = parseInt(getData().Ranks[rank].Missions);
       }
       
       missionData[rank] = {StartingCount: missionsLeft, Remaining: []};
     
       if (rank == 1) {
-        missionsLeft += 2; // There's two extra missions (to have choices)
+        // There's extra missions (to have choices)
+        let missionsShown = 3;
+        if (rank < getData().Ranks.length) {
+          missionsShown = parseInt(getData().Ranks[rank].ActiveMissionCount);
+        }        
+        missionsLeft += (missionsShown - 1);
       }
     }
     
-    let mission = DATA.Missions[missionIndex];
+    let mission = getData().Missions[missionIndex];
     mission.Rank = rank;
     mission.Index = parseInt(missionIndex);
-    missionData[rank].Remaining.push(mission);
+    missionData[mission.Rank].Remaining.push(mission);
     
     missionsLeft -= 1;
   }
@@ -44,6 +93,28 @@ function initializeMissionData() {
   for (let i = 0; i < 3; i++) {
     // TODO: Refactor if a first rank has 2 or less missions
     missionData.Current.Remaining.push(missionData[1].Remaining.shift());
+  }
+}
+
+// e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, Completed: {...}, Current: {...}}
+function initializeMainMissionData() {
+  missionCompletionTimes = {};
+  missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: 3, Remaining: []}, OtherRankMissionIds: []};
+  
+  // Assign indices for sorting
+  for (let mIndex = 0; mIndex < getData().Missions.length; mIndex++) {
+    getData().Missions[mIndex].Index = mIndex;
+  }
+  
+  // Fill in ranks
+  for (let rank of getData().Ranks) {
+    let rankMissions = getData().Missions.filter(m => m.Rank == rank.Rank);
+    missionData[rank.Rank] = {StartingCount: rankMissions.length, Remaining: rankMissions};
+  }
+  
+  for (let i = 0; i < 3; i++) {
+    // TODO: Refactor if a first rank has 2 or less missions
+    missionData.Current.Remaining.push(missionData[currentMainRank].Remaining.shift());
   }
 }
 
@@ -56,7 +127,7 @@ function initializeInfoPopup() {
       return;
     }
     
-    let mission = DATA.Missions.find(m => m.Id == missionId);
+    let mission = getData().Missions.find(m => m.Id == missionId);
     
     let modal = $(this);
     modal.find('.modal-title').html(describeMission(mission, "none"));
@@ -86,32 +157,51 @@ function loadSaveData() {
   let styleConfig = localStorage.getItem("StyleConfig") || "light";
   setStyle(styleConfig);
   
-  if (localStorage.getItem("event-CompletedVisible") == null) {
-    let isNewSave = (localStorage.getItem("event-Completed") == null);
-    localStorage.setItem("event-CompletedVisible", isNewSave.toString());  // New saves start open
+  if (getLocal(currentMode, "CompletedVisible") == null) {
+    let isNewSave = (getLocal(currentMode, "Completed") == null);
+    setLocal(currentMode, "CompletedVisible", isNewSave.toString());  // New saves start open
   }
   
-  // Show permanent alert when DATA is unconfirmed
+  if (currentMode == "event") {
+    loadEventSaveData();
+  } else {
+    loadMainSaveData();
+  }
+  
+  // Finally load up the completion time data
+  missionCompletionTimes = {};
+  let loadedCompletionTimes = getLocal(currentMode, "CompletionTimes");
+  if (loadedCompletionTimes != null) {
+    let completionTimesHash = JSON.parse(loadedCompletionTimes);
+    for (let missionId in completionTimesHash) {
+      missionCompletionTimes[missionId] = parseInt(completionTimesHash[missionId]);
+    }
+  }
+}
+
+function loadEventSaveData() {  
+  // Show permanent alert when DATA.event is unconfirmed
   if (!IS_DATA_FINAL) {
     $('#alertUnconfirmed').addClass('show');
   }
   
   // Now load mission progress
-  let loadedEventId = localStorage.getItem("event-Id");
-  let loadedEventVersion = localStorage.getItem("event-Version");
+  let loadedEventId = getLocal("event", "Id");
+  let loadedEventVersion = getLocal("event", "Version");
   if ((loadedEventId != null && loadedEventId != EVENT_ID) ||
        (loadedEventVersion != null && loadedEventVersion != EVENT_VERSION)) {
     // This save is from a previous event, so let's clear our save.
     // TODO: It might be nice to inform the user this just happened besides the log.
     console.log(`Event ${loadedEventId} version ${loadedEventVersion} is outdated.  Clearing save data.`);
-    localStorage.removeItem("event-Completed");
-    localStorage.removeItem("event-FormValues");
-    localStorage.removeItem("event-CompletionTimes");
-    localStorage.setItem("event-Id", EVENT_ID);
-    localStorage.setItem("event-Version", EVENT_VERSION);
+    removeLocal("event", "Completed");
+    removeLocal("event", "FormValues");
+    removeLocal("event", "CompletionTimes");
+    setLocal("event", "Id", EVENT_ID);
+    setLocal("event", "Version", EVENT_VERSION);
     $('#alertReset').addClass('show');
+    
   } else {
-    let dataString = localStorage.getItem("event-Completed");
+    let dataString = getLocal("event", "Completed");
     if (dataString) {
       // Iterate through every mission in every rank, move completed ones to Completed.
       /* This is a little inefficient, but it preserves the completion order. */
@@ -140,7 +230,7 @@ function loadSaveData() {
       
       // Now find the lowest-rank missions to fill in Current.
       let missionsNeeded = missionData.Current.StartingCount - missionData.Current.Remaining.length;
-      for (let rank = 1; rank < DATA.Ranks.length; rank++) {
+      for (let rank = 1; rank < getData().Ranks.length; rank++) {
         if (missionsNeeded == 0) {
           break;
         }
@@ -153,24 +243,58 @@ function loadSaveData() {
       }
     }
   }
+}
+
+function loadMainSaveData() {
+  let dataString = getLocal("main", "Completed");
+  if (!dataString) {
+    return;
+  }
   
-  // Finally load up the completion time data
-  missionCompletionTimes = {};
-  let loadedCompletionTimes = localStorage.getItem("event-CompletionTimes");
-  if (loadedCompletionTimes != null) {
-    let completionTimesHash = JSON.parse(loadedCompletionTimes);
-    for (let missionId in completionTimesHash) {
-      missionCompletionTimes[missionId] = parseInt(completionTimesHash[missionId]);
+  let completedIds = dataString.split(',');
+  let curRankMissions = new Set(getData().Missions.filter(m => m.Rank == currentMainRank).map(m => m.Id));
+  for (let completedId of completedIds) {
+    if (curRankMissions.has(completedId)) {
+      // This is in the rank we care about
+      let missionIndex = missionData.Current.Remaining.findIndex(m => m.Id == completedId);
+      
+      if (missionIndex != -1) {
+        // Take the mission from Current
+        let mission = missionData.Current.Remaining.splice(missionIndex, 1)[0];
+        missionData.Completed.Remaining.push(mission);
+      } else {
+        // Or take it from the currentMainRank
+        missionindex = missionData[currentMainRank].Remaining.findIndex(m => m.Id == completedId);
+        let mission = missionData[currentMainRank].Remaining.splice(missionIndex, 1)[0];
+        missionData.Completed.Remaining.push(mission);
+      }
+    } else {
+      // This is another rank
+      missionData.OtherRankMissionIds.push(completedId);
     }
+  }
+  
+  while (missionData.Current.Remaining.length < missionData.Current.StartingCount && missionData[currentMainRank].Remaining.length > 0) {
+    let mission = missionData[currentMainRank].Remaining.shift();
+    missionData.Current.Remaining.push(mission);
   }
 }
 
 function updateSaveData() {
-  let saveData = missionData.Completed.Remaining.map(m => m.Id).join(',');
-  localStorage.setItem("event-Completed", saveData);
-  localStorage.setItem("event-Id", EVENT_ID);
-  localStorage.setItem("event-Version", EVENT_VERSION);
-  localStorage.setItem("event-CompletionTimes", JSON.stringify(missionCompletionTimes));
+  if (currentMode == "event") {
+    let saveData = missionData.Completed.Remaining.map(m => m.Id).join(',');
+    setLocal("event", "Completed", saveData);
+    setLocal("event", "Id", EVENT_ID);
+    setLocal("event", "Version", EVENT_VERSION);
+  } else {
+    
+    // Motherland
+    let curRankCompletedIds = missionData.Completed.Remaining.map(m => m.Id);
+    let saveData = [...curRankCompletedIds, ...missionData.OtherRankMissionIds].join(',');
+    setLocal("main", "Completed", saveData);
+  }
+  
+  setLocal(currentMode, "CompletionTimes", JSON.stringify(missionCompletionTimes));
 }
 
 function renderMissions() {
@@ -178,14 +302,20 @@ function renderMissions() {
   
   let eventScheduleInfo = SCHEDULE.Schedule.find(s => s.LteId == EVENT_ID);
   
-  let sortedRanks = Object.keys(missionData);
-  sortedRanks.splice(sortedRanks.indexOf("Completed"), 1);
-  sortedRanks.splice(sortedRanks.indexOf("Current"), 1);
-  sortedRanks.unshift("Current");
-  sortedRanks.unshift("Completed");
+  let sortedRanks;
+  if (currentMode == "event") {
+    sortedRanks = Object.keys(missionData);
+    sortedRanks.splice(sortedRanks.indexOf("Completed"), 1);
+    sortedRanks.splice(sortedRanks.indexOf("Current"), 1);
+    sortedRanks.unshift("Current");
+    sortedRanks.unshift("Completed");
+  } else {
+    sortedRanks = ["Completed", "Current", currentMainRank];
+  }
+  
   
   for (let rank of sortedRanks) {
-    if (missionData[rank].Remaining.length == 0 && rank != 'Completed') {
+    if (missionData[rank].Remaining.length == 0 && currentMode == "event" && rank != 'Completed') {
       continue;
     }
     
@@ -193,35 +323,58 @@ function renderMissions() {
     let bodyStyle = "";
     if (rank == "Completed") {
       let checked = "";
-      if (localStorage.getItem("event-CompletedVisible") == "true") {
+      if (getLocal(currentMode, "CompletedVisible") == "true") {
         checked = "checked";
       } else {        
         bodyStyle = "style='display: none;'";
       }
-      title = `${rank} <label class="switch float-right"><input type="checkbox" ${checked} onclick="toggleCompleted()"><span class="slider round"></span>`; 
+      title = `${rank} <label class="switch float-right"><input type="checkbox" ${checked} onclick="toggleCompleted()"><span class="slider round"></span>`;
     } else if (rank == "Current") {
       // Find lowest rank with a remaining mission.
       let rankTitle = "Complete!";
-      for (let findRank = 1; findRank < DATA.Ranks.length; findRank++) {
-        if (missionData[findRank].Remaining.length != 0) {
-          if (missionData[findRank].Remaining.length == missionData[findRank].StartingCount) {
-            // This is a full rank, the lowest rank is actually the previous one.
-            let prevStartCount = missionData[findRank - 1].StartingCount;
-            rankTitle = `${(findRank - 1)} (${prevStartCount - 1}/${prevStartCount})`
-          } else {
-            let missingCount = missionData[findRank].StartingCount - missionData[findRank].Remaining.length;
-            rankTitle = `${findRank} (${missingCount - 1}/${missionData[findRank].StartingCount})`;
+      
+      if (currentMode == "event") {
+        for (let findRank = 1; findRank < getData().Ranks.length; findRank++) {
+          if (missionData[findRank].Remaining.length != 0) {
+            if (missionData[findRank].Remaining.length == missionData[findRank].StartingCount) {
+              // This is a full rank, the lowest rank is actually the previous one.
+              let prevStartCount = missionData[findRank - 1].StartingCount;
+              rankTitle = `${(findRank - 1)} (${prevStartCount - 1}/${prevStartCount})`
+            } else {
+              let missingCount = missionData[findRank].StartingCount - missionData[findRank].Remaining.length;
+              rankTitle = `${findRank} (${missingCount - 1}/${missionData[findRank].StartingCount})`;
+            }
+            break;
           }
-          break;
         }
+      } else {
+        // Motherland
+        let missingCount = missionData[currentMainRank].StartingCount - missionData[currentMainRank].Remaining.length - missionData.Current.Remaining.length;
+        rankTitle = `${currentMainRank} (${missingCount}/${missionData[currentMainRank].StartingCount})`;
       }
       
       title = `Current <span class="currentRank float-right">Rank ${rankTitle}</span>`;
+    } else if (currentMode == "main") {
+      // A generic MAIN rank
+      let buttonsHtml = "";
+      
+      if (currentMainRank > 1) {
+        buttonsHtml += `<a href="?rank=${currentMainRank - 1}" type="button" class="btn btn-outline-secondary" title="Go back to Rank ${currentMainRank - 1}">&larr;</button>`;
+      }
+      
+      buttonsHtml += `<a type="button" class="btn btn-outline-secondary" onclick="selectNewRank()" title="Jump to specific Rank">#</a>`;
+      
+      if (currentMainRank < DATA.main.Ranks.length) {
+        buttonsHtml += `<a href="?rank=${currentMainRank + 1}" type="button" class="btn btn-outline-secondary" title="Go forward to Rank ${currentMainRank + 1}">&rarr;</a>`;
+      }
+      
+      title = `Rank ${rank}<span class="float-right btn-group" role="group">${buttonsHtml}</span>`;
     } else {
+      // A generic EVENT rank
       let rankReward = eventScheduleInfo.Rewards[rank - 1];
       let popupHtml = rankReward ? `<strong>Completion Reward:</strong><br />${describeScheduleRankReward(rankReward)}` : "";
       
-      let rankResearchers = DATA.Researchers.filter(r => r.PlayerRankUnlock == rank);
+      let rankResearchers = getData().Researchers.filter(r => r.PlayerRankUnlock == rank);
       if (rankResearchers.length > 0) {
         let rankResearcherDescriptions = rankResearchers.map(r => `${r.Name}: <em>${getResearcherDetails(r)}</em>`);
         let rankResearcherText = `<strong>New Researchers:</strong><br />${rankResearcherDescriptions.join("<br /><br />")}`;
@@ -243,8 +396,14 @@ function renderMissions() {
       missionHtml += `<li class="my-1">Click this tab's toggle in the top-right to hide Completed missions.</li></ul>`;
     }
     
-    for (let mission of missionData[rank].Remaining) {
-      missionHtml += `<span class="missionContainer">${renderMissionButton(mission, rank)}</span>`;
+    if (currentMode == "main" && rank == currentMainRank && missionData[rank].Remaining.length == 0 && missionData.Current.Remaining.length == 0) {
+      // In the main mode, when you run out of missions, give a helpful message.
+      missionHtml += `<ul><li>Congratulations on completing all missions in Rank ${rank}!</li><li>To go to the next rank, click the &rarr; button in the corner.</li></ul>`;
+    } else {
+      // Display all missions inside of the rank
+      for (let mission of missionData[rank].Remaining) {
+        missionHtml += `<span class="missionContainer">${renderMissionButton(mission, rank)}</span>`;
+      }
     }
     missionHtml += "</div></div>";
   }
@@ -309,7 +468,7 @@ var scriptedRewardIds = null;
 function hasScriptedReward(mission) {
   if (scriptedRewardIds == null) {
     // Build a cache of scripted gacha ids
-    scriptedRewardIds = new Set(DATA.GachaScripts.map(gs => gs.GachaId));
+    scriptedRewardIds = new Set(getData().GachaScripts.map(gs => gs.GachaId));
   }
   
   return scriptedRewardIds.has(mission.Reward.RewardId);
@@ -324,11 +483,19 @@ function clickMission(missionId) {
     missionData.Completed.Remaining.push(mission);
     
     // Find a new mission to replace it with
-    for (let rank = 1; rank < DATA.Ranks.length; rank++) {
-      if (missionData[rank].Remaining.length > 0) {
-        let newMission = missionData[rank].Remaining.shift();
+    if (currentMode == "event") {
+      for (let rank = 1; rank < getData().Ranks.length; rank++) {
+        if (missionData[rank].Remaining.length > 0) {
+          let newMission = missionData[rank].Remaining.shift();
+          missionData.Current.Remaining.push(newMission);
+          break;
+        }
+      }
+    } else {
+      // Motherland
+      if (missionData[currentMainRank].Remaining.length > 0) {
+        let newMission = missionData[currentMainRank].Remaining.shift();
         missionData.Current.Remaining.push(newMission);
-        break;
       }
     }
     
@@ -412,7 +579,7 @@ var generatorsById = null;
 function getGenerator(id) {
   if (generatorsById == null) {
     generatorsById = {};
-    for (let generator of DATA.Generators) {
+    for (let generator of getData().Generators) {
       generatorsById[generator.Id] = generator;
     }
   }
@@ -424,7 +591,7 @@ var resourcesById = null;
 function getResource(id) {
   if (resourcesById == null) {
     resourcesById = {};
-    for (let resource of DATA.Resources) {
+    for (let resource of getData().Resources) {
       resourcesById[resource.Id] = resource;
     }
   }
@@ -467,7 +634,7 @@ function describeMission(mission, overrideIcon = "") {
       textHtml =`Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     case "ResearchersUpgradedSinceSubscription":
-      iconHtml = getMissionIcon("upgrade", condition.ConditionType, overrideIcon);
+      iconHtml = getMissionIcon("upgrade", condition.ConditionType, overrideIcon, "shared");
       textHtml = `Upgrade Cards (${condition.Threshold})`;
       break;
     case "ResourceQuantity":
@@ -484,12 +651,12 @@ function describeMission(mission, overrideIcon = "") {
       textHtml = `Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold).replace(/ /g, '&nbsp;')})`;
       break;
     case "ResearcherCardsEarnedSinceSubscription":
-      iconHtml = getMissionIcon("card", condition.ConditionType, overrideIcon);
+      iconHtml = getMissionIcon("card", condition.ConditionType, overrideIcon, "shared");
       textHtml = `Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      iconHtml = getMissionIcon("darkscience", condition.ConditionType, overrideIcon);
-      textHtml = `Spend Dark Science (${condition.Threshold})`;
+      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
+      textHtml = `Spend ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     default:
       return `Unknown mission condition: ${condition.ConditionType}`;
@@ -503,16 +670,16 @@ function describeReward(reward) {
     return `${bigNum(reward.Value)} ${resourceName(reward.RewardId)}`;
   
   } else if (reward.Reward == "Gacha") {
-    let gacha = DATA.GachaLootTable.find(g => g.Id == reward.RewardId);
+    let gacha = getData().GachaLootTable.find(g => g.Id == reward.RewardId);
     if (!gacha) { return `Unknown gacha reward id: ${reward.RewardId}`; }
     
     if (gacha.Type == "Scripted") {
-      let script = DATA.GachaScripts.find(s => s.GachaId == gacha.Id);
+      let script = getData().GachaScripts.find(s => s.GachaId == gacha.Id);
       if (!script) { return `Unknown gacha script id: ${gacha.Id}`; }      
             
       let gold = script.Gold ? `${script.Gold} Gold` : null;
       let science = script.Science ? `${script.Science} <span class="resourceIcon darkscience">&nbsp;</span>` : null;      
-      let cards = script.Card.map(card => `${cardValueCount(card)}${describeResearcher(DATA.Researchers.find(r => r.Id == card.Id))}`).join(', ') || null;
+      let cards = script.Card.map(card => `${cardValueCount(card)}${describeResearcher(getData().Researchers.find(r => r.Id == card.Id))}`).join(', ') || null;
       
       let rewards = [gold, science, cards].filter(x => x != null).join('. ');
       
@@ -540,6 +707,7 @@ function getResearcherDetails(researcher) {
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       return `Speeds up ${resourceName(researcher.TargetIds[0])} by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       break;
+      
     case "TradePayoutMultiplier":
       vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
@@ -547,13 +715,21 @@ function getResearcherDetails(researcher) {
       resources = researcher.TargetIds[0].split(/, ?/).map(res => resourceName(res)).join('/');
       return `Trading ${resources} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
       break;
+      
     case "GeneratorPayoutMultiplier":
       vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
-      resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
-      return `Multiplies output of every ${resources}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      // This is either a multiplier to a single generator (like "Farmer") or a set of industries ("Farming,Landwork,Mining")
+      resources = getData().Resources.find(r => r.Id == researcher.TargetIds[0].toLowerCase());
+      if (resources) {
+        return `Multiplies output of ${resourceName(resources.Id)} by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      } else {
+        resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
+        return `Multiplies output of every ${resources}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      }
       break;
+      
     case "GeneratorCritChance":
       vals = [researcher.BasePower + 1 * researcher.CurveModifier + 1 * researcher.UpgradePower,
               researcher.BasePower + 2 * researcher.CurveModifier + 4 * researcher.UpgradePower,
@@ -563,6 +739,7 @@ function getResearcherDetails(researcher) {
       resources = resources.map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
       return `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
       break;
+      
     case "GeneratorCostReduction":
       // TODO once I implement Motherland
     case "GeneratorCritPowerMult":
@@ -574,20 +751,21 @@ function getResearcherDetails(researcher) {
     case "GachaResourcePayoutMultiplier":
       // TODO once I implement Motherland
     default:
-      return `Unknown researcher ModType "${researcher.ModType}"`;
+      return `Unknown researcher ModType ${researcher.ModType}`;
   }
 }
 
 function getResourceByIndustry(industryId) {
   // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
-  let industryIndex = DATA.Industries.findIndex(i => i.Id == industryId);
-  return DATA.Resources[industryIndex];
+  industryId = industryId.toLowerCase();
+  let industryIndex = getData().Industries.findIndex(i => i.Id == industryId);
+  return getData().Resources[industryIndex];
 }
   
 function getIndustryByResource(resourceId) {
   // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
-  let resourceIndex = DATA.Resources.findIndex(r => r.Id == resourceId);
-  return DATA.Industries[resourceIndex];
+  let resourceIndex = getData().Resources.findIndex(r => r.Id == resourceId);
+  return getData().Industries[resourceIndex];
 }
   
 function cardValueCount(card) {
@@ -605,24 +783,25 @@ var MISSION_EMOJI = {
   ResourcesSpentSinceSubscription: "&#9879;"
 };
 
-function getMissionIcon(resourceId, missionConditionType, overrideIcon = "") {
+function getMissionIcon(resourceId, missionConditionType, overrideIcon = "", overrideDirectory = "") {
   let iconConfig = overrideIcon || localStorage.getItem("IconConfig");
+  let imgDirectory = overrideDirectory || currentMode;
   if (iconConfig == "none") {
     return "";
   } else if (iconConfig == "emoji") {
     return MISSION_EMOJI[missionConditionType];
   } else {
-    return `<span style="background-image: url('img/${resourceId}.png');" class="resourceIcon">&nbsp;</span>`;
+    return `<span style="background-image: url('img/${imgDirectory}/${resourceId}.png');" class="resourceIcon">&nbsp;</span>`;
   }
 }
 
 function toggleCompleted() {
   let element = document.getElementById('Completed-body');
-  if (localStorage.getItem("event-CompletedVisible") == "true") {
-    localStorage.setItem("event-CompletedVisible", "false");
+  if (getLocal(currentMode, "CompletedVisible") == "true") {
+    setLocal(currentMode, "CompletedVisible", "false");
     element.style.display = "none";
   } else {
-    localStorage.setItem("event-CompletedVisible", "true");
+    setLocal(currentMode, "CompletedVisible", "true");
     element.style.display = "block";
   }
 }
@@ -661,8 +840,9 @@ function advanceProgressTo() {
   }
   
   let rank = parseInt(inputRank);
-  if (!rank || rank <= 1 || rank >= DATA.Ranks.length) {
+  if (!rank || rank <= 1 || rank >= getData().Ranks.length) {
     alert(`Invalid rank: "${inputRank}".`);
+    return;
   }
   
   // Go through every mission in every rank and move all with Rank < rank to Completed.
@@ -684,7 +864,7 @@ function advanceProgressTo() {
   
   // Now fill in Current
   for (let fillRank = rank;
-        fillRank < DATA.Ranks.length &&
+        fillRank < getData().Ranks.length &&
           missionData.Current.Remaining.length < missionData.Current.StartingCount;
         fillRank++) {
     
@@ -708,12 +888,44 @@ function advanceProgressTo() {
 function resetProgress() {
   /* Maybe do a post-1990 solution to this? */
   if (confirm("Are you sure you want to RESET your mission progress?")) {
-    localStorage.removeItem("event-Completed");
-    localStorage.removeItem("event-FormValues");
-    localStorage.removeItem("event-CompletionTimes");
+    removeLocal(currentMode, "Completed");
+    removeLocal(currentMode, "FormValues");
+    removeLocal(currentMode, "CompletionTimes");
     initializeMissionData();
     renderMissions();
   }
+}
+
+function selectNewRank() {
+  /* TODO: Post-1990 solution blah blah */
+  let inputRank = prompt("Jump to which rank?");
+  if (inputRank == null || inputRank == "") {
+    return;
+  }
+  
+  let rank = parseInt(inputRank);
+  if (!rank || rank <= 1 || rank >= getData().Ranks.length) {
+    alert(`Invalid rank: "${inputRank}".`);
+  }
+  
+  let splitUrl = window.location.href.split('?');
+  window.location.assign(`${splitUrl[0]}?rank=${rank}`);
+}
+
+function getLocal(mode, key) {
+  return localStorage.getItem(`${mode}-${key}`);
+}
+
+function setLocal(mode, key, value) {
+  localStorage.setItem(`${mode}-${key}`, value);
+}
+
+function removeLocal(mode, key) {
+  localStorage.removeItem(`${mode}-${key}`);
+}
+
+function getData() {
+  return DATA[currentMode];
 }
 
 function renderCalculator(mission) {
@@ -726,8 +938,8 @@ function renderCalculator(mission) {
       industryId = getGenerator(condition.ConditionId).IndustryId;
     } else if (conditionType == "IndustryUnlocked") {
       // Choose the industry to the left of the one to unlock.
-      let unlockableIndustryIndex = DATA.Industries.findIndex(i => i.Id == condition.ConditionId);
-      industryId = DATA.Industries[unlockableIndustryIndex - 1].Id;
+      let unlockableIndustryIndex = getData().Industries.findIndex(i => i.Id == condition.ConditionId);
+      industryId = getData().Industries[unlockableIndustryIndex - 1].Id;
     } else if (conditionType == "ResourcesEarnedSinceSubscription") {
       industryId = getIndustryByResource(condition.ConditionId).Id;
     }
@@ -737,17 +949,17 @@ function renderCalculator(mission) {
     html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon power float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="power" placeholder="Power"></span></td><td><span class="mt-1 resourceIcon discount float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="discount" placeholder="Discount"></span></td></tr>`;
     html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon critChance float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="critChance" placeholder="Crit Chance"></span></td><td><span class="mt-1 resourceIcon critPower float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="critPower" placeholder="Crit Power"></span></td></tr>`;
     
-    let generators = DATA.Generators.filter(g => g.IndustryId == industryId);
+    let generators = getData().Generators.filter(g => g.IndustryId == industryId);
     for (let generator of generators) {
       let id = generator.Id;
       let name = resourceName(id);
-      html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></span></td><td><span class="mt-1 resourceIcon speed float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></span></td></tr>`;
+      html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${currentMode}/${id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></span></td><td><span class="mt-1 resourceIcon speed float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></span></td></tr>`;
     }
     
     let resource = getResourceByIndustry(industryId);
-    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resources" placeholder="# of ${resourceName(resource.Id)}"></span></td>`;
+    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${currentMode}/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resources" placeholder="# of ${resourceName(resource.Id)}"></span></td>`;
     if (conditionType == "ResourcesEarnedSinceSubscription") {
-      html += `<td><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></span></td></tr>`;
+      html += `<td><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${currentMode}/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></span></td></tr>`;
     } else {
       html += "<td></td></tr>";
     }
@@ -812,8 +1024,8 @@ function getProductionSimDataFromForm() {
   let industryId = $('#industryId').val();
   let resourceId = getResourceByIndustry(industryId).Id;
   let missionId = $('#missionId').val();
-  let mission = DATA.Missions.find(m => m.Id == missionId);
-  let generators = DATA.Generators.filter(g => g.IndustryId == industryId);
+  let mission = getData().Missions.find(m => m.Id == missionId);
+  let generators = getData().Generators.filter(g => g.IndustryId == industryId);
   
   let simData = { Generators: [], Counts: {}, Mission: mission, IndustryId: industryId, Errors: 0, Config: {} };
   
@@ -891,18 +1103,18 @@ function getValueFromForm(inputId, defaultValue, simData, formValues) {
 function saveFormValues(formValues, industryId) {
   let allFormValues = {};
   
-  let valuesString = localStorage.getItem("event-FormValues");
+  let valuesString = getLocal(currentMode, "FormValues");
   if (valuesString) {
     allFormValues = JSON.parse(valuesString);
   }
   
   allFormValues[industryId] = formValues;
   
-  localStorage.setItem("event-FormValues", JSON.stringify(allFormValues));
+  setLocal(currentMode, "FormValues", JSON.stringify(allFormValues));
 }
 
 function loadFormValues() {
-  let valuesString = localStorage.getItem("event-FormValues");
+  let valuesString = getLocal(currentMode, "FormValues");
   if (!valuesString) {
     return;
   }
@@ -963,7 +1175,7 @@ function simulateProductionMission(simData) {
       goals = [{ Resource: "resourceProgress", Qty: condition.Threshold }];
       break;
     case "IndustryUnlocked":
-      let industry = DATA.Industries.find(i => i.Id == condition.ConditionId);
+      let industry = getData().Industries.find(i => i.Id == condition.ConditionId);
       goals = [{ Resource: industry.UnlockCostResourceId, Qty: industry.UnlockCostResourceQty }];
       break;
     case "ResourceQuantity":

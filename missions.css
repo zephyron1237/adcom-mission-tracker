@@ -151,43 +151,43 @@ input:checked + .slider:before {
 }
 
 .plastic {
-  background-image: url("img/plastic.png");
+  background-image: url("img/event/plastic.png");
 }
 
 .armored {
-  background-image: url("img/armored.png");
+  background-image: url("img/event/armored.png");
 }
 
 .darkscience {
-  background-image: url("img/darkscience.png");
+  background-image: url("img/event/darkscience.png");
 }
 
 .comrades {
-  background-image: url("img/comrade.png");
+  background-image: url("img/shared/comrade.png");
 }
 
 .comradesPerSec {
-  background-image: url("img/comrades_per_second.png");
+  background-image: url("img/shared/comrades_per_second.png");
 }
 
 .power {
-  background-image: url("img/boost_power.png");
+  background-image: url("img/shared/boost_power.png");
 }
 
 .discount {
-  background-image: url("img/discount.png");
+  background-image: url("img/shared/discount.png");
 }
 
 .critChance {
-  background-image: url("img/crit_chance.png");
+  background-image: url("img/shared/crit_chance.png");
 }
 
 .critPower {
-  background-image: url("img/crit_power.png");
+  background-image: url("img/shared/crit_power.png");
 }
 
 .speed {
-  background-image: url("img/speed.png");
+  background-image: url("img/shared/speed.png");
 }
 
 .missionContainer {
