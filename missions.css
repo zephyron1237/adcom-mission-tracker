@@ -135,9 +135,15 @@ input:checked + .slider:before {
   display: inline-block;
 }
 
+.infoButton {
+  text-decoration-line: none;
+}
+.infoButton:hover {
+  text-decoration-line: none;
+}
+
 .scriptedRewardInfo {
   font-weight: bolder;
-  font-size: 110%;
 }
 
 .calcTable {

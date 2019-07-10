@@ -382,7 +382,7 @@ function renderMissions() {
       }
       
       if (popupHtml) {
-        title = `Rank ${rank} <button class="btn btn-link float-right" tabindex="0" role="button" data-toggle="popover" data-placement="left" data-trigger="focus" data-title="Rank ${rank}" data-content="${popupHtml}" data-html="true">&#9432;</button>`;
+        title = `Rank ${rank} <button class="btn btn-link infoButton float-right" tabindex="0" role="button" data-toggle="popover" data-placement="left" data-trigger="focus" data-title="Rank ${rank}" data-content="${popupHtml}" data-html="true">&#9432;</button>`;
       } else {
         title = `Rank ${rank}`;
       }
@@ -461,7 +461,7 @@ function renderMissionButton(mission, rank) {
   
   let infoClass = hasScriptedReward(mission) ? "scriptedRewardInfo" : ""; 
   
-  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link ${infoClass}" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}">&#9432;</a>`;
+  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link infoButton ${infoClass}" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&#9432;</a>`;
 }
 
 var scriptedRewardIds = null;
@@ -1048,6 +1048,11 @@ function getProductionSimDataFromForm() {
     let genSpeed = getValueFromForm(`#${generator.Id}-speed`, 0, simData, formValues);
     
     let costs = generator.Cost.map(c => ({ Resource: c.Resource.toLowerCase(), Qty: Number(c.Qty) }));
+    for (let cost of costs) {
+      if (cost.Resource != "comrade") {
+        cost.Qty /= discount;
+      }
+    }
     
     simData.Generators.push(({
       Id: generator.Id,
