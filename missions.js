@@ -904,8 +904,9 @@ function selectNewRank() {
   }
   
   let rank = parseInt(inputRank);
-  if (!rank || rank <= 1 || rank >= getData().Ranks.length) {
+  if (!rank || rank < 1 || rank >= getData().Ranks.length) {
     alert(`Invalid rank: "${inputRank}".`);
+    return;
   }
   
   let splitUrl = window.location.href.split('?');
