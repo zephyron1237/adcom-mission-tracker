@@ -135,11 +135,8 @@ input:checked + .slider:before {
   display: inline-block;
 }
 
-.infoButton {
-  text-decoration-line: none;
-}
-.infoButton:hover {
-  text-decoration-line: none;
+.infoButton, .infoButton:hover, .infoButton:focus {
+  text-decoration: none;
 }
 
 .scriptedRewardInfo {
@@ -164,8 +161,20 @@ input:checked + .slider:before {
   background-image: url("img/event/armored.png");
 }
 
+.wood {
+  background-image: url("img/main/Wood.png");
+}
+
+.stone {
+  background-image: url("img/main/Stone.png");
+}
+
 .darkscience {
   background-image: url("img/event/darkscience.png");
+}
+
+.science {
+  background-image: url("img/main/scientist.png");
 }
 
 .comrades {

@@ -264,7 +264,7 @@ function loadMainSaveData() {
         missionData.Completed.Remaining.push(mission);
       } else {
         // Or take it from the currentMainRank
-        missionindex = missionData[currentMainRank].Remaining.findIndex(m => m.Id == completedId);
+        missionIndex = missionData[currentMainRank].Remaining.findIndex(m => m.Id == completedId);
         let mission = missionData[currentMainRank].Remaining.splice(missionIndex, 1)[0];
         missionData.Completed.Remaining.push(mission);
       }
@@ -941,6 +941,11 @@ function renderCalculator(mission) {
       let unlockableIndustryIndex = getData().Industries.findIndex(i => i.Id == condition.ConditionId);
       industryId = getData().Industries[unlockableIndustryIndex - 1].Id;
     } else if (conditionType == "ResourcesEarnedSinceSubscription") {
+      if (condition.ConditionId.toLowerCase() == "scientist") {
+        // We currently don't support a calculator collecting science
+        return "Mission type currently unsupported.  Check back next event!";
+      }
+      
       industryId = getIndustryByResource(condition.ConditionId).Id;
     }
     
