@@ -382,7 +382,7 @@ function renderMissions() {
       }
       
       if (popupHtml) {
-        title = `Rank ${rank} <button class="btn btn-link infoButton float-right" tabindex="0" role="button" data-toggle="popover" data-placement="left" data-trigger="focus" data-title="Rank ${rank}" data-content="${popupHtml}" data-html="true">&#9432;</button>`;
+        title = `Rank ${rank} <a class="btn btn-link infoButton float-right" tabindex="-1" role="button" data-toggle="popover" data-placement="left" data-trigger="focus" data-title="Rank ${rank}" data-content="${popupHtml}" data-html="true">&#9432;</a>`;
       } else {
         title = `Rank ${rank}`;
       }

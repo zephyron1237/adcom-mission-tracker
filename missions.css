@@ -139,6 +139,10 @@ input:checked + .slider:before {
   text-decoration: none;
 }
 
+.infoButton:hover {
+  cursor: pointer;
+}
+
 .scriptedRewardInfo {
   font-weight: bolder;
 }
