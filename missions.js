@@ -712,8 +712,12 @@ function getResearcherDetails(researcher) {
       vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
-      resources = researcher.TargetIds[0].split(/, ?/).map(res => resourceName(res)).join('/');
-      return `Trading ${resources} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
+      resources = researcher.TargetIds[0].split(/, ?/).map(res => resourceName(res));
+      if (resources.length == getData().Industries.length) {
+        return `All trades grant ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
+      } else {
+        return `Trading ${resources.join('/')} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
+      }
       break;
       
     case "GeneratorPayoutMultiplier":
@@ -725,8 +729,12 @@ function getResearcherDetails(researcher) {
       if (resources) {
         return `Multiplies output of ${resourceName(resources.Id)} by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       } else {
-        resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
-        return `Multiplies output of every ${resources}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+        resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id));
+        if (resources.length == getData().Industries.length) {
+          return `Multiplies output of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+        } else {
+          return `Multiplies output of every ${resources.join('/')}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+        }
       }
       break;
       
@@ -736,8 +744,12 @@ function getResearcherDetails(researcher) {
               researcher.BasePower + 3 * researcher.CurveModifier + 9 * researcher.UpgradePower];
       vals = vals.map(v => `${+(v * 100).toFixed(2)}%`);
       resources = researcher.TargetIds[0].split(/, ?/);
-      resources = resources.map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
-      return `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
+      if (resources.length == getData().Industries.length) {
+        return `Increases crit chance of all generators by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
+      } else {
+        resources = resources.map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
+        return `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
+      }
       break;
       
     case "GeneratorCostReduction":
