@@ -846,6 +846,12 @@ function setStyle(styleType) {
 
 function advanceProgressTo() {
   /* Maybe do a post-1990 solution to this? */
+  if (currentMode == "main") {
+    selectNewRank();
+    return;
+  }
+  
+  // Little more complicated for Events...
   let inputRank = prompt("Complete all missions BEFORE which rank?");
   if (inputRank == null || inputRank == "") {
     return;
