@@ -152,10 +152,12 @@ function initializeInfoPopup() {
 function loadSaveData() {
   // Load configuration first
   let iconConfig = localStorage.getItem("IconConfig") || "image";
-  setIcons(iconConfig);
+  setIcons(iconConfig, false);
   
   let styleConfig = localStorage.getItem("StyleConfig") || "light";
   setStyle(styleConfig);
+  
+  setListStyle(isListActive(), false);
   
   if (getLocal(currentMode, "CompletedVisible") == null) {
     let isNewSave = (getLocal(currentMode, "Completed") == null);
@@ -298,6 +300,11 @@ function updateSaveData() {
 }
 
 function renderMissions() {
+  if (isListActive()) {
+    renderListStyleMissions();
+    return;
+  }
+  
   let missionHtml = "";
   
   let eventScheduleInfo = SCHEDULE.Schedule.find(s => s.LteId == EVENT_ID);
@@ -402,6 +409,42 @@ function renderMissions() {
   $(function () {
     $('[data-toggle="popover"]').popover();
   });
+}
+
+function renderListStyleMissions() {
+  let missionHtml = "<div class='mx-2'>\n";
+  
+  let ranksToShow = [];
+  if (currentMode == "main") {
+    ranksToShow = getData().Ranks.filter(r => r.Rank == currentMainRank);
+    if (currentMainRank > 1) {
+      missionHtml += `<a href="?rank=${currentMainRank - 1}" type="button" class="btn btn-outline-secondary" title="Go back to Rank ${currentMainRank - 1}">&larr;</button>`;
+    }
+    
+    missionHtml += `<a type="button" class="btn btn-outline-secondary" onclick="selectNewRank()" title="Jump to specific Rank">#</a>`;
+    
+    if (currentMainRank < DATA.main.Ranks.length) {
+      missionHtml += `<a href="?rank=${currentMainRank + 1}" type="button" class="btn btn-outline-secondary" title="Go forward to Rank ${currentMainRank + 1}">&rarr;</a>`;
+    }
+    
+    missionHtml += "<br />";
+  } else {
+    ranksToShow = getData().Ranks;
+  }
+  
+  for (let rank of ranksToShow) {
+    missionHtml += `Rank ${rank.Rank}\n<ul>\n`;
+    
+    let rankMissions = getData().Missions.filter(m => m.Rank == rank.Rank);
+    for (let mission of rankMissions) {
+      missionHtml += `<li>${describeMission(mission)}</li>\n`;
+    }
+    
+    missionHtml += "</ul>\n";
+  }
+  
+  missionHtml += "</div>";
+  document.getElementById('missions').innerHTML = missionHtml;
 }
 
 var eventRankTitles = null;
@@ -821,12 +864,14 @@ function toggleCompleted() {
   }
 }
 
-function setIcons(iconType) {
+function setIcons(iconType, shouldRenderMissions = true) {
   localStorage.setItem('IconConfig', iconType);
   $('.config-icon').removeClass('active');
   $(`#config-icon-${iconType}`).addClass('active');
   
-  renderMissions();
+  if (shouldRenderMissions) {
+    renderMissions();
+  }
 }
 
 var StylesheetUrls = {
@@ -845,6 +890,29 @@ function setStyle(styleType) {
     let styleIds = Object.keys(StylesheetUrls).join(" ");
     $('#body').removeClass(styleIds).addClass(styleType);
   }  
+}
+
+function toggleListStyle() {
+  let currentListStyle = localStorage.getItem('ListStyleActiveConfig');
+  setListStyle(!(currentListStyle == "true"));
+}
+
+function setListStyle(isListActive, shouldRenderMissions = true) {
+  localStorage.setItem('ListStyleActiveConfig', isListActive);
+  
+  if (isListActive) {
+    $('#config-style-list').addClass('active');
+  } else {
+    $('#config-style-list').removeClass('active');
+  }
+  
+  if (shouldRenderMissions) {
+    renderMissions();
+  }
+}
+
+function isListActive() {
+  return (localStorage.getItem('ListStyleActiveConfig') == "true");
 }
 
 function advanceProgressTo() {
