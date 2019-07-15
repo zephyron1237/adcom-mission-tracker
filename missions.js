@@ -65,7 +65,7 @@ function initializeEventMissionData() {
       
       if (rank >= getData().Ranks.length) {
         // I'm not sure how the game presents this, but the stretch goals will be considered of one next rank
-        missionsLeft = getData().Ranks.length - missionIndex;
+        missionsLeft = getData().Missions.length - missionIndex + 2;
       } else {
         missionsLeft = parseInt(getData().Ranks[rank].Missions);
       }
@@ -230,7 +230,7 @@ function loadEventSaveData() {
       
       // Now find the lowest-rank missions to fill in Current.
       let missionsNeeded = missionData.Current.StartingCount - missionData.Current.Remaining.length;
-      for (let rank = 1; rank < getData().Ranks.length; rank++) {
+      for (let rank = 1; rank <= getData().Ranks.length; rank++) {
         if (missionsNeeded == 0) {
           break;
         }
@@ -334,19 +334,7 @@ function renderMissions() {
       let rankTitle = "Complete!";
       
       if (currentMode == "event") {
-        for (let findRank = 1; findRank < getData().Ranks.length; findRank++) {
-          if (missionData[findRank].Remaining.length != 0) {
-            if (missionData[findRank].Remaining.length == missionData[findRank].StartingCount) {
-              // This is a full rank, the lowest rank is actually the previous one.
-              let prevStartCount = missionData[findRank - 1].StartingCount;
-              rankTitle = `${(findRank - 1)} (${prevStartCount - 1}/${prevStartCount})`
-            } else {
-              let missingCount = missionData[findRank].StartingCount - missionData[findRank].Remaining.length;
-              rankTitle = `${findRank} (${missingCount - 1}/${missionData[findRank].StartingCount})`;
-            }
-            break;
-          }
-        }
+        rankTitle = getEventCurrentRankTitle();
       } else {
         // Motherland
         let missingCount = missionData[currentMainRank].StartingCount - missionData[currentMainRank].Remaining.length - missionData.Current.Remaining.length;
@@ -414,6 +402,22 @@ function renderMissions() {
   $(function () {
     $('[data-toggle="popover"]').popover();
   });
+}
+
+var eventRankTitles = null;
+function getEventCurrentRankTitle() {
+  if (eventRankTitles == null) {
+    // Generate titles based on Completed count
+    eventRankTitles = [];
+    for (let rank = 1; rank <= getData().Ranks.length; rank++) {
+      console.log(rank, missionData[rank].StartingCount);
+      for (let i = 0; i < missionData[rank].StartingCount; i++) {
+        eventRankTitles.push(`${rank} (${i}/${missionData[rank].StartingCount})`);
+      }
+    }
+  }
+  
+  return eventRankTitles[missionData.Completed.Remaining.length];
 }
 
 function describeScheduleRankReward(reward) {
@@ -484,7 +488,7 @@ function clickMission(missionId) {
     
     // Find a new mission to replace it with
     if (currentMode == "event") {
-      for (let rank = 1; rank < getData().Ranks.length; rank++) {
+      for (let rank = 1; rank <= getData().Ranks.length; rank++) {
         if (missionData[rank].Remaining.length > 0) {
           let newMission = missionData[rank].Remaining.shift();
           missionData.Current.Remaining.push(newMission);
@@ -858,7 +862,7 @@ function advanceProgressTo() {
   }
   
   let rank = parseInt(inputRank);
-  if (!rank || rank <= 1 || rank >= getData().Ranks.length) {
+  if (!rank || rank <= 1 || rank > getData().Ranks.length) {
     alert(`Invalid rank: "${inputRank}".`);
     return;
   }
