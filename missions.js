@@ -410,7 +410,6 @@ function getEventCurrentRankTitle() {
     // Generate titles based on Completed count
     eventRankTitles = [];
     for (let rank = 1; rank <= getData().Ranks.length; rank++) {
-      console.log(rank, missionData[rank].StartingCount);
       for (let i = 0; i < missionData[rank].StartingCount; i++) {
         eventRankTitles.push(`${rank} (${i}/${missionData[rank].StartingCount})`);
       }
