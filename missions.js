@@ -1109,7 +1109,9 @@ function doProductionSim() {
     $('#result').text(`ETA: More than 24 hours.`);
   } else {
     /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
-    $('#result').text(`ETA: ${new Date(result * 1000).toISOString().substr(11, 8)}`);
+    let daysCount = Math.floor(result / (60 * 60 * 24));
+    let daysText = (daysCount > 0) ? `${daysCount}:` : "";
+    $('#result').text(`ETA: ${daysText}${new Date(result * 1000).toISOString().substr(11, 8)}`);
   }
   
   $('#result').effect('highlight', {}, 2000);
@@ -1213,14 +1215,10 @@ function saveFormValues(formValues, industryId) {
   setLocal(currentMode, "FormValues", JSON.stringify(allFormValues));
 }
 
+// Loads the saved form values and inputs them onto the form.
 function loadFormValues() {
-  let valuesString = getLocal(currentMode, "FormValues");
-  if (!valuesString) {
-    return;
-  }
-  
   let industryId = $('#industryId').val();
-  let formValues = JSON.parse(valuesString);
+  let formValues = getFormValuesObject();
   
   // combine any values that may exist for the industry or globally
   let industryValues = formValues[industryId] || {};
@@ -1229,6 +1227,20 @@ function loadFormValues() {
   
   for (let inputId in combinedValues) {
     $(inputId).val(bigNum(combinedValues[inputId]));
+  }
+}
+
+// Returns an object representing saved form information
+function getFormValuesObject() {
+  let valuesString = getLocal(currentMode, "FormValues");
+  if (!valuesString) {
+    return {};
+  }
+  
+  try {
+    return JSON.parse(valuesString);
+  } catch (err) {
+    return {};
   }
 }
 
