@@ -2,7 +2,7 @@ var POWERS = ['K', 'M', 'B', 'T', 'AA', 'BB', 'CC', 'DD', 'EE', 'FF', 'GG', 'HH'
 
 var EVENT_ID = "event11";
 var EVENT_VERSION = 1; // This is used for major mission changes of the same EVENT_ID.  Changing this will reset all progress.
-var IS_DATA_FINAL = false; // Along with EVENT_VERSION, this allows me to release a preliminary mission list and then confirm/change it once the event launches.
+var IS_DATA_FINAL = true; // Along with EVENT_VERSION, this allows me to release a preliminary mission list and then confirm/change it once the event launches.
 
 var DATA = {
   /************ EVENT DATA ************/
