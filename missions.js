@@ -13,7 +13,8 @@ function main() {
 
 function loadModeSettings() {
   // Parse url for a ?rank=X, where X is "event" or 1-MAX_RANK
-  let splitUrl = window.location.href.split('?');
+  let splitUrl = window.location.href.split('#');
+  splitUrl = splitUrl[0].split('?');
   if (splitUrl.length == 2) {
     let arguments = splitUrl[1].split('&');
     for (let arg of arguments) {
