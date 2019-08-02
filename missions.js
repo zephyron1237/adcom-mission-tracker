@@ -1223,10 +1223,24 @@ function loadFormValues() {
   // combine any values that may exist for the industry or globally
   let industryValues = formValues[industryId] || {};
   let globalValues = formValues["global"] || {};
-  let combinedValues = {...industryValues, ...globalValues};
+  let combinedValues = mergeObjects(industryValues, globalValues);
   
   for (let inputId in combinedValues) {
     $(inputId).val(bigNum(combinedValues[inputId]));
+  }
+}
+
+// Returns a new object that is the union of two objects
+function mergeObjects(left, right) {
+  if (Object.assign) {
+    return Object.assign({}, left, right);
+    
+  } else {
+    let result = {};
+    for (let key in left) { result[key] = left[key]; }
+    for (let key in right) { result[key] = right[key]; }
+    
+    return result;
   }
 }
 
