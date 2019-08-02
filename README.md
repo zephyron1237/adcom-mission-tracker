@@ -10,6 +10,8 @@ Click on missions in the "Current" area to mark them as Completed.  Click missio
 
 Each mission has a (i) button next to it.  Clicking this brings up a pop-up with details on the mission, as well as a calculator.  Click "Details" on the calculator for more info.
 
+Switch between Motherland (main) and Event by clicking on the title's dropdown.  Change settings from the "Settings" dropdown.
+
 ## Thanks
 
 Images taken from the wiki. Some json data was provided by The_Random_Guy on the AdCom discord.  Emoji selection mostly taken from the Discord #mission-list (maintained by Julian).  Some dark mode style provided by Manifold0.
