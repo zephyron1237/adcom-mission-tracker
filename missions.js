@@ -1067,6 +1067,8 @@ function renderCalculator(mission) {
       html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configComradeLimited" onclick="clickComradeLimited('${condition.ConditionId}')"><label class="form-check-label" for="configComradeLimited">Limited by comrades only</label></div>`;
     }
     
+    html += `<div class="form-inline"><label for="configMaxDays" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"></div>`;
+    
     html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
     html += `<p><button id="calcButton" class="btn btn-primary" type="button" onclick="doProductionSim()">Calculate!</button></p>`;
@@ -1079,7 +1081,7 @@ function renderCalculator(mission) {
 
 function clickComradeLimited(generatorId) {
   let checked = $('#configComradeLimited').is(':checked');
-  $("#calc input[type='text']").not(`#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
+  $("#calc input[type='text'],input[type='number']").not(`#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
 }
 
 function doProductionSim() {
@@ -1107,12 +1109,24 @@ function doProductionSim() {
   $('#calcButton').removeClass('disabled');
   
   if (result == -1) {
-    $('#result').text(`ETA: More than 24 hours.`);
+    $('#result').text(`ETA: More than ${simData.Config.MaxDays} days. Increase max day limit.`);
   } else {
     /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
-    let daysCount = Math.floor(result / (60 * 60 * 24));
-    let daysText = (daysCount > 0) ? `${daysCount}:` : "";
-    $('#result').text(`ETA: ${daysText}${new Date(result * 1000).toISOString().substr(11, 8)}`);
+    let days = Math.floor(result / (60 * 60 * 24));
+    let [hours, minutes, seconds] = new Date(result * 1000).toISOString().substr(11, 8).split(':');
+    
+    let eta = '';
+    if (days > 0) {
+      eta = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    } else if (hours > 0) {
+      eta = `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      eta = `${minutes}m ${seconds}s`;
+    } else {
+      eta = `${seconds}s`;
+    }
+    
+    $('#result').text(`ETA: ${eta}`);
   }
   
   $('#result').effect('highlight', {}, 2000);
@@ -1155,7 +1169,7 @@ function getProductionSimDataFromForm() {
     simData.Generators.push(({
       Id: generator.Id,
       Resource: generator.Generate.Resource,
-      QtyPerSec: generator.Generate.Qty / generator.BaseCompletionTime * power * genSpeed * (critChance * critPower + 1 - critChance),      
+      QtyPerSec: generator.Generate.Qty / generator.BaseCompletionTime * power * genSpeed * (critChance * critPower + 1 - critChance),
       Cost: costs
     }));
     
@@ -1173,6 +1187,7 @@ function getProductionSimDataFromForm() {
   
   simData.Config.Autobuy = $('#configAutobuy').is(':checked');
   simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');
+  simData.Config.MaxDays = getValueFromForm('#configMaxDays', 1, simData, formValues);
   
   saveFormValues(formValues, industryId);
   saveFormValues(globalFormValues, "global");
@@ -1278,10 +1293,7 @@ function calcLimitedComrades(simData) {
   }
 }
 
-function simulateProductionMission(simData) {
-  const DELTA_TIME = 0.2;
-  const MAX_TIME = 60 * 60 * 24; // 24h
-  
+function simulateProductionMission(simData, deltaTime = 1.0) {
   // First, handle autobuy, if enabled.
   let autobuyGenerator = null;
   if (simData.Config.Autobuy) {
@@ -1328,18 +1340,19 @@ function simulateProductionMission(simData) {
   }
     
   // Now do the iteration
+  let maxTime = simData.Config.MaxDays * 24 * 60 * 60; // convert max days to max seconds
   let time;
-  for (time = 0; time < MAX_TIME && !metGoals(simData, goals); time += DELTA_TIME) {
+  for (time = 0; time < maxTime && !metGoals(simData, goals); time += deltaTime) {
     // Run each generator, starting from comrades and lowest-tier first.
     for (let genIndex in simData.Generators) {
       let generator = simData.Generators[genIndex];
-      simData.Counts[generator.Resource] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
+      simData.Counts[generator.Resource] += simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
       
       // index 0 & 1 make comrades & resources, so they also counts toward "comradeProgress" & "resourceProgress"
       if (genIndex == 0) {
-        simData.Counts["comradeProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
+        simData.Counts["comradeProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
       } else if (genIndex == 1) {
-        simData.Counts["resourceProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
+        simData.Counts["resourceProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
       }
     }
     
@@ -1353,7 +1366,7 @@ function simulateProductionMission(simData) {
     }
   }
   
-  if (time >= MAX_TIME) {
+  if (time >= maxTime) {
     return -1;
   } else {
     return time;
