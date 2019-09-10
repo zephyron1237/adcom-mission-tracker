@@ -1050,6 +1050,11 @@ function renderCalculator(mission) {
       let id = generator.Id;
       let name = resourceName(id);
       html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${currentMode}/${id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></span></td><td><span class="mt-1 resourceIcon speed float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></span></td></tr>`;
+      
+      // Band-aid fix for tier-1 power rares in the motherland
+      if (currentMode == "main" && id == generators[0].Id) {
+        html += `<tr><td>&nbsp;</td><td><span class="mt-1 resourceIcon power float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-power" placeholder="Power"></span></td></tr>`;
+      }
     }
     
     let resource = getResourceByIndustry(industryId);
@@ -1159,6 +1164,12 @@ function getProductionSimDataFromForm() {
     let genCount = getValueFromForm(`#${generator.Id}-count`, 0, simData, null);
     let genSpeed = getValueFromForm(`#${generator.Id}-speed`, 0, simData, formValues);
     
+    // A band-aid fix until I properly overhaul the calc
+    let genPower = 1;
+    if (currentMode == "main" && generator.Id == generators[0].Id) {
+      genPower = getValueFromForm(`#${generator.Id}-power`, 1, simData, formValues);
+    }
+    
     let costs = generator.Cost.map(c => ({ Resource: c.Resource.toLowerCase(), Qty: Number(c.Qty) }));
     for (let cost of costs) {
       if (cost.Resource != "comrade") {
@@ -1169,7 +1180,7 @@ function getProductionSimDataFromForm() {
     simData.Generators.push(({
       Id: generator.Id,
       Resource: generator.Generate.Resource,
-      QtyPerSec: generator.Generate.Qty / generator.BaseCompletionTime * power * genSpeed * (critChance * critPower + 1 - critChance),
+      QtyPerSec: generator.Generate.Qty / generator.BaseCompletionTime * power * genPower * genSpeed * (critChance * critPower + 1 - critChance),
       Cost: costs
     }));
     
