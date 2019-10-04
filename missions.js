@@ -42,6 +42,20 @@ function loadModeSettings() {
   let title = (currentMode == "main") ? "Motherland Missions" : "Event Missions"
   $('#mode-select-title').text(title);
   $('#mode-select-title').addClass("show");
+  
+  // Determine DATA.event and EVENT_ID based on the Schedule
+  if (currentMode == "event") {
+    let now = new Date();
+    let prevEventIndex = SCHEDULE.Schedule.findIndex(event  => new Date(event.EndTime) < now);
+    let curEventIndex = prevEventIndex - 1; // schedule is ordered from newest to oldest.
+    
+    if (curEventIndex < 0) {
+      $('#alertNoSchedule').addClass("show");
+    } else {
+      EVENT_ID = SCHEDULE.Schedule[curEventIndex].LteId;
+      DATA["event"] = DATA[SCHEDULE.Schedule[curEventIndex].BalanceId];
+    }
+  }
 }
 
 function initializeMissionData() {
@@ -308,10 +322,11 @@ function renderMissions() {
   
   let missionHtml = "";
   
-  let eventScheduleInfo = SCHEDULE.Schedule.find(s => s.LteId == EVENT_ID);
-  
+  let eventScheduleInfo;  
   let sortedRanks;
   if (currentMode == "event") {
+    eventScheduleInfo = SCHEDULE.Schedule.find(s => s.LteId == EVENT_ID);
+    
     sortedRanks = Object.keys(missionData);
     sortedRanks.splice(sortedRanks.indexOf("Completed"), 1);
     sortedRanks.splice(sortedRanks.indexOf("Current"), 1);
