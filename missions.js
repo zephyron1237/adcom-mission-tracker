@@ -701,10 +701,10 @@ function describeMission(mission, overrideIcon = "") {
       break;
     case "ResourceQuantity":
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
-      textHtml = `Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold).replace(/ /g, '&nbsp;')})`;
+      textHtml = `Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold).replace(/ /g, '&nbsp;')})`;
       break;
     case "IndustryUnlocked":
-      let resourceId = getResourceByIndustry(condition.ConditionId).Id;      
+      let resourceId = getResourceByIndustry(condition.ConditionId).Id;
       iconHtml = getMissionIcon(resourceId, condition.ConditionType, overrideIcon);
       textHtml = `Unlock ${resourceName(resourceId)}`;
       break;
