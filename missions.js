@@ -1,6 +1,6 @@
-var missionData = {};
-var missionCompletionTimes = {};
-var currentMode = "main";
+var missionData = {}; //  The main data structure used to store the current state of missions.
+var missionCompletionTimes = {}; // Maps missionId's to when you completed them.  Can be viewed in the info popup of completed missions.
+var currentMode = "main"; 
 var currentMainRank = 1;
 
 function main() {
@@ -11,6 +11,8 @@ function main() {
   renderMissions();
 }
 
+// Determines whether the page is in Main or Event mode, based on the url and save state.
+// If event, also determines the event (based on the current time and event schedule).
 function loadModeSettings() {
   // Parse url for a ?rank=X, where X is "event" or 1-MAX_RANK
   let splitUrl = window.location.href.split('#');
@@ -60,6 +62,8 @@ function loadModeSettings() {
   }
 }
 
+// Sets up missionData based on game data and your save data.
+// This is different for main/event and returns slightly different objects.
 function initializeMissionData() {
   // TODO: Make this object-oriented at some point?
   if (currentMode == "main") {
@@ -69,7 +73,7 @@ function initializeMissionData() {
   }
 }
 
-// e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, Completed: {...}, Current: {...}}
+// e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, ..., Completed: {...}, Current: {...}}
 function initializeEventMissionData() {
   missionCompletionTimes = {};
   missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: 3, Remaining: []}};
@@ -113,7 +117,7 @@ function initializeEventMissionData() {
   }
 }
 
-// e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, Completed: {...}, Current: {...}}
+// e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, ..., Completed: {...}, Current: {...}, OtherRankMissionIds: [...]}
 function initializeMainMissionData() {
   missionCompletionTimes = {};
   missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: 3, Remaining: []}, OtherRankMissionIds: []};
@@ -135,6 +139,7 @@ function initializeMainMissionData() {
   }
 }
 
+// Manually initializes popups and popovers, since Bootstrap requires it.
 function initializeInfoPopup() {
   /* Based on code from https://getbootstrap.com/docs/4.0/components/modal/ */
   $('#infoPopup').on('show.bs.modal', function (event) {
@@ -166,6 +171,7 @@ function initializeInfoPopup() {
   });
 }
 
+// Loads settings, and then save data, editing missionData in-place differently for main/events.
 function loadSaveData() {
   // Load configuration first
   let iconConfig = localStorage.getItem("IconConfig") || "image";
@@ -299,6 +305,8 @@ function loadMainSaveData() {
   }
 }
 
+// Makes a local save of data so you can refresh/switch page.
+// Typically called after you make changes to missionData.
 function updateSaveData() {
   if (currentMode == "event") {
     let saveData = missionData.Completed.Remaining.map(m => m.Id).join(',');
@@ -316,8 +324,10 @@ function updateSaveData() {
   setLocal(currentMode, "CompletionTimes", JSON.stringify(missionCompletionTimes));
 }
 
+// Updates the html of the page with all the mission data (i.e., rank boxes with mission buttons).
 function renderMissions() {
   if (isListActive()) {
+    // A bit of a hack.  List-mode does its own thing.
     renderListStyleMissions();
     return;
   }
@@ -499,6 +509,7 @@ function describeScheduleRankReward(reward) {
   }
 }
 
+// Given a root.Missions object, returns an html string of a mission button
 function renderMissionButton(mission, rank) {
   let type = mission.Condition.ConditionType;
   let buttonClass = "";
@@ -539,6 +550,7 @@ function hasScriptedReward(mission) {
   return scriptedRewardIds.has(mission.Reward.RewardId);
 }
 
+// Called OnClick for mission buttons.  Tries to (un)complete if possible.
 function clickMission(missionId) {
   let foundIndex;
   if (-1 != (foundIndex = missionData.Current.Remaining.findIndex(m => m.Id == missionId))) {
@@ -688,6 +700,7 @@ function upperCaseFirstLetter(name) {
   }
 }
 
+// Given a mission object, returns a description html string that idenitifies the mission.
 function describeMission(mission, overrideIcon = "") {
   // TODO: Maybe make this (whole codebase) Object-Oriented at some point?
   let condition = mission.Condition;
@@ -730,6 +743,7 @@ function describeMission(mission, overrideIcon = "") {
   return `${iconHtml} ${textHtml}`;
 }
 
+// Given a root.Missions.Reward object, return an html string describing the reward (almost always a gacha capsule with gold + science + researchers).
 function describeReward(reward) {
   if (reward.Reward == "Resources") {
     return `${bigNum(reward.Value)} ${resourceName(reward.RewardId)}`;
@@ -758,11 +772,13 @@ function describeReward(reward) {
   }
 }
 
+// Given a root.Researchers object, returns an html string with a clickable version of their name with a popover description.
 function describeResearcher(researcher) {
   let details = getResearcherDetails(researcher);
   return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-content="${details}">${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
 }
 
+// Given a root.Researchers object, returns a description of that researcher's effect.
 function getResearcherDetails(researcher) {
   let vals, resources;
   switch (researcher.ModType) {
@@ -832,19 +848,22 @@ function getResearcherDetails(researcher) {
   }
 }
 
+// Given an industryId (e.g., 'big farma'), returns the associated root.Resources object (e.g., placebo).
 function getResourceByIndustry(industryId) {
   // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
   industryId = industryId.toLowerCase();
   let industryIndex = getData().Industries.findIndex(i => i.Id == industryId);
   return getData().Resources[industryIndex];
 }
-  
+
+// Given a resourceId (e.g., 'placebo'), returns the associated root.Industries object (e.g., Big Farma).
 function getIndustryByResource(resourceId) {
   // This is a bit of a hack, and assumes that the first N Resources represent the N Industries.  This currently happens to be correct in every balance.json.
   let resourceIndex = getData().Resources.findIndex(r => r.Id == resourceId);
   return getData().Industries[resourceIndex];
 }
   
+// Given a root.GachaScripts.Card element, return a string describing how many copies you would get (e.g., '15x ')
 function cardValueCount(card) {
   // Trying to decide between hiding 1x. I think I want it.
   return `${card.Value}x&nbsp;`;
@@ -860,6 +879,7 @@ var MISSION_EMOJI = {
   ResourcesSpentSinceSubscription: "&#9879;"
 };
 
+// Used in describeMission to get an approriate icon based on the settings and resource involved.
 function getMissionIcon(resourceId, missionConditionType, overrideIcon = "", overrideDirectory = "") {
   let iconConfig = overrideIcon || localStorage.getItem("IconConfig");
   let imgDirectory = overrideDirectory || currentMode;
@@ -872,6 +892,7 @@ function getMissionIcon(resourceId, missionConditionType, overrideIcon = "", ove
   }
 }
 
+// Run OnClick for the big visibility toggle of Completed.
 function toggleCompleted() {
   let element = document.getElementById('Completed-body');
   if (getLocal(currentMode, "CompletedVisible") == "true") {
@@ -883,6 +904,7 @@ function toggleCompleted() {
   }
 }
 
+// Run whenever the icon setting changes (OnClick) or is initialized.
 function setIcons(iconType, shouldRenderMissions = true) {
   localStorage.setItem('IconConfig', iconType);
   $('.config-icon').removeClass('active');
@@ -898,6 +920,7 @@ var StylesheetUrls = {
   dark: "https://stackpath.bootstrapcdn.com/bootswatch/4.3.1/cyborg/bootstrap.min.css"
 };
 
+// Run whenever the style setting changes (OnClick) or is initialized.
 function setStyle(styleType) {
   localStorage.setItem('StyleConfig', styleType);
   $('.config-style').removeClass('active');
@@ -911,11 +934,13 @@ function setStyle(styleType) {
   }  
 }
 
+// Run OnClick for the list style option.
 function toggleListStyle() {
   let currentListStyle = localStorage.getItem('ListStyleActiveConfig');
   setListStyle(!(currentListStyle == "true"));
 }
 
+// Run whenever the list style option changes (OnClick) or is initialized.
 function setListStyle(isListActive, shouldRenderMissions = true) {
   localStorage.setItem('ListStyleActiveConfig', isListActive);
   
@@ -934,6 +959,9 @@ function isListActive() {
   return (localStorage.getItem('ListStyleActiveConfig') == "true");
 }
 
+// Prompts the user for a rank and attempts to advance their progress to that rank.
+// For main, this is identical to the "#" button and just switches your current rank setting.
+// For events, it auto-completes all missions prior to the rank.
 function advanceProgressTo() {
   /* Maybe do a post-1990 solution to this? */
   if (currentMode == "main") {
@@ -1004,6 +1032,7 @@ function resetProgress() {
   }
 }
 
+// Used by the "#" button and advanceProgressTo to redirect you to a main rank's page if appropriate.
 function selectNewRank() {
   /* TODO: Post-1990 solution blah blah */
   let inputRank = prompt("Jump to which rank?");
@@ -1021,6 +1050,8 @@ function selectNewRank() {
   window.location.assign(`${splitUrl[0]}?rank=${rank}`);
 }
 
+
+// getLocal, setLocal and removeLocal is a layer of abstraction that creates a key name based on the mode and given key.
 function getLocal(mode, key) {
   return localStorage.getItem(`${mode}-${key}`);
 }
@@ -1033,10 +1064,15 @@ function removeLocal(mode, key) {
   localStorage.removeItem(`${mode}-${key}`);
 }
 
+
 function getData() {
   return DATA[currentMode];
 }
 
+
+/******* CALCULATOR STUFF ******/
+
+// Given a root.Missions object, returns an html string representing the calculator (most of the mission popup content).
 function renderCalculator(mission) {
   let condition = mission.Condition;
   let conditionType = condition.ConditionType;
@@ -1108,6 +1144,7 @@ function clickComradeLimited(generatorId) {
   $("#calc input[type='text'],input[type='number']").not(`#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
 }
 
+// Called OnClick for "Calculate!"  Interprets input, runs calc/sim, and outputs result.
 function doProductionSim() {
   let simData = getProductionSimDataFromForm();
   
@@ -1225,6 +1262,7 @@ function getProductionSimDataFromForm() {
   return simData;
 }
 
+// Gets a value from the form (with error checking) and optionally stores that value.
 function getValueFromForm(inputId, defaultValue, simData, formValues) {
   let value = fromBigNum($(inputId).val());
   let result = value || defaultValue;
@@ -1304,6 +1342,7 @@ function getFormValuesObject() {
   }
 }
 
+//  We don't need to do a simulation in this case, since it's a trivial O(1) calculation.
 function calcLimitedComrades(simData) {
   let condition = simData.Mission.Condition;
   
@@ -1323,6 +1362,7 @@ function calcLimitedComrades(simData) {
   }
 }
 
+// The core "simulation."  Returns seconds until goal is met, or -1 if goal is not met in MaxDays.
 function simulateProductionMission(simData, deltaTime = 1.0) {
   // First, handle autobuy, if enabled.
   let autobuyGenerator = null;
