@@ -46,7 +46,9 @@ function loadModeSettings() {
   // Determine DATA.event and EVENT_ID based on the Schedule
   if (currentMode == "event") {
     let now = new Date();
-    let prevEventIndex = SCHEDULE.Schedule.findIndex(event  => new Date(event.EndTime) < now);
+    
+    // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
+    let prevEventIndex = SCHEDULE.Schedule.findIndex(event  => new Date(event.EndTime + "Z") < now);
     let curEventIndex = prevEventIndex - 1; // schedule is ordered from newest to oldest.
     
     if (curEventIndex < 0) {
