@@ -624,7 +624,7 @@ function fromBigNum(x) {
     return NaN;
   }
 
-  let split = x.length == 0 ? [""] : [.../(\d+(?:[\.,]\d+)?) ?(\w+)?/g.exec(x)].filter((x,i) => x != undefined && i>0)
+  let split = x.length == 0 ? [""] : /([\d\.,]+)/.test(x) ? [.../([\d\.,]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0) : NaN
   
   if (split.length == 1) {
     return parseLocaleNumber(split[0]);
