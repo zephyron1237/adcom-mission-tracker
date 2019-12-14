@@ -625,7 +625,7 @@ function fromBigNum(x) {
     return NaN;
   }
 
-  let split = x.toString().trim().split(/ +/);
+  let [,...split2] = [.../(\d+(?:[\.,]\d+)?) ?(\w+)?/g.exec(x)]
   
   if (split.length == 1) {
     return parseLocaleNumber(split[0]);
