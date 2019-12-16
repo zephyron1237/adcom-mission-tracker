@@ -2,6 +2,7 @@ var missionData = {}; //  The main data structure used to store the current stat
 var missionCompletionTimes = {}; // Maps missionId's to when you completed them.  Can be viewed in the info popup of completed missions.
 var currentMode = "main"; 
 var currentMainRank = 1;
+var currentEventTheme = "";  // e.g. "space" or "ninja".  Primarily used to locate icons.
 
 function main() {
   loadModeSettings();
@@ -57,7 +58,10 @@ function loadModeSettings() {
       $('#alertNoSchedule').addClass("show");
     } else {
       EVENT_ID = SCHEDULE.Schedule[curEventIndex].LteId;
-      DATA["event"] = DATA[SCHEDULE.Schedule[curEventIndex].BalanceId];
+      
+      let balanceId = SCHEDULE.Schedule[curEventIndex].BalanceId;
+      DATA["event"] = DATA[balanceId];
+      currentEventTheme = balanceId.split("-")[0]; // get "ninja" from "ninja-bal-1"
     }
   }
 }
@@ -733,7 +737,7 @@ function describeMission(mission, overrideIcon = "") {
       textHtml = `Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
+      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, 'event');
       textHtml = `Spend ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     default:
@@ -881,8 +885,16 @@ var MISSION_EMOJI = {
 
 // Used in describeMission to get an approriate icon based on the settings and resource involved.
 function getMissionIcon(resourceId, missionConditionType, overrideIcon = "", overrideDirectory = "") {
+  let imgDirectory;
+  if (overrideDirectory) {
+    imgDirectory = overrideDirectory;
+  } else if (currentEventTheme) {
+    imgDirectory = `${currentMode}/${currentEventTheme}`;
+  } else {
+    imgDirectory = `${currentMode}`;
+  }
+  
   let iconConfig = overrideIcon || localStorage.getItem("IconConfig");
-  let imgDirectory = overrideDirectory || currentMode;
   if (iconConfig == "none") {
     return "";
   } else if (iconConfig == "emoji") {
