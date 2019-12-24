@@ -883,16 +883,20 @@ var MISSION_EMOJI = {
   ResourcesSpentSinceSubscription: "&#9879;"
 };
 
+
+function getImageDirectory(overrideDirectory = "") {
+  if (overrideDirectory) {
+    return overrideDirectory;
+  } else if (currentEventTheme) {
+    return `${currentMode}/${currentEventTheme}`;
+  } else {
+    return `${currentMode}`;
+  }
+}
+
 // Used in describeMission to get an approriate icon based on the settings and resource involved.
 function getMissionIcon(resourceId, missionConditionType, overrideIcon = "", overrideDirectory = "") {
-  let imgDirectory;
-  if (overrideDirectory) {
-    imgDirectory = overrideDirectory;
-  } else if (currentEventTheme) {
-    imgDirectory = `${currentMode}/${currentEventTheme}`;
-  } else {
-    imgDirectory = `${currentMode}`;
-  }
+  let imgDirectory = getImageDirectory(overrideDirectory);
   
   let iconConfig = overrideIcon || localStorage.getItem("IconConfig");
   if (iconConfig == "none") {
@@ -1107,6 +1111,7 @@ function renderCalculator(mission) {
     }
     
     // Display comrade inputs, shared inputs, and generator inputs
+    let imgDirectory = getImageDirectory();
     let html = `<table class="calcTable"><tr><td class="pr-3"><span class="mt-1 resourceIcon comrades float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="comrades" placeholder="# of Comrades"></span></td><td><span class="mt-1 resourceIcon comradesPerSec float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="comradesPerSec" placeholder="Comrades/second"></span></td></tr>`;
     html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon power float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="power" placeholder="Power"></span></td><td><span class="mt-1 resourceIcon discount float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="discount" placeholder="Discount"></span></td></tr>`;
     html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon critChance float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="critChance" placeholder="Crit Chance"></span></td><td><span class="mt-1 resourceIcon critPower float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="critPower" placeholder="Crit Power"></span></td></tr>`;
