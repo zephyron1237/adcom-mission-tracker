@@ -1115,7 +1115,7 @@ function renderCalculator(mission) {
     for (let generator of generators) {
       let id = generator.Id;
       let name = resourceName(id);
-      html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${currentMode}/${id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></span></td><td><span class="mt-1 resourceIcon speed float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></span></td></tr>`;
+      html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${imgDirectory}/${id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></span></td><td><span class="mt-1 resourceIcon speed float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></span></td></tr>`;
       
       // Band-aid fix for tier-1 power rares in the motherland
       if (currentMode == "main" && id == generators[0].Id) {
@@ -1124,9 +1124,9 @@ function renderCalculator(mission) {
     }
     
     let resource = getResourceByIndustry(industryId);
-    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${currentMode}/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resources" placeholder="# of ${resourceName(resource.Id)}"></span></td>`;
+    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${imgDirectory}/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resources" placeholder="# of ${resourceName(resource.Id)}"></span></td>`;
     if (conditionType == "ResourcesEarnedSinceSubscription") {
-      html += `<td><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${currentMode}/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></span></td></tr>`;
+      html += `<td><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${imgDirectory}/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></span></td></tr>`;
     } else {
       html += "<td></td></tr>";
     }
