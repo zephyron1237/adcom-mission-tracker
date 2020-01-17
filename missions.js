@@ -611,15 +611,15 @@ function clickMission(missionId) {
 }
 
 // Converts numbers to AdCom style. bigNum(1E21) => "1 CC"
-function bigNum(x) {
-  if (x < 1e+6) {
+function bigNum(x, minimumCutoff = 1e+6, significantDigits = 100) {
+  if (x < minimumCutoff) {
     return x.toLocaleString();
   }
   
   let digits = Math.floor(Math.log10(x));
   let thousands = Math.floor(digits / 3);
   let mantissa = x / Math.pow(10, thousands * 3);
-  return `${+mantissa.toFixed(2)} ${POWERS[thousands - 1]}`;
+  return `${+mantissa.toFixed(2).slice(0, significantDigits + 1)} ${POWERS[thousands - 1]}`;
 }
 
 // Converts AdCom style numbers to normal. fromBigNum("1 CC") => 1E21
@@ -716,7 +716,7 @@ function describeMission(mission, overrideIcon = "") {
       textHtml =`Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     case "ResearchersUpgradedSinceSubscription":
-      iconHtml = getMissionIcon("upgrade", condition.ConditionType, overrideIcon, "shared");
+      iconHtml = getMissionIcon("upgrade", condition.ConditionType, overrideIcon, "img/shared");
       textHtml = `Upgrade Cards (${condition.Threshold})`;
       break;
     case "ResourceQuantity":
@@ -733,11 +733,11 @@ function describeMission(mission, overrideIcon = "") {
       textHtml = `Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold).replace(/ /g, '&nbsp;')})`;
       break;
     case "ResearcherCardsEarnedSinceSubscription":
-      iconHtml = getMissionIcon("card", condition.ConditionType, overrideIcon, "shared");
+      iconHtml = getMissionIcon("card", condition.ConditionType, overrideIcon, "img/shared");
       textHtml = `Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, 'event');
+      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, "img/event");
       textHtml = `Spend ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     default:
@@ -888,9 +888,9 @@ function getImageDirectory(overrideDirectory = "") {
   if (overrideDirectory) {
     return overrideDirectory;
   } else if (currentEventTheme) {
-    return `${currentMode}/${currentEventTheme}`;
+    return `img/${currentMode}/${currentEventTheme}`;
   } else {
-    return `${currentMode}`;
+    return `img/${currentMode}`;
   }
 }
 
@@ -904,7 +904,7 @@ function getMissionIcon(resourceId, missionConditionType, overrideIcon = "", ove
   } else if (iconConfig == "emoji") {
     return MISSION_EMOJI[missionConditionType];
   } else {
-    return `<span style="background-image: url('img/${imgDirectory}/${resourceId}.png');" class="resourceIcon">&nbsp;</span>`;
+    return `<span style="background-image: url('${imgDirectory}/${resourceId}.png');" class="resourceIcon">&nbsp;</span>`;
   }
 }
 
@@ -1110,33 +1110,20 @@ function renderCalculator(mission) {
       industryId = getIndustryByResource(condition.ConditionId).Id;
     }
     
-    // Display comrade inputs, shared inputs, and generator inputs
-    let imgDirectory = getImageDirectory();
-    let html = `<table class="calcTable"><tr><td class="pr-3"><span class="mt-1 resourceIcon comrades float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="comrades" placeholder="# of Comrades"></span></td><td><span class="mt-1 resourceIcon comradesPerSec float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="comradesPerSec" placeholder="Comrades/second"></span></td></tr>`;
-    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon power float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="power" placeholder="Power"></span></td><td><span class="mt-1 resourceIcon discount float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="discount" placeholder="Discount"></span></td></tr>`;
-    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon critChance float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="critChance" placeholder="Crit Chance"></span></td><td><span class="mt-1 resourceIcon critPower float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="critPower" placeholder="Crit Power"></span></td></tr>`;
-    
-    let generators = getData().Generators.filter(g => g.IndustryId == industryId);
-    for (let generator of generators) {
-      let id = generator.Id;
-      let name = resourceName(id);
-      html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${imgDirectory}/${id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-count" placeholder="# of ${name}"></span></td><td><span class="mt-1 resourceIcon speed float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-speed" placeholder="Speed"></span></td></tr>`;
-      
-      // Band-aid fix for tier-1 power rares in the motherland
-      if (currentMode == "main" && id == generators[0].Id) {
-        html += `<tr><td>&nbsp;</td><td><span class="mt-1 resourceIcon power float-left mr-2">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="${id}-power" placeholder="Power"></span></td></tr>`;
-      }
-    }
-    
-    let resource = getResourceByIndustry(industryId);
-    html += `<tr><td class="pr-3"><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${imgDirectory}/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resources" placeholder="# of ${resourceName(resource.Id)}"></span></td>`;
-    if (conditionType == "ResourcesEarnedSinceSubscription") {
-      html += `<td><span class="mt-1 resourceIcon float-left mr-2" style="background-image: url('img/${imgDirectory}/${resource.Id}.png');">&nbsp;</span><span class="calcInputContainer"><input type="text" class="form-control" id="resourceProgress" placeholder="Mission Progress"></span></td></tr>`;
-    } else {
-      html += "<td></td></tr>";
-    }
-    html += "</table>";
-    
+    // Display two tabs: one for generators, and one for researchers. Then below, options and submit.
+    let html = `
+      <ul class="nav nav-tabs" id="calc-tabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="generators-tab" data-toggle="tab" href="#generators" role="tab" aria-controls="generators" aria-selected="true">Generators</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="researchers-tab" data-toggle="tab" href="#researchers" role="tab" aria-controls="researchers" aria-selected="false">Researchers</a>
+        </li>
+      </ul>
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="generators" role="tabpanel" aria-labelledby="generators-tab">${getGeneratorsTab(mission, industryId)}</div>
+        <div class="tab-pane fade" id="researchers" role="tabpanel" aria-labelledby="researchers-tab">${getResearchersTab(mission, industryId)}</div>
+      </div>`;
     html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label></div>`;
     
     if (conditionType == "ResourceQuantity") {
@@ -1154,6 +1141,281 @@ function renderCalculator(mission) {
   } else {
     return "Mission type currently unsupported.  Check back next event!";
   }
+}
+
+// Returns html for the calculator's sub-tab where you input generator and resource counts.
+function getGeneratorsTab(mission, industryId) {
+  let imgDirectory = getImageDirectory();
+  
+  let html = "";
+  
+  let generators = getData().Generators.filter(g => g.IndustryId == industryId);
+  for (let generator of generators) {
+    let id = generator.Id;
+    let name = resourceName(id);
+    html += getResourceInput(`${id}-count`, `# of ${name}`, `${imgDirectory}/${id}.png`);
+  }
+  
+  html += "<hr />";
+  
+  let resource = getResourceByIndustry(industryId);
+  html += getResourceInput("resources", `# of ${resourceName(resource.Id)}`, `${imgDirectory}/${resource.Id}.png`);
+  
+  if (mission.Condition.ConditionType == "ResourcesEarnedSinceSubscription") {
+    html += getResourceInput("resourceProgress", "Mission Progress", `${imgDirectory}/${resource.Id}.png`);
+  }
+  
+  return html;
+}
+
+// Returns a div for a single input in the Generators tab.
+function getResourceInput(tagId, description, imageUrl) {
+  return `<div class="input-group my-1" >
+            <div class="input-group-prepend">
+              <span class="input-group-text inputIcon" style="background-image: url('${imageUrl}');">&nbsp;</span>
+            </div>
+            <input type="text" class="form-control" id="${tagId}" placeholder="${description}">
+          </div>`;
+}
+
+// Returns html for the researchers sub-tab where you input researcher levels.
+function getResearchersTab(mission, industryId) {
+  let html = `
+    <div class="container">
+      <div class="row">`;
+  
+  let formValues = getFormValuesObject();
+  
+  let researchers = getResearchersByIndustry(industryId);
+  sortResearchers(researchers);
+  
+  // Make rows with 3 researchers per row and end each one with a row-ending div.
+  let columnsLeft = 3;  
+  for (let researcher of researchers) {
+    html += `<div class="col mt-3">${getResearcherCard(researcher, formValues)}</div>`;
+    
+    if (columnsLeft == 1) {
+      html += '<div class="w-100"></div>';
+      columnsLeft = 3;
+    } else {
+      columnsLeft -= 1;
+    }
+  }
+  
+  // Add an additional PropagandaBoost pseudo-researcher.
+  html += `<div class="col mt-3">${getPropagandaBoostCard(formValues)}</div>`;
+  columnsLeft -= 1;
+  
+  // Finish out the columns to be a multiple of 3
+  if (columnsLeft != 0) {
+    html += '<div class="col mt-1"></div>'.repeat(columnsLeft);
+  }
+  
+   html += `
+      </div>
+    </div>`;
+  return html;
+}
+
+// Sorts the given array in-place to match the in-game ordering
+function sortResearchers(researchers) {
+  let RARITY_ORDER = [
+    'Common', 'Rare', 'Epic', 'Event', 'Supreme',
+    
+    'LteCommon', 'LteRare'
+  ];
+  
+  let MOD_TYPE_ORDER = [
+    'GenManagerAndSpeedMult', 'GeneratorPayoutMultiplier', 'GeneratorCostReduction',
+    'GeneratorCritChance', 'GeneratorCritPowerMult', 'TradePayoutMultiplier'
+  ];
+  
+  // Map the strings to their positions to cache them for lookup
+  let rarityMap = new Map(RARITY_ORDER.map((value, index) => [value, index]));
+  let modTypeMap = new Map(MOD_TYPE_ORDER.map((value, index) => [value, index]));
+  
+  // Sort by rarity first, then mod type, then finally by id (just in case)
+  // I think the orders listed above are what the game uses, but may take some tuning.
+  researchers.sort((left, right) => {
+    if (left.Rarity != right.Rarity) {
+      return rarityMap.get(left.Rarity) - rarityMap.get(right.Rarity);
+    
+    } else if (left.ModType != right.ModType) {
+      return modTypeMap.get(left.ModType) - modTypeMap.get(right.ModType);
+      
+    } else {
+      return left.Id.localeCompare(right.Id);
+    }
+  });
+}
+
+// Returns the html for the contents of a researcher's cell in the grid.
+function getResearcherCard(researcher, formValues) {
+  let imgDirectory = getImageDirectory();
+  let rarityClass = `researcher${researcher.Rarity}`;
+  let targetIconUrl = getResearcherTargetIconUrl(researcher);
+  
+  let level = formValues.ResearcherLevels[researcher.Id] || 0;
+  let researcherValue = getValueForResearcherLevel(researcher, level);
+  let valueString = "";
+  if (level > 0) {
+    if (researcher.ExpoMultiplier) {
+      valueString = `x${bigNum(researcherValue, 1e4, 3)}`;
+    } else {
+      valueString = `${bigNum(researcherValue * 100, 1e4, 3)}%`;
+    }
+  }
+  
+  let downVisibilityClass = (level <= 0) ? "invisible" : "visible";
+  let maxLevel = getData().ResearcherRankCosts.find(cost => cost.Rarity == researcher.Rarity).Quantity.length + 1;
+  let upVisibilityClass = (level >= maxLevel) ? "invisible" : "visible";
+  
+  return `
+    <div class="researcherCard ${rarityClass} mx-auto" style="background-image: url('${imgDirectory}/${researcher.Id}.png');">
+      <div class="researcherIcon float-right" style="background-image: url('${targetIconUrl}');">&nbsp;</div>
+      <div class="researcherLevel text-center">Level ${level}</div>
+    </div>
+
+      <div class="my-2 text-center">
+        <div class="float-left researcherLevelButton text-danger">
+          <a class="${downVisibilityClass}" onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button">&#x25BC;</a>
+        </div>
+        
+        
+        <div class="resourceIcon ${researcher.ModType}">&nbsp;</div>
+        ${valueString}
+        
+        <div class="researcherLevelButton float-right text-success">
+          <a class="${upVisibilityClass}" onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button">&#x25B2;</a>
+        </div>
+      </div>`;
+}
+
+function getPropagandaBoostCard(formValues) {
+  let imgDirectory = getImageDirectory();
+  let backgroundImageUrl = "img/shared/propaganda_boost.png";
+  let targetIconUrl = `${imgDirectory}/multi-industry.png`;
+  
+  let level = formValues.ResearcherLevels.PropagandaBoost || 0;
+  let levelText = (level == 0) ? "Inactive" : "Active";
+  let valueString = (level == 0) ? "" : "x2";
+  
+  let downVisibilityClass = (level <= 0) ? "invisible" : "visible";
+  let upVisibilityClass = (level >= 1) ? "invisible" : "visible";
+  
+  return `
+    <div class="researcherCard propagandaBoost mx-auto" style="background-image: url('${backgroundImageUrl}');">
+      <div class="researcherIcon float-right" style="background-image: url('${targetIconUrl}');">&nbsp;</div>
+      <div class="researcherLevel text-center">${levelText}</div>
+    </div>
+
+      <div class="my-2 text-center">
+        <div class="float-left researcherLevelButton text-danger">
+          <a class="${downVisibilityClass}" onclick="clickLevelResearcher('PropagandaBoost', 0)" role="button">&#x25BC;</a>
+        </div>
+        
+        
+        <div class="resourceIcon power">&nbsp;</div>
+        ${valueString}
+        
+        <div class="researcherLevelButton float-right text-success">
+          <a class="${upVisibilityClass}" onclick="clickLevelResearcher('PropagandaBoost', 1)" role="button">&#x25B2;</a>
+        </div>
+      </div>`;
+}
+
+function getValueForResearcherLevel(researcher, level) {
+  if (level == 0) {
+    if (researcher.ExpoMultiplier && researcher.ModType != "GenManagerAndSpeedMult") {
+      // Multiplicative researchers default to 1x.  Commons are an exception since you get no production without.
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  
+  if (researcher.ExpoMultiplier) {
+    // It's exponential
+    return researcher.ExpoMultiplier * Math.pow(researcher.ExpoGrowth, level);
+  } else {
+    // It's quadratic
+    return researcher.BasePower + level * researcher.CurveModifier + level * level * researcher.UpgradePower;
+  }
+}
+
+// Called when the level down/up buttons are clicked
+function clickLevelResearcher(researcherId, newLevelValue) {
+  let formValues = getFormValuesObject();
+  
+  formValues.ResearcherLevels[researcherId] = newLevelValue;
+  
+  saveFormValues(formValues);
+  redrawResearchersTab();
+}
+
+function redrawResearchersTab() {
+  let industryId = $('#industryId').val();
+  let missionId = $('#missionId').val();  
+  let mission = getData().Missions.find(m => m.Id == missionId);
+  
+  $('#researchers').html(getResearchersTab(mission, industryId));
+}
+
+// Returns the url of an icon representing the target of the researcher
+function getResearcherTargetIconUrl(researcher) {
+  let imgDirectory = getImageDirectory();
+  let targetId = researcher.TargetIds[0];
+  
+  if (targetId.includes(',')) {
+    // This has multiple targets, so we'll show a generic multitarget icon
+    return `${imgDirectory}/multi-industry.png`;
+  }
+  
+  // If there is a single targetId, it will depend on the ModType
+  switch (researcher.ModType) {
+    case "TradePayoutMultiplier":
+    case "GenManagerAndSpeedMult": {
+      //  targetId is a resourceId (trades) or generatorId (speed)
+      return `${imgDirectory}/${targetId}.png`;
+    }
+    
+    case "GeneratorCostReduction":
+    case "GeneratorCritChance":
+    case "GeneratorCritPowerMult": {
+      // targetId is an industryId, use its resource as the icon
+      let resourceId = getResourceByIndustry(targetId).Id;
+      return `${imgDirectory}/${resourceId}.png`;
+    }
+    
+    case "GeneratorPayoutMultiplier": {
+      // targetId is either a generator like "farmer" or an industry like "Farming" (case-insensitive :/)
+      if (getData().Industries.map(i => i.Id.toLowerCase()).includes(targetId.toLowerCase())) {
+        // This is an industry, use its resource as the icon.
+        let resourceId = getResourceByIndustry(targetId).Id;
+        return `${imgDirectory}/${resourceId}.png`;
+      
+      } else {
+        return `${imgDirectory}/${targetId}.png`;
+      }
+    }
+  }
+}
+
+// Returns every root.Researchers object that affects generators from the given industryId
+function getResearchersByIndustry(industryId) {
+  let generators = getData().Generators.filter(g => g.IndustryId == industryId);
+  let generatorIds = generators.map(g => g.Id.toLowerCase());
+  
+  let resourceId = getResourceByIndustry(industryId).Id.toLowerCase();
+  
+  let idWhitelist = new Set([industryId.toLowerCase(), resourceId, ...generatorIds]);
+  
+  return getData().Researchers.filter( researcher => {
+    // TargetIds is always a 1-element array with an industry/resource/generatorId,
+    //   or a list of them separated by "," or ", ".  Also appears to be case-insensitive :(
+    let targetIds = researcher.TargetIds[0].toLowerCase().split(/, ?/);
+    return targetIds.some(targetId => idWhitelist.has(targetId));
+  });
 }
 
 function clickComradeLimited(generatorId) {
@@ -1273,8 +1535,8 @@ function getProductionSimDataFromForm() {
   simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');
   simData.Config.MaxDays = getValueFromForm('#configMaxDays', 1, simData, formValues);
   
-  saveFormValues(formValues, industryId);
-  saveFormValues(globalFormValues, "global");
+  __saveFormValuesDeprecated(formValues, industryId);
+  __saveFormValuesDeprecated(globalFormValues, "global");
   
   return simData;
 }
@@ -1303,7 +1565,7 @@ function getValueFromForm(inputId, defaultValue, simData, formValues) {
   return result;
 }
 
-function saveFormValues(formValues, industryId) {
+function __saveFormValuesDeprecated(formValues, industryId) {
   let allFormValues = {};
   
   let valuesString = getLocal(currentMode, "FormValues");
@@ -1314,6 +1576,10 @@ function saveFormValues(formValues, industryId) {
   allFormValues[industryId] = formValues;
   
   setLocal(currentMode, "FormValues", JSON.stringify(allFormValues));
+}
+
+function saveFormValues(formValuesObject) {
+  setLocal(currentMode, "FormValues", JSON.stringify(formValuesObject));
 }
 
 // Loads the saved form values and inputs them onto the form.
@@ -1349,13 +1615,13 @@ function mergeObjects(left, right) {
 function getFormValuesObject() {
   let valuesString = getLocal(currentMode, "FormValues");
   if (!valuesString) {
-    return {};
+    return {ResearcherLevels: {}, GeneratorCounts: {}};
   }
   
   try {
     return JSON.parse(valuesString);
   } catch (err) {
-    return {};
+    return {ResearcherLevels: {}, GeneratorCounts: {}};
   }
 }
 
