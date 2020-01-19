@@ -626,9 +626,14 @@ function bigNum(x) {
 function fromBigNum(x) {
   if (x == null) {
     return NaN;
+  } else if (x.length == 0) {
+    return "";
+  } else if (!/([\d\.,]+)/.test(x)) {
+    return NaN;
   }
 
-  let split = x.length == 0 ? [""] : /([\d\.,]+)/.test(x) ? [.../([\d\.,]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0) : NaN
+  // Grab digits and the letters, and filter out anything missing.
+  let split = [.../([\d\.,]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
   
   if (split.length == 1) {
     return parseLocaleNumber(split[0]);
