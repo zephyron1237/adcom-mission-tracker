@@ -737,7 +737,8 @@ function describeMission(mission, overrideIcon = "") {
       textHtml = `Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, 'event');
+      let overrideDirectory = (currentMode == "event") ? "event" : "";  // Use /img/event/ of /img/event/theme/
+      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, overrideDirectory);
       textHtml = `Spend ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     default:
