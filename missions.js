@@ -1157,15 +1157,19 @@ function renderCalculator(mission) {
 
 // Returns html for the calculator's sub-tab where you input generator and resource counts.
 function getGeneratorsTab(mission, industryId) {
-  let imgDirectory = getImageDirectory();
-  
   let html = "";
+  
+  let imgDirectory = getImageDirectory();
+  let formValues = getFormValuesObject();
+  let researchers = getResearchersByIndustry(industryId);
   
   let generators = getData().Generators.filter(g => g.IndustryId == industryId);
   for (let generator of generators) {
     let id = generator.Id;
     let name = resourceName(id);
-    html += getResourceInput(`${id}-count`, `# of ${name}`, `${imgDirectory}/${id}.png`);
+    let popoverTitle = `<img class='resourceIcon mr-1' src='${imgDirectory}/${id}.png'>${name}`;
+    let popoverBody = describeGenerator(generator, researchers, formValues);
+    html += getResourceInput(`${id}-count`, `# of ${name}`, `${imgDirectory}/${id}.png`, "", "", "", popoverTitle, popoverBody);
   }
   
   html += "<hr />";
@@ -1181,13 +1185,112 @@ function getGeneratorsTab(mission, industryId) {
 }
 
 // Returns a div for a single input in the Generators tab.
-function getResourceInput(tagId, description, imageUrl, defaultValue = "", extraInputClasses = "", extraInputProperties = "") {
+function getResourceInput(tagId, description, imageUrl, defaultValue = "", extraInputClasses = "", extraInputProperties = "", popoverTitle = "", popoverHtml = "") {
+  let preSpanHtml = "";
+  let postSpanHtml = "";
+  
+  if (popoverHtml) {
+    preSpanHtml = `<a class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-title="${popoverTitle}" data-content="${popoverHtml}" data-html="true">`;
+    //preSpanHtml = `<a class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverHtml}" data-html="true">`;
+    postSpanHtml = `</a>`;
+  }
+  
   return `<div class="input-group my-1" >
             <div class="input-group-prepend">
+              ${preSpanHtml}
               <span class="input-group-text inputIcon" style="background-image: url('${imageUrl}');">&nbsp;</span>
+              ${postSpanHtml}
             </div>
             <input type="text" class="form-control ${extraInputClasses}" id="${tagId}" value="${defaultValue}" placeholder="${description}" ${extraInputProperties}>
           </div>`;
+}
+
+// Returns a long-form html description of the generator, adjusted to researcher levels.  Will not contain "
+function describeGenerator(generator, researchers, formValues) {
+  let html = "";  
+  let imgDirectory = getImageDirectory();
+  
+  let genValues = getDerivedResearcherValues(generator, researchers, formValues);
+  
+  html += `<strong>Costs:</strong><br />`;
+  
+  let costs = generator.Cost.map(c => ({ Resource: c.Resource.toLowerCase(), Qty: Number(c.Qty) }));
+  for (let cost of costs) {
+    if (cost.Resource != "comrade") {
+      cost.Qty /= genValues.CostReduction;
+      html += `<span class='mx-1'><img class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png'>${bigNum(cost.Qty)}</span>`;
+    } else {
+      html += `<span class='mx-1'><img class='resourceIcon mr-1' src='img/shared/comrade.png'>${bigNum(cost.Qty)}</span>`;
+    }
+  }
+  
+  html += `<br /><br /><strong>Generates:</strong><br />`;
+  
+  /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
+  let genTime = generator.BaseCompletionTime / Math.max(genValues.Speed, 1);
+  let [hours, minutes, seconds] = new Date(genTime * 1000).toISOString().substr(11, 8).split(':');
+  let genTimeString = "";
+  if (hours > 0) {
+    genTimeString = `${hours}h ${minutes}m ${seconds}s`;
+  } else if (minutes > 0) {
+    genTimeString = `${minutes}m ${seconds}s`;
+  } else if (seconds > 0.5) {
+    genTimeString = `${seconds}s`;
+  } else {
+    genTimeString = `1/${Math.round(1/genTime)} s`;
+  }
+  
+  let qtyProduced = bigNum(generator.Generate.Qty * genValues.Power);
+  html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png'>${qtyProduced} `;
+  html += `per <img class='resourceIcon mx-1' src='img/shared/speed.png'>${genTimeString}<div class='my-3'></div>`;
+  
+  html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png'>${genValues.CritChance * 100}% `;
+  html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png'> x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
+  
+  let totalPerSec = qtyProduced * (genValues.CritChance * genValues.CritPower + 1 - genValues.CritChance) / genTime;
+  if (totalPerSec < 1e4) {
+    totalPerSec = totalPerSec.toPrecision(3);
+  }
+  html += `Avg Output: <img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png'>${shortBigNum(totalPerSec)}/sec`;
+  
+  let industry = getData().Industries.find(i => i.Id == generator.IndustryId);
+  if (generator.Unlock.Threshold > 0 || industry.UnlockCostResourceQty > 0) {
+    html += `<br /><br /><strong>Unlocks at:</strong><br />`;
+    if (generator.Unlock.Threshold > 0 ) {
+      html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Unlock.ConditionId}.png'>${bigNum(generator.Unlock.Threshold)}`;
+    } else {
+      html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${industry.UnlockCostResourceId.toLowerCase()}.png'>${bigNum(industry.UnlockCostResourceQty)}`;
+    }
+  }
+  
+  html += `<br /><br /><strong>Automator:</strong><br />`;
+  
+  let autoResearcher = getData().Researchers.find(r => r.ModType == "GenManagerAndSpeedMult" && r.TargetIds[0] == generator.Id);
+  html += `<div class='resourceIcon cardIcon mr-1'>&nbsp;</div>${autoResearcher.Name}<br />`;
+  html += `<em>${getResearcherDetails(autoResearcher)}</em><br />`;
+  html += `Unlocks at Rank ${autoResearcher.PlayerRankUnlock}<br />`;
+  
+  let scriptedMission = getFirstMissionWithScriptedReward(autoResearcher);
+  if (scriptedMission) {
+    html += `First guaranteed: ${describeMission(scriptedMission, "none")}`;
+  } else {
+    html += `No guaranteed copies.`;
+  }
+  
+  return html;
+}
+
+function getFirstMissionWithScriptedReward(researcher) {
+  // Start by efficiently caching the id of every scripted gacha that rewards the researcher.
+  gachasWithReward = new Set();
+  
+  for (let script of getData().GachaScripts) {
+    if (script.Card.some(card => card.Id == researcher.Id)) {
+      gachasWithReward.add(script.GachaId);
+    }
+  }
+  
+  return getData().Missions.find(m => gachasWithReward.has(m.Reward.RewardId));
 }
 
 // Returns html for the researchers sub-tab where you input researcher levels.
@@ -1373,6 +1476,7 @@ function clickLevelResearcher(researcherId, newLevelValue) {
     redrawTradesTab();
   } else {
     redrawResearchersTab();
+    redrawGeneratorsTab();
   }
 }
 
@@ -1382,6 +1486,15 @@ function redrawResearchersTab() {
   let mission = getData().Missions.find(m => m.Id == missionId);
   
   $('#researchers').html(getResearchersTab(mission, industryId));
+}
+
+function redrawGeneratorsTab() {
+  let industryId = $('#industryId').val();
+  let missionId = $('#missionId').val();
+  let mission = getData().Missions.find(m => m.Id == missionId);
+  
+  $('#generators').html(getGeneratorsTab(mission, industryId));
+  $(function () { $('[data-toggle="popover"]').popover(); });
 }
 
 function redrawTradesTab() {
@@ -1600,7 +1713,7 @@ function getTradesForCost(cost, tradeInfo) {
   // In the ideal world, tradeCount has the exact answer, but we must deal with floating point precision
   let EPSILON = .0001;
   let roundedCount = Math.round(tradeCount);
-  if (Math.abs(tradeCount - roundedCount) < EPSILON) {
+  if (roundedCount > 0 && Math.abs(tradeCount - roundedCount) < EPSILON) {
     return roundedCount;
   } else {
     return NaN;
@@ -1736,31 +1849,33 @@ function getDerivedResearcherValues(generator, researchers, formValues) {
   // Power researchers either target the generator itself, or one/all industries (case-insensitively).
   let powerResearchers = researchers.filter(r => r.ModType == "GeneratorPayoutMultiplier" && 
                                              (r.TargetIds[0].split(/, ?/).includes(generator.Id) ||
-                                              r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.industryId.toLowerCase())));
+                                              r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.IndustryId.toLowerCase())));
   for (let powerResearcher of powerResearchers) {
     derivedValues.Power *= getValueForResearcherWithForm(powerResearcher, formValues); 
   }
   
   // CritPower researchers target one/all industries (case-insensitively)
   let critPowerResearchers = researchers.filter(r => r.ModType == "GeneratorCritPowerMult" &&
-                                                  r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.industryId.toLowerCase()));
+                                                  r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.IndustryId.toLowerCase()));
   for (let critPowerResearcher of critPowerResearchers) {
     derivedValues.CritPower *= getValueForResearcherWithForm(critPowerResearcher, formValues); 
   }
   
   // CritChance researchers target one/all industries (case-insensitively)
   let critChanceResearchers = researchers.filter(r => r.ModType == "GeneratorCritChance" &&
-                                                  r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.industryId.toLowerCase()));
+                                                  r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.IndustryId.toLowerCase()));
   for (let critChanceResearcher of critChanceResearchers) {
     derivedValues.CritChance += getValueForResearcherWithForm(critChanceResearcher, formValues); 
   }
   
   // CostReduction researchers target one/all industries (case-insensitively)
   let discountResearchers = researchers.filter(r => r.ModType == "GeneratorCostReduction" &&
-                                                  r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.industryId.toLowerCase()));
+                                                  r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.IndustryId.toLowerCase()));
   for (let discountResearcher of discountResearchers) {
-    derivedValues.CostReduction += getValueForResearcherWithForm(discountResearcher, formValues); 
+    derivedValues.CostReduction *= getValueForResearcherWithForm(discountResearcher, formValues); 
   }
+  
+  return derivedValues;
 }
 
 function __deprecatedGetProductionSimDataFromForm() {

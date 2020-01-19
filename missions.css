@@ -209,6 +209,7 @@ input:checked + .slider:before {
   background-repeat: no-repeat;
   background-position: center;
   display: inline-block;
+  border-radius: 0 0 0 4px;
 }
 
 .researcherLevel {
