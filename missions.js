@@ -624,12 +624,11 @@ function bigNum(x) {
 
 // Converts AdCom style numbers to normal. fromBigNum("1 CC") => 1E21
 function fromBigNum(x) {
-  // TODO: make a better regex that can pick up non-spaces maybe?
   if (x == null) {
     return NaN;
   }
 
-  let split = x.toString().trim().split(/ +/);
+  let split = x.length == 0 ? [""] : /([\d\.,]+)/.test(x) ? [.../([\d\.,]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0) : NaN
   
   if (split.length == 1) {
     return parseLocaleNumber(split[0]);
