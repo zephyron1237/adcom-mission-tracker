@@ -224,6 +224,7 @@ input:checked + .slider:before {
 
 .researcherLevelButton {
   width: 1em;
+  border: 1px outset;
 }
 
 .researcherLevelButton:hover {
@@ -280,6 +281,10 @@ input:checked + .slider:before {
 
 .speed, .GenManagerAndSpeedMult {
   background-image: url("img/shared/speed.png");
+}
+
+.cardIcon {
+  background-image: url("img/shared/card.png");
 }
 
 .missionContainer {
