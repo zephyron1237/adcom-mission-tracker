@@ -839,9 +839,31 @@ function getResearcherDetails(researcher) {
       break;
       
     case "GeneratorCostReduction":
-      // TODO once I implement Motherland
+      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
+      // TargetIds[0] is a set of industries ("Baking, NorthPole, SnowArmy, SantaWorkshop")
+      resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id));
+      if (resources.length == getData().Industries.length) {
+        return `Lowers cost of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      } else {
+        return `Lowers cost of every ${resources.join('/')}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      }
+      break;
+    
     case "GeneratorCritPowerMult":
-      // TODO once I implement Motherland
+      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
+      // TargetIds[0] is a set of industries ("Baking, NorthPole, SnowArmy, SantaWorkshop")
+      resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id));
+      if (resources.length == getData().Industries.length) {
+        return `Multiplies crit bonus of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      } else {
+        return `Multiplies crit bonus of every ${resources.join('/')}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      }
+      break;
+      
     case "GachaCardsPayoutMultiplier":
       // TODO once I implement Motherland
     case "GachaSciencePayoutMultiplier":
