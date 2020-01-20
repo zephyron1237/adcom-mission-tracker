@@ -20,6 +20,8 @@ Images taken from the wiki. Some json data was provided by The_Random_Guy on the
 
 I welcome any feedback, bug reports, or pull requests.
 
+I would recommend anybody interested in working on development visit the #engineering channel of the [AdCom discord](https://discord.gg/VPa4WTM), so you can sync up with the other developers.
+
 ## License
 
 Feel free to use this however you want, especially since I will probably won't update the tool for the rest of the game's lifespan, though credit is always appreciated.
