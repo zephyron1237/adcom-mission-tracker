@@ -1407,11 +1407,12 @@ function getResearcherCard(researcher, formValues) {
 }
 
 function getPropagandaBoostCard(formValues) {
+  let level = formValues.ResearcherLevels.PropagandaBoost || 0;
+  
   let imgDirectory = getImageDirectory();
-  let backgroundImageUrl = "img/shared/propaganda_boost.png";
+  let backgroundImageUrl = (level == 0) ? "img/shared/propaganda_boost_off.png" : "img/shared/propaganda_boost_on.png";
   let targetIconUrl = `${imgDirectory}/multi-industry.png`;
   
-  let level = formValues.ResearcherLevels.PropagandaBoost || 0;
   let levelText = (level == 0) ? "Inactive" : "Active";
   let valueString = (level == 0) ? "" : "x2";
   
@@ -1713,7 +1714,7 @@ function getTradesForCost(cost, tradeInfo) {
   // In the ideal world, tradeCount has the exact answer, but we must deal with floating point precision
   let EPSILON = .0001;
   let roundedCount = Math.round(tradeCount);
-  if (roundedCount > 0 && Math.abs(tradeCount - roundedCount) < EPSILON) {
+  if (roundedCount >= 0 && Math.abs(tradeCount - roundedCount) < EPSILON) {
     return roundedCount;
   } else {
     return NaN;
@@ -1852,6 +1853,10 @@ function getDerivedResearcherValues(generator, researchers, formValues) {
                                               r.TargetIds[0].toLowerCase().split(/, ?/).includes(generator.IndustryId.toLowerCase())));
   for (let powerResearcher of powerResearchers) {
     derivedValues.Power *= getValueForResearcherWithForm(powerResearcher, formValues); 
+  }
+  
+  if (formValues.ResearcherLevels.PropagandaBoost) {
+    derivedValues.Power *= 2;
   }
   
   // CritPower researchers target one/all industries (case-insensitively)
