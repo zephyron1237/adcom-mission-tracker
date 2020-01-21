@@ -629,12 +629,16 @@ function shortBigNum(x) {
 
 // Converts AdCom style numbers to normal. fromBigNum("1 CC") => 1E21
 function fromBigNum(x) {
-  // TODO: make a better regex that can pick up non-spaces maybe?
   if (x == null) {
+    return NaN;
+  } else if (x.length == 0) {
+    return "";
+  } else if (!/([\d\.,]+)/.test(x)) {
     return NaN;
   }
 
-  let split = x.toString().trim().split(/ +/);
+  // Grab digits and the letters, and filter out anything missing.
+  let split = [.../([\d\.,]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
   
   if (split.length == 1) {
     return parseLocaleNumber(split[0]);
@@ -742,7 +746,8 @@ function describeMission(mission, overrideIcon = "") {
       textHtml = `Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, "img/event");
+      let overrideDirectory = (currentMode == "event") ? "event" : "";  // Use /img/event/ of /img/event/theme/
+      iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, overrideDirectory);
       textHtml = `Spend ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     default:
@@ -843,9 +848,31 @@ function getResearcherDetails(researcher) {
       break;
       
     case "GeneratorCostReduction":
-      // TODO once I implement Motherland
+      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
+      // TargetIds[0] is a set of industries ("Baking, NorthPole, SnowArmy, SantaWorkshop")
+      resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id));
+      if (resources.length == getData().Industries.length) {
+        return `Lowers cost of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      } else {
+        return `Lowers cost of every ${resources.join('/')}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      }
+      break;
+    
     case "GeneratorCritPowerMult":
-      // TODO once I implement Motherland
+      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
+              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
+      // TargetIds[0] is a set of industries ("Baking, NorthPole, SnowArmy, SantaWorkshop")
+      resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id));
+      if (resources.length == getData().Industries.length) {
+        return `Multiplies crit bonus of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      } else {
+        return `Multiplies crit bonus of every ${resources.join('/')}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+      }
+      break;
+      
     case "GachaCardsPayoutMultiplier":
       // TODO once I implement Motherland
     case "GachaSciencePayoutMultiplier":
