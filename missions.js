@@ -9,6 +9,7 @@ function main() {
   initializeMissionData();
   initializeInfoPopup();
   loadSaveData();
+  initializeIntervalFunctions();
   renderMissions();
 }
 
@@ -164,9 +165,20 @@ function initializeInfoPopup() {
     modal.find('#infoReward').html(describeReward(mission.Reward));
     modal.find('#calc').html(renderCalculator(mission));
     
+    let missionEtas = getMissionEtas();
+    if (missionId in missionEtas) {
+      modal.find('#lastEtaContainer').addClass('show');
+      modal.find('#lastEta').text(getMissionEtaString(missionEtas[missionId]));
+    } else {
+      modal.find('#lastEtaContainer').removeClass('show');
+    }
+    
     if (missionId in missionCompletionTimes) {
       modal.find('#completionTimeContainer').addClass('show');
-      modal.find('#completionTime').text(new Date(missionCompletionTimes[missionId]));
+      modal.find('#completionTime').text(getTimeStampLocaleString(missionCompletionTimes[missionId]));
+      
+      // If it's completed, we don't need to also show an eta.
+      modal.find('#lastEtaContainer').removeClass('show');
     } else {
       modal.find('#completionTimeContainer').removeClass('show');
     }
@@ -248,6 +260,7 @@ function loadEventSaveData() {
     removeLocal("event", "Completed");
     removeLocal("event", "FormValues");
     removeLocal("event", "CompletionTimes");
+    removeLocal("event", "MissionEtas");
     setLocal("event", "Id", EVENT_ID);
     setLocal("event", "Version", EVENT_VERSION);
     $('#alertReset').addClass('show');
@@ -351,6 +364,11 @@ function updateSaveData() {
   setLocal(currentMode, "CompletionTimes", JSON.stringify(missionCompletionTimes));
 }
 
+// Sets up any functions to be run constantly on an interval
+function initializeIntervalFunctions() {
+  setInterval(updateMissionButtonTitles, 60 * 1000);  // Update mission etas every 60 seconds.
+}
+
 // Updates the html of the page with all the mission data (i.e., rank boxes with mission buttons).
 function renderMissions() {
   if (isListActive()) {
@@ -360,6 +378,8 @@ function renderMissions() {
   }
   
   let missionHtml = "";
+  
+  let missionEtas = getMissionEtas();
   
   let eventScheduleInfo;  
   let sortedRanks;
@@ -455,7 +475,7 @@ function renderMissions() {
     } else {
       // Display all missions inside of the rank
       for (let mission of missionData[rank].Remaining) {
-        missionHtml += `<span class="missionContainer">${renderMissionButton(mission, rank)}</span>`;
+        missionHtml += `<span id="container-${mission.Id}" class="missionContainer">${renderMissionButton(mission, rank, missionEtas)}</span>`;
       }
     }
     missionHtml += "</div></div>";
@@ -539,7 +559,7 @@ function describeScheduleRankReward(reward) {
 }
 
 // Given a root.Missions object, returns an html string of a mission button
-function renderMissionButton(mission, rank) {
+function renderMissionButton(mission, rank, missionEtas) {
   let type = mission.Condition.ConditionType;
   let buttonClass = "";
   
@@ -549,11 +569,15 @@ function renderMissionButton(mission, rank) {
   
   let buttonOutlineStyle = (rank == "Completed") ? "btn" : "btn-outline";
   
+  let etaTimeStamp = missionEtas[mission.Id];
   let buttonDescription = "";
   if (rank == "Completed") {
     buttonDescription = "Uncomplete mission"
-  } else if (rank == "Current") {
+  } else if (rank == "Current" && !etaTimeStamp) {
     buttonDescription = "Complete mission"
+  } else if (etaTimeStamp) {
+    // We have an eta for this button
+    buttonDescription = `ETA: ${getMissionEtaString(etaTimeStamp)}`;
   }
   
   if (type == "ResourcesSpentSinceSubscription" || type == "ResearchersUpgradedSinceSubscription") {
@@ -566,7 +590,31 @@ function renderMissionButton(mission, rank) {
   
   let infoClass = hasScriptedReward(mission) ? "scriptedRewardInfo" : ""; 
   
-  return `<button class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link infoButton ${infoClass}" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&#9432;</a>`;
+  return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link infoButton ${infoClass}" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&#9432;</a>`;
+}
+
+// Returns a formatted string that's used for full eta descriptions for missions
+function getMissionEtaString(etaTimeStamp) {
+  let currentTimeStamp = (new Date()).getTime();
+  let milliDifference = etaTimeStamp - currentTimeStamp;
+  
+  if (milliDifference <= 0) {
+    return "Complete?";
+  } else {
+    let localeDate = getTimeStampLocaleString(etaTimeStamp);
+    return `${getEta(milliDifference / 1000)} (${localeDate})`;
+  }
+}
+
+// This is intended to be used as a standard format for the places where a DateTime is shown
+function getTimeStampLocaleString(timeStamp) {
+  let date = new Date(timeStamp);
+  
+  return date.toLocaleString(undefined, {
+    weekday: 'short',
+    year: '2-digit', month: '2-digit', day: '2-digit',
+     hour: 'numeric', minute: 'numeric', second: 'numeric'
+  });
 }
 
 var scriptedRewardIds = null;
@@ -577,6 +625,26 @@ function hasScriptedReward(mission) {
   }
   
   return scriptedRewardIds.has(mission.Reward.RewardId);
+}
+
+// Called on-request for a single mission, or periodically for all, updates the ETAs in button titles
+function updateMissionButtonTitles(singleMissionId = null) {
+  let missionEtas = getMissionEtas();
+  
+  if (singleMissionId && !missionEtas[singleMissionId]) {
+    return; // if we're doing a single mission, but don't have an eta, do nothing.
+  }
+  
+  // Either iterate over just singleMissionId or all missions with an eta
+  let missionIds = singleMissionId ? [singleMissionId] : Object.keys(missionEtas);
+  
+  // Make sure they're not completed.
+  let completedIds = new Set(missionData.Completed.Remaining.map(mission => mission.Id))
+  missionIds = missionIds.filter(id => !completedIds.has(id));
+  
+  for (let missionId of missionIds) {
+    $(`#button-${missionId}`).prop('title', `ETA: ${getMissionEtaString(missionEtas[missionId])}`);
+  }
 }
 
 // Called OnClick for mission buttons.  Tries to (un)complete if possible.
@@ -1116,6 +1184,7 @@ function resetProgress() {
     removeLocal(currentMode, "Completed");
     removeLocal(currentMode, "FormValues");
     removeLocal(currentMode, "CompletionTimes");
+    removeLocal(currentMode, getMissionEtasKey());
     initializeMissionData();
     renderMissions();
   }
@@ -1230,8 +1299,7 @@ function updateImportButton() {
   let formValues = getFormValuesObject();
   
   if (formValues.Counts[resource.Id] && formValues.Counts[resource.Id].TimeStamp) {
-    let importDate = new Date(formValues.Counts[resource.Id].TimeStamp);
-    let importDateString = importDate.toLocaleString(undefined, {weekday: 'short', year: '2-digit', month: '2-digit', day: '2-digit', hour: 'numeric', minute: 'numeric', second: 'numeric'});
+    let importDateString = getTimeStampLocaleString(formValues.Counts[resource.Id].TimeStamp);
     let importTitle = `Import ${resourceName(resource.Id)} data from ${importDateString}`;
     $('#importButton').prop('title', importTitle);
     $('#importButton').removeClass('collapse');
@@ -1376,26 +1444,11 @@ function describeGenerator(generator, researchers, formValues) {
   
   html += `<br /><br /><strong>Generates:</strong><br />`;
   
-  /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
   let genTime = generator.BaseCompletionTime / Math.max(genValues.Speed, 1);
-  let [hours, minutes, seconds] = new Date(genTime * 1000).toISOString().substr(11, 8).split(':');
-  let genTimeString = "";
-  if (hours > 0) {
-    genTimeString = `${hours}h ${minutes}m ${seconds}s`;
-  } else if (minutes > 0) {
-    genTimeString = `${minutes}m ${seconds}s`;
-  } else if (seconds > 0.5) {
-    genTimeString = `${seconds}s`;
-  } else {
-    genTimeString = `1/${Math.round(1/genTime)} s`;
-  }
-  
-  // Strip 0 off, since it will frequently be out of place.
-  genTimeString = genTimeString.replace(/^0*/, '');
   
   let qtyProduced = bigNum(generator.Generate.Qty * genValues.Power);
   html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(qtyProduced)} `;
-  html += `per <img class='resourceIcon mx-1' src='img/shared/speed.png'>${genTimeString}<div class='my-3'></div>`;
+  html += `per <img class='resourceIcon mx-1' src='img/shared/speed.png'>${getEta(genTime)}<div class='my-3'></div>`;
   
   html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png' title='Crit Chance'>${genValues.CritChance * 100}% `;
   html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png' title='Crit Power'> x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
@@ -1937,25 +1990,43 @@ function doProductionSim() {
   if (result == -1) {
     $('#result').text(`ETA: More than ${simData.Config.MaxDays} days. Increase max day limit.`);
   } else {
-    /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
-    let days = Math.floor(result / (60 * 60 * 24));
-    let [hours, minutes, seconds] = new Date(result * 1000).toISOString().substr(11, 8).split(':');
+    $('#result').text(`ETA: ${getEta(result)}`);
+  
+    // Since we got a successful ETA, save it for future use.
+    let missionEtas = getMissionEtas();
+    let currentTimeStamp = (new Date()).getTime();
+    missionEtas[simData.Mission.Id] = (new Date(currentTimeStamp + result * 1000)).getTime();
     
-    let eta = '';
-    if (days > 0) {
-      eta = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-    } else if (hours > 0) {
-      eta = `${hours}h ${minutes}m ${seconds}s`;
-    } else if (minutes > 0) {
-      eta = `${minutes}m ${seconds}s`;
-    } else {
-      eta = `${seconds}s`;
-    }
+    saveMissionEtas(missionEtas);
     
-    $('#result').text(`ETA: ${eta}`);
+    updateMissionButtonTitles(simData.Mission.Id);
+    $('#lastEta').text(getMissionEtaString(missionEtas[simData.Mission.Id]));
   }
   
   $('#result').effect('highlight', {}, 2000);
+}
+
+// Returns a string 
+function getEta(timeSeconds) {
+  /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
+  let days = Math.floor(timeSeconds / (60 * 60 * 24));
+  let [hours, minutes, seconds] = new Date(timeSeconds * 1000).toISOString().substr(11, 8).split(':');
+  
+  let eta = '';
+  if (days > 0) {
+    eta =  `${days}d ${hours}h ${minutes}m ${seconds}s`;
+  } else if (hours > 0) {
+    eta = `${hours}h ${minutes}m ${seconds}s`;
+  } else if (minutes > 0) {
+    eta = `${minutes}m ${seconds}s`;
+  } else if (seconds > 0.5) {
+    eta = `${seconds}s`;
+  } else {
+    eta = `1/${Math.round(1/timeSeconds)} s`;
+  }
+  
+  // Strip any leading 0's off
+  return eta.replace(/^0*/, '');
 }
 
 // Called OnClick for "Import Counts".  Takes past formData counts, simulates them forward to now, and then sets the inputs
@@ -2156,10 +2227,6 @@ function getValueFromForm(inputId, defaultValue, simData, formValues = null, res
   return result;
 }
 
-function saveFormValues(formValuesObject) {
-  setLocal(currentMode, "FormValues", JSON.stringify(formValuesObject));
-}
-
 // Returns a new object that is the union of two objects
 function mergeObjects(left, right) {
   if (Object.assign) {
@@ -2173,7 +2240,6 @@ function mergeObjects(left, right) {
     return result;
   }
 }
-
 
 let NEW_FORM_VALUES_OBJECT = { 
   Config: {}, // e.g., 'AutoBuy': true
@@ -2195,7 +2261,7 @@ function getFormValuesObject() {
   try {
     let result = JSON.parse(valuesString);
     
-    if (!result.Config || !result.ResearcherLevels || !result.Counts || !result.Trades) {
+    if (!result.ResearcherLevels) {
       // This is an old-style FormValues or otherwise no longer valid.
       return NEW_FORM_VALUES_OBJECT;
     } else {
@@ -2203,6 +2269,36 @@ function getFormValuesObject() {
     }
   } catch (err) {
     return NEW_FORM_VALUES_OBJECT;
+  }
+}
+
+function saveFormValues(formValuesObject) {
+  setLocal(currentMode, "FormValues", JSON.stringify(formValuesObject));
+}
+
+// Gets mission etas, which are save data from the last time you calculated each mission.
+function getMissionEtas() {
+  let etasString = getLocal(currentMode, getMissionEtasKey());
+  if (!etasString) {
+    return {};
+  }
+  
+  try {
+    return result = JSON.parse(etasString);
+  } catch (err) {
+    return {};
+  }
+}
+
+function saveMissionEtas(missionEtas) {
+  setLocal(currentMode, getMissionEtasKey(), JSON.stringify(missionEtas));
+}
+
+function getMissionEtasKey() {
+  if (currentMode == "main") {
+    return `MissionEtas-${currentMainRank}`; // saved by rank for some efficiency
+  } else {
+    return "MissionEtas";
   }
 }
 
