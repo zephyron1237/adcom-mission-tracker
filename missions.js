@@ -43,7 +43,7 @@ function loadModeSettings() {
   $(`#mode-select-main,#mode-select-event`).removeClass("active");
   $(`#mode-select-${currentMode}`).addClass("active");
   
-  let title = (currentMode == "main") ? "Motherland Missions" : "Event Missions"
+  let title = (currentMode == "main") ? "Motherland" : "Event";
   $('#mode-select-title').text(title);
   $('#mode-select-title').addClass("show");
   
@@ -1502,29 +1502,15 @@ function getResearchersTab(mission, industryId) {
   let researchers = getResearchersByIndustry(industryId);
   sortResearchers(researchers);
   
-  // Make rows with 3 researchers per row and end each one with a row-ending div.
-  let columnsLeft = 3;  
+  // Make rows with 3ish researchers per row.
   for (let researcher of researchers) {
-    html += `<div class="col mt-3">${getResearcherCard(researcher, formValues)}</div>`;
-    
-    if (columnsLeft == 1) {
-      html += '<div class="w-100"></div>';
-      columnsLeft = 3;
-    } else {
-      columnsLeft -= 1;
-    }
+    html += `<div class="col-4 mt-3">${getResearcherCard(researcher, formValues)}</div>`;
   }
   
   // Add an additional PropagandaBoost pseudo-researcher.
-  html += `<div class="col mt-3">${getPropagandaBoostCard(formValues)}</div>`;
-  columnsLeft -= 1;
+  html += `<div class="col-4 mt-3">${getPropagandaBoostCard(formValues)}</div>`;
   
-  // Finish out the columns to be a multiple of 3
-  if (columnsLeft != 0) {
-    html += '<div class="col mt-1"></div>'.repeat(columnsLeft);
-  }
-  
-   html += `
+  html += `
       </div>
     </div>`;
   return html;
@@ -1846,22 +1832,9 @@ function getTradesTab() {
   
   let researchers = getData().Researchers.filter(r => r.ModType == "TradePayoutMultiplier");
   
-  // Make rows with 3 researchers per row and end each one with a row-ending div.
-  let columnsLeft = 3;  
+  // Make rows with 3ish researchers per row
   for (let researcher of researchers) {
-    html += `<div class="col mt-3">${getResearcherCard(researcher, formValues)}</div>`;
-    
-    if (columnsLeft == 1) {
-      html += '<div class="w-100"></div>';
-      columnsLeft = 3;
-    } else {
-      columnsLeft -= 1;
-    }
-  }
-  
-  // Finish out the columns to be a multiple of 3
-  if (columnsLeft != 3) {
-    html += '<div class="col mt-1"></div>'.repeat(columnsLeft);
+    html += `<div class="col-4 mt-3">${getResearcherCard(researcher, formValues)}</div>`;
   }
   
    html += `
