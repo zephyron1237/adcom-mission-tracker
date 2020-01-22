@@ -173,8 +173,7 @@ function initializeInfoPopup() {
     
     $(function () {
       $('[data-toggle="popover"]').popover();
-      $('#numberExample').html(`${(1.58).toLocaleString()} AA`);
-      loadFormValues();
+      updateImportButton();
     });
   });
   
@@ -427,7 +426,7 @@ function renderMissions() {
       
       let rankResearchers = getData().Researchers.filter(r => r.PlayerRankUnlock == rank);
       if (rankResearchers.length > 0) {
-        let rankResearcherDescriptions = rankResearchers.map(r => `${r.Name}: <em>${getResearcherBasicDetails(r)}</em>`);
+        let rankResearcherDescriptions = rankResearchers.map(r => `<div class='resourceIcon cardIcon'>&nbsp;</div>${r.Name}: <em>${getResearcherBasicDetails(r)}</em>`);
         let rankResearcherText = `<strong>New Researchers:</strong><br />${rankResearcherDescriptions.join("<br /><br />")}`;
         popupHtml += `${popupHtml ? "<hr />" : ""}${rankResearcherText}`;
       }
@@ -444,8 +443,10 @@ function renderMissions() {
     if (rank == "Completed" && missionData.Completed.Remaining.length == 0) {
       missionHtml += `<ul><li class="my-1">Click <strong>Current</strong> missions to move them to Completed.</li>`;
       missionHtml += `<li class="my-1">Click <strong>Completed</strong> missions to move them back to Current.</li>`;
-      missionHtml += `<li class="my-1">Click this tab's toggle in the top-right to hide Completed missions.</li>`;
-      missionHtml += `<li class="my-1">Got questions?  Check out the <a href="https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/">Game Guide/FAQ</a>, <a href="https://discord.gg/VPa4WTM">Discord</a>, or <a href="https://reddit.com/r/AdventureCommunist/">Reddit</a>.</li></ul>`;
+      missionHtml += `<li class="my-1">Click this tab's <strong>toggle</strong> in the top-right &UpperRightArrow; to hide Completed missions.</li>`;
+      missionHtml += `<li class="my-1">Click the &#9432; button next to a mission to access its <strong>Calculator</strong>.</li>`;
+      missionHtml += `<li class="my-1">If the <span class="scriptedRewardInfo">&#9432;</span> is bold, you can also view the <strong>pre-scripted rewards</strong>.</li>`;
+      missionHtml += `<li class="my-1">Got <strong>questions?</strong>  Check out the <a href="https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/">Game Guide/FAQ</a>, <a href="https://discord.gg/VPa4WTM">Discord</a>, or <a href="https://reddit.com/r/AdventureCommunist/">Reddit</a>.</li></ul>`;
     }
     
     if (currentMode == "main" && rank == currentMainRank && missionData[rank].Remaining.length == 0 && missionData.Current.Remaining.length == 0) {
@@ -813,7 +814,7 @@ function describeReward(reward) {
 // Given a root.Researchers object, returns an html string with a clickable version of their name with a popover description.
 function describeResearcher(researcher) {
   let details = getResearcherFullDetailsHtml(researcher);
-  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="bottom" data-trigger="focus" data-content="${details}" data-html="true">${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
+  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="bottom" data-trigger="focus" data-content="${details}" data-html="true"><div class="resourceIcon cardIcon">&nbsp;</div>${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
 }
 
 // Given a root.Researchers object, returns an html description of that researcher's effect, its unlock rank, and its first guaranteed mission
@@ -1214,11 +1215,28 @@ function renderCalculator(mission) {
     
     html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
-    html += `<p><button id="calcButton" class="btn btn-primary" type="button" onclick="doProductionSim()">Calculate!</button></p>`;
+    html += `<p><button id="calcButton" class="btn btn-primary" type="button" onclick="doProductionSim()" title="Run simulation to calculate ETA">Calculate!</button>`;
+    html += `<button id="importButton" class="btn btn-primary float-right" type="button" onclick="importCounts()">Import Counts</button></p>`;
     
     return html;
   } else {
     return "Mission type currently unsupported.  Check back next event!";
+  }
+}
+
+function updateImportButton() {
+  let industryId = $('#industryId').val();
+  let resource = getResourceByIndustry(industryId);
+  let formValues = getFormValuesObject();
+  
+  if (formValues.Counts[resource.Id] && formValues.Counts[resource.Id].TimeStamp) {
+    let importDate = new Date(formValues.Counts[resource.Id].TimeStamp);
+    let importDateString = importDate.toLocaleString(undefined, {weekday: 'short', year: '2-digit', month: '2-digit', day: '2-digit', hour: 'numeric', minute: 'numeric', second: 'numeric'});
+    let importTitle = `Import ${resourceName(resource.Id)} data from ${importDateString}`;
+    $('#importButton').prop('title', importTitle);
+    $('#importButton').removeClass('collapse');
+  } else {
+    $('#importButton').addClass('collapse');
   }
 }
 
@@ -1276,7 +1294,7 @@ function getGeneratorsTab(mission, industryId) {
   // Make the comrades' input boxes
   html += "<hr />";
   
-  let cpsDefaultValue = formValues.Trades.TotalOverride || formValues.Trades.TotalComrades || "";
+  let cpsDefaultValue = formValues.Trades.TotalComrades || "";
   html += getResourceInput("comrades", "# of Comrades", "img/shared/comrade.png", "# of Comrades");
   html += getResourceInput("comradesPerSec", "Comrades/second", "img/shared/comrades_per_second.png", "Comrades Per Second", cpsDefaultValue);
   
@@ -1634,6 +1652,7 @@ function redrawGeneratorsTab() {
     let mission = getData().Missions.find(m => m.Id == missionId);
     
     $('#generators').html(getGeneratorsTab(mission, industryId));
+    updateImportButton();
     
   } else if ($('#allInfoPopup').hasClass('show')) {
     $('#all-generators').html(getAllGeneratorsTab());
@@ -1814,9 +1833,8 @@ function recalculateTradeTotals() {
     formValues.Trades.TotalComrades = allTrades.reduce((sum, t) => sum += (t.TotalComrades || 0), 1);
   }
   
-  // Using the non-override process to change your CPS will erase your previous override.
+  // Changing your CPS will erase any previous override.
   $('#comradesPerSec').val(formValues.Trades.TotalComrades);
-  formValues.Trades.TotalOverride = null;
   
   saveFormValues(formValues);
 }
@@ -1914,6 +1932,8 @@ function doProductionSim() {
   $('#calcButton').removeAttr('disabled');
   $('#calcButton').removeClass('disabled');
   
+  updateImportButton();
+  
   if (result == -1) {
     $('#result').text(`ETA: More than ${simData.Config.MaxDays} days. Increase max day limit.`);
   } else {
@@ -1938,6 +1958,54 @@ function doProductionSim() {
   $('#result').effect('highlight', {}, 2000);
 }
 
+// Called OnClick for "Import Counts".  Takes past formData counts, simulates them forward to now, and then sets the inputs
+function importCounts() {
+  let DELTA_TIME = 1.0;
+  
+  let industryId = $('#industryId').val();
+  let resourceId = getResourceByIndustry(industryId).Id;
+  
+  let formValues = getFormValuesObject();
+  
+  let simData = { Generators: [], Counts: {} };
+  setupSimDataGenerators(simData, industryId, formValues, true);
+  
+  simData.Counts[resourceId] = formValues.Counts[resourceId][resourceId] || 0;
+  simData.Counts["resourceProgress"] = formValues.Counts[resourceId]["resourceProgress"] || 0;
+  
+  // Calculate comrades' new value directly.
+  let secondsSinceLastComradeInput = ((new Date()).getTime() - formValues.Counts.comrade.TimeStamp) / 1000;
+  let comradesPerSec = formValues.Trades.TotalComrades;
+  simData.Counts.comrade = formValues.Counts.comrade.comrade + comradesPerSec * secondsSinceLastComradeInput;
+  
+  // Run the simulation.
+  let seconds = ((new Date()).getTime() - formValues.Counts[resourceId].TimeStamp) / 1000;
+  for (let time = 0; time < seconds; time += DELTA_TIME) {
+    // Run each generator, starting from the lowest-tier first.
+    for (let genIndex in simData.Generators) {
+      let generator = simData.Generators[genIndex];
+      simData.Counts[generator.Resource] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
+      
+      // index 0 makes resources, so its also counts towards "resourceProgress"
+      if (genIndex == 0) {
+        simData.Counts["resourceProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * DELTA_TIME;
+      }
+    }
+  };
+  
+  // Now fill in the form, setting 0 values as empty.
+  for (let generator of simData.Generators) {
+    setValueToCountOrEmpty(`#${generator.Id}-count`, simData.Counts[generator.Id]);
+  }
+  setValueToCountOrEmpty('#resources', simData.Counts[resourceId]);
+  setValueToCountOrEmpty('#resourceProgress', simData.Counts["resourceProgress"]);
+  setValueToCountOrEmpty('#comrades', simData.Counts["comrade"]);
+}
+
+function setValueToCountOrEmpty(elementId, count) {
+  $(elementId).val((count > 0) ? bigNum(Math.round(count)) : "");
+}
+
 function getProductionSimDataFromForm() {
   let industryId = $('#industryId').val();
   let resourceId = getResourceByIndustry(industryId).Id;
@@ -1945,27 +2013,51 @@ function getProductionSimDataFromForm() {
   let missionId = $('#missionId').val();
   let mission = getData().Missions.find(m => m.Id == missionId);
   
-  let generators = getData().Generators.filter(g => g.IndustryId == industryId);
-  let researchers = getResearchersByIndustry(industryId);
-  
   let formValues = getFormValuesObject();
+  if (!formValues.Counts[resourceId]) {
+    formValues.Counts[resourceId] = {};
+  }
+  if (!formValues.Counts["comrade"]) {
+    formValues.Counts["comrade"] = {};
+  }
   
   let simData = { Generators: [], Counts: {}, Mission: mission, IndustryId: industryId, Errors: 0, Config: {} };
   
-  let resources = getValueFromForm('#resources', 0, simData, null);
-  simData.Counts[resourceId] = resources;
+  getValueFromForm('#resources', 0, simData, formValues, resourceId, resourceId);
 
-  let resourceProgress = 0;
   if (mission.Condition.ConditionType == "ResourcesEarnedSinceSubscription") {
-    resourceProgress = getValueFromForm('#resourceProgress', 0, simData, null);
+    getValueFromForm('#resourceProgress', 0, simData, formValues, resourceId, 'resourceProgress');
   }
-  simData.Counts["resourceProgress"] = resourceProgress;
   
-  let comradesPerSec = getValueFromForm('#comradesPerSec', 0, simData, null);
-  let comrades = getValueFromForm('#comrades', 0, simData, null);
+  let comradesPerSec = getValueFromForm('#comradesPerSec', 0, simData);
+  getValueFromForm('#comrades', 0, simData, formValues, 'comrade', 'comrade');
   simData.Generators.push({Id: "comradegenerator", Resource: "comrade", QtyPerSec: comradesPerSec, Cost: []});
-  simData.Counts["comrade"] = comrades;
   simData.Counts["comradegenerator"] = 1;
+  
+  setupSimDataGenerators(simData, industryId, formValues);
+  
+  simData.Config.Autobuy = $('#configAutobuy').is(':checked');
+  simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');  
+  
+  simData.Config.MaxDays = getValueFromForm('#configMaxDays', 1, simData);
+  formValues.Config.MaxDays = simData.Config.MaxDays;
+  
+  formValues.Counts["comrade"].TimeStamp = (new Date()).getTime();
+  formValues.Counts[resourceId].TimeStamp = formValues.Counts["comrade"].TimeStamp;
+  
+  saveFormValues(formValues);
+  
+  // Finally, add in any final errors from trades
+  simData.Errors += Object.values(formValues.Trades.Resource).reduce((sum, trade) => sum += (trade.IsInvalid) ? 1 : 0, 0);
+  
+  return simData;
+}
+
+// Fills in the simData.Generators array based on saved form values, and fills in simData.Counts for generators
+function setupSimDataGenerators(simData, industryId, formValues, readSavedCounts = false) {
+  let generators = getData().Generators.filter(g => g.IndustryId == industryId);
+  let researchers = getResearchersByIndustry(industryId);
+  let resourceId = getResourceByIndustry(industryId).Id;
   
   for (let generator of generators) {
     let genValues = getDerivedResearcherValues(generator, researchers, formValues);
@@ -1984,14 +2076,12 @@ function getProductionSimDataFromForm() {
       Cost: costs
     }));
     
-    simData.Counts[generator.Id] = getValueFromForm(`#${generator.Id}-count`, 0, simData, null);
+    if (!readSavedCounts) {
+      getValueFromForm(`#${generator.Id}-count`, 0, simData, formValues, resourceId, generator.Id);
+    } else {
+      simData.Counts[generator.Id] = formValues.Counts[resourceId][generator.Id] || 0;
+    }
   }
-  
-  simData.Config.Autobuy = $('#configAutobuy').is(':checked');
-  simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');
-  simData.Config.MaxDays = getValueFromForm('#configMaxDays', 1, simData, formValues);
-  
-  return simData;
 }
 
 // For a given generator and subset of researchers, returns the derived Speed, Power, CritChance, CritPower and CostReduction
@@ -2046,77 +2136,8 @@ function getDerivedResearcherValues(generator, researchers, formValues) {
   return derivedValues;
 }
 
-function __deprecatedGetProductionSimDataFromForm() {
-  let industryId = $('#industryId').val();
-  let resourceId = getResourceByIndustry(industryId).Id;
-  let missionId = $('#missionId').val();
-  let mission = getData().Missions.find(m => m.Id == missionId);
-  let generators = getData().Generators.filter(g => g.IndustryId == industryId);
-  
-  let simData = { Generators: [], Counts: {}, Mission: mission, IndustryId: industryId, Errors: 0, Config: {} };
-  
-  // Dig out and parse each number in the form.
-  let formValues = {};
-  let globalFormValues = {};
-  let comrades = getValueFromForm('#comrades', 0, simData, null);
-  let comradesPerSec = getValueFromForm('#comradesPerSec', 0, simData, globalFormValues);
-  let power = getValueFromForm('#power', 1, simData, formValues);
-  let discount = getValueFromForm('#discount', 1, simData, formValues);
-  let critChance = getValueFromForm('#critChance', 0, simData, formValues) / 100;
-  let critPower = getValueFromForm('#critPower', generators[0].Crit.Multiplier, simData, formValues);
-  
-  simData.Generators.push({Id: "comradegenerator", Resource: "comrade", QtyPerSec: comradesPerSec, Cost: []});
-  simData.Counts["comrade"] = comrades;
-  simData.Counts["comradegenerator"] = 1;
-    
-  for (let generator of generators) {
-    let genCount = getValueFromForm(`#${generator.Id}-count`, 0, simData, null);
-    let genSpeed = getValueFromForm(`#${generator.Id}-speed`, 0, simData, formValues);
-    
-    // A band-aid fix until I properly overhaul the calc
-    let genPower = 1;
-    if (currentMode == "main" && generator.Id == generators[0].Id) {
-      genPower = getValueFromForm(`#${generator.Id}-power`, 1, simData, formValues);
-    }
-    
-    let costs = generator.Cost.map(c => ({ Resource: c.Resource.toLowerCase(), Qty: Number(c.Qty) }));
-    for (let cost of costs) {
-      if (cost.Resource != "comrade") {
-        cost.Qty /= discount;
-      }
-    }
-    
-    simData.Generators.push(({
-      Id: generator.Id,
-      Resource: generator.Generate.Resource,
-      QtyPerSec: generator.Generate.Qty / generator.BaseCompletionTime * power * genPower * genSpeed * (critChance * critPower + 1 - critChance),
-      Cost: costs
-    }));
-    
-    simData.Counts[generator.Id] = genCount;
-  }
-  
-  let resources = getValueFromForm('#resources', 0, simData, null);
-  simData.Counts[resourceId] = resources;
-
-  let resourceProgress = 0;
-  if (mission.Condition.ConditionType == "ResourcesEarnedSinceSubscription") {
-    resourceProgress = getValueFromForm('#resourceProgress', 0, simData, null);
-  }
-  simData.Counts["resourceProgress"] = resourceProgress;
-  
-  simData.Config.Autobuy = $('#configAutobuy').is(':checked');
-  simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');
-  simData.Config.MaxDays = getValueFromForm('#configMaxDays', 1, simData, formValues);
-  
-  __saveFormValuesDeprecated(formValues, industryId);
-  __saveFormValuesDeprecated(globalFormValues, "global");
-  
-  return simData;
-}
-
-// Gets a value from the form (with error checking) and optionally stores that value.
-function getValueFromForm(inputId, defaultValue, simData, formValues) {
+// Gets a value from the form (with error checking) and optionally stores that value in simData.Counts and formValues.Counts[resourceId]
+function getValueFromForm(inputId, defaultValue, simData, formValues = null, resourceId = null, inputKey = null) {
   let value = fromBigNum($(inputId).val());
   let result = value || defaultValue;
 
@@ -2126,49 +2147,17 @@ function getValueFromForm(inputId, defaultValue, simData, formValues) {
   } else {
     $(inputId).removeClass('is-invalid');
     
-    if (formValues) {
-      formValues[inputId] = result;
-    }
-
-    if (value == "") {
-      // If the input was empty, fill it in automatically
-      $(inputId).val(bigNum(result));
+    if (formValues && resourceId && inputKey) {
+      formValues.Counts[resourceId][inputKey] = value;
+      simData.Counts[inputKey] = result;
     }
   }
   
   return result;
 }
 
-function __saveFormValuesDeprecated(formValues, industryId) {
-  let allFormValues = {};
-  
-  let valuesString = getLocal(currentMode, "FormValues");
-  if (valuesString) {
-    allFormValues = JSON.parse(valuesString);
-  }
-  
-  allFormValues[industryId] = formValues;
-  
-  setLocal(currentMode, "FormValues", JSON.stringify(allFormValues));
-}
-
 function saveFormValues(formValuesObject) {
   setLocal(currentMode, "FormValues", JSON.stringify(formValuesObject));
-}
-
-// Loads the saved form values and inputs them onto the form.
-function loadFormValues() {
-  let industryId = $('#industryId').val();
-  let formValues = getFormValuesObject();
-  
-  // combine any values that may exist for the industry or globally
-  let industryValues = formValues[industryId] || {};
-  let globalValues = formValues["global"] || {};
-  let combinedValues = mergeObjects(industryValues, globalValues);
-  
-  for (let inputId in combinedValues) {
-    $(inputId).val(bigNum(combinedValues[inputId]));
-  }
 }
 
 // Returns a new object that is the union of two objects
@@ -2186,7 +2175,15 @@ function mergeObjects(left, right) {
 }
 
 
-let NEW_FORM_VALUES_OBJECT = { ResearcherLevels: {}, GeneratorCounts: {}, Trades: { TotalComrades: 1, TotalOverride: null, Resource: {} } };
+let NEW_FORM_VALUES_OBJECT = { 
+  Config: {}, // e.g., 'AutoBuy': true
+  ResearcherLevels: {}, // e.g., 'RS0011': 2
+  Counts: {}, // e.g., 'land': {'worker': 10, ..., 'land': 150, 'resourceProgress': 100, 'TimeStamp': 1579683943747}
+  Trades: {
+    TotalComrades: 1,
+    Resource: {} // e.g., 'land': {NextCost: "", Count: 0, ComradesPerTrade: 0, TotalComrades: 0, IsInvalid: false}
+  }
+};
 
 // Returns an object representing saved form information
 function getFormValuesObject() {
@@ -2198,7 +2195,7 @@ function getFormValuesObject() {
   try {
     let result = JSON.parse(valuesString);
     
-    if (!result.ResearcherLevels || !result.GeneratorCounts || !result.Trades) {
+    if (!result.Config || !result.ResearcherLevels || !result.Counts || !result.Trades) {
       // This is an old-style FormValues or otherwise no longer valid.
       return NEW_FORM_VALUES_OBJECT;
     } else {

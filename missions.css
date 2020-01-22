@@ -198,7 +198,7 @@ input:checked + .slider:before {
 }
 
 .propagandaBoost {
-  background-color: lightgreen;
+  background-color: black;
 }
 
 .researcherIcon {
