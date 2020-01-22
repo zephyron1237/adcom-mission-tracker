@@ -14,7 +14,9 @@ Switch between Motherland (main) and Event by clicking on the title's dropdown. 
 
 ## Thanks
 
-Images taken from the wiki. Some json data was provided by The_Random_Guy on the AdCom discord.  Emoji selection mostly taken from the Discord #mission-list (maintained by Julian).  Some dark mode style provided by Manifold0.
+Some images taken from the wiki. Some json data was provided by The_Random_Guy.  Emoji selection based on Julian's work.  Some dark mode style provided by Manifold0.  Vdisco made the propaganda boost animations.  Special thanks to those that have submitted issues and written pull requests!
+
+Json data and most images are copyright Hyper Hippo Productions Ltd.
 
 ## Contributing
 

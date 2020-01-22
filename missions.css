@@ -126,6 +126,12 @@ input:checked + .slider:before {
   display: inline-block;
 }
 
+.inputIcon {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
 .capsule {
   height: 1.5em;
   width: 1.2em;
@@ -157,6 +163,75 @@ input:checked + .slider:before {
   width: 50%;  
 }
 
+.researcherCard {
+  width: 100px;
+  height: 125px;
+  background-size: 100px 125px;
+  background-repeat: no-repeat;
+  background-position: center;
+  border: 4px solid black;
+  border-radius: 4px;
+}
+
+.researcherLteCommon {
+  background-color: lightgrey;
+}
+
+.researcherLteRare {
+  background-color: lightblue;
+}
+
+.researcherCommon {
+  background-color: lightgrey;
+}
+
+.researcherRare {
+  background-color: lightyellow;
+}
+
+.researcherEpic {
+  background-color: plum;
+}
+
+.researcherSupreme {
+  background-color: lightpink;
+}
+
+.propagandaBoost {
+  background-color: black;
+}
+
+.researcherIcon {
+  background-color: rgba(0, 0, 0, 0.5);
+  height:35px;
+  width:35px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  border-radius: 0 0 0 4px;
+}
+
+.researcherLevel {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: lightblue;
+  font-weight: bold;
+  
+  width: 92px;
+  height: 1.5em;
+  position: absolute;
+  bottom: 2.5em;
+}
+
+.researcherLevelButton {
+  width: 1em;
+  border: 1px outset;
+}
+
+.researcherLevelButton:hover {
+  cursor: pointer;
+}
+
 .plastic {
   background-image: url("img/event/plastic.png");
 }
@@ -185,28 +260,32 @@ input:checked + .slider:before {
   background-image: url("img/shared/comrade.png");
 }
 
-.comradesPerSec {
+.comradesPerSec, .TradePayoutMultiplier {
   background-image: url("img/shared/comrades_per_second.png");
 }
 
-.power {
+.power, .GeneratorPayoutMultiplier {
   background-image: url("img/shared/boost_power.png");
 }
 
-.discount {
+.discount, .GeneratorCostReduction {
   background-image: url("img/shared/discount.png");
 }
 
-.critChance {
+.critChance, .GeneratorCritChance {
   background-image: url("img/shared/crit_chance.png");
 }
 
-.critPower {
+.critPower, .GeneratorCritPowerMult {
   background-image: url("img/shared/crit_power.png");
 }
 
-.speed {
+.speed, .GenManagerAndSpeedMult {
   background-image: url("img/shared/speed.png");
+}
+
+.cardIcon {
+  background-image: url("img/shared/card.png");
 }
 
 .missionContainer {

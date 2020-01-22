@@ -27,9 +27,18 @@
       </ul>
     </span>
     <ul class="navbar-nav ml-auto">
+      <li class="nav-item">
+        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-generators-tab" title="View Generators"><div id="viewAllGeneratorsButton" class="resourceIcon">&nbsp;</div></a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-researchers-tab" title="View Researchers"><div class="resourceIcon cardIcon">&nbsp;</div></a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-trades-tab" title="View Trades"><div class="resourceIcon comradesPerSec">&nbsp;</div></a>
+      </li>
       <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          Settings
+        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Settings">
+          &equiv;
         </a>
         <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="settingsDropdownMenuLink">
           <h6 class="dropdown-header text-center">Icons</h6>
@@ -62,17 +71,32 @@
           <form>
             <p><strong>Reward:</strong> <span id="infoReward"></span></p>
             <p id="completionTimeContainer" class="collapse"><strong>Completed at:</strong> <span id="completionTime"></span></p>
+            <p id="lastEtaContainer" class="collapse"><strong>Last ETA:</strong> <span id="lastEta"></span></p>
             <div class ="alert alert-warning" role="alert">
               Calculator is in <strong>BETA</strong>. Be wary of results. <a href="#calcDetails" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="calcDetails" class="alert-link">(Details/Tips)</a>
               <div class="collapse" id="calcDetails"><div><strong>Details:</strong> The calculator does a basic simulation, normalizing each generator's output rate and running until the goal is met or it reaches 24h.  Normalizing averages out things like crits and long run speeds, which introduces some error.  The calculator currently does not take airdrops or unlocking new generators into account.  Please let me know if you find any issues or have any suggestions.</div>
                 <div><strong>Tips:</strong><ul>
                   <li>Enter numbers like <code id="numberExample">1.52 AA</code>.  Periods and commas are based on your browser's locale settings.</li>
-                  <li>Leave <var>Speed</var> blank or <code>0</code> if not running, use <code>1</code> if you are manually running it constantly, <code>0.5</code> if you're manually running it half the time, etc.</li>
                 </ul></div>
               </div>
             </div>
             <p><strong>Calculator:</strong> <div id="calc"></div></p>
           </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="allInfoPopup" tabindex="-1" role="dialog" aria-labelledby="infoTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="infoTitle">All Industries</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="allInfoPopupBody"></div>
         </div>
       </div>
     </div>
@@ -87,8 +111,8 @@
   </div>
   <div id="missions"></div>
   <footer>
-    <p class="ml-2"><small class="text-muted"><a href='https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/'>Game Guide/FAQ</a> | <a href='https://zephyron1237.github.io/adcom-capsule-tracker/'>Free Capsule Tracker</a> | Mission Tracker | <a href='#' onclick='window.location.reload(true)'>Force Reload</a><br />
-    Made by Zephyron1237. Source on <a href='https://github.com/zephyron1237/adcom-mission-tracker'>GitHub</a>. Version 6 "Hands-free"</small></p>
+    <p class="ml-2"><small class="text-muted"><a href='https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/'>Game Guide/FAQ</a> | <a href='https://zephyron1237.github.io/adcom-capsule-tracker/'>Free Capsule Tracker</a> | Mission Tracker<br />
+    Made by Zephyron1237. Source on <a href='https://github.com/zephyron1237/adcom-mission-tracker'>GitHub</a>. Version 7 "Calc You Sooner"</small></p>
   </footer>
 </body>
 <script
