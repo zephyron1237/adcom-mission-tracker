@@ -64,6 +64,10 @@ function loadModeSettings() {
       currentEventTheme = balanceId.split("-")[0]; // get "ninja" from "ninja-bal-1"
     }
   }
+  
+  // Set up the icon for the "All Generators" button in the navbar
+  let firstResourceId = getData().Resources[0].Id;
+  $('#viewAllGeneratorsButton').attr('style', `background-image:url('${getImageDirectory()}/${firstResourceId}.png`);
 }
 
 // Sets up missionData based on game data and your save data.
@@ -171,6 +175,26 @@ function initializeInfoPopup() {
       $('[data-toggle="popover"]').popover();
       $('#numberExample').html(`${(1.58).toLocaleString()} AA`);
       loadFormValues();
+    });
+  });
+  
+  $('#allInfoPopup').on('show.bs.modal', function (event) {
+    let button = $(event.relatedTarget); // Button that triggered the modal
+    let activeTabId = button.data('tab'); // Extract info from data-* attributes
+    
+    // Fill in the body
+    let modal = $(this);
+    modal.find('#allInfoPopupBody').html(getAllIndustryPopup());
+    
+    // Set the correct tab to be active based on which button launched the popup.
+    let activeTab = modal.find(`#${activeTabId}`);
+    activeTab.addClass('active');
+    activeTab.attr('aria-selected', 'true');
+    
+    modal.find(`[aria-labelledby="${activeTabId}"]`).addClass('show active');
+    
+    $(function () {
+      $('[data-toggle="popover"]').popover();
     });
   });
 }
@@ -403,7 +427,7 @@ function renderMissions() {
       
       let rankResearchers = getData().Researchers.filter(r => r.PlayerRankUnlock == rank);
       if (rankResearchers.length > 0) {
-        let rankResearcherDescriptions = rankResearchers.map(r => `${r.Name}: <em>${getResearcherDetails(r)}</em>`);
+        let rankResearcherDescriptions = rankResearchers.map(r => `${r.Name}: <em>${getResearcherBasicDetails(r)}</em>`);
         let rankResearcherText = `<strong>New Researchers:</strong><br />${rankResearcherDescriptions.join("<br /><br />")}`;
         popupHtml += `${popupHtml ? "<hr />" : ""}${rankResearcherText}`;
       }
@@ -746,7 +770,7 @@ function describeMission(mission, overrideIcon = "") {
       textHtml = `Collect Cards (${condition.Threshold})`;
       break;
     case "ResourcesSpentSinceSubscription":
-      let overrideDirectory = (currentMode == "event") ? "event" : "";  // Use /img/event/ of /img/event/theme/
+      let overrideDirectory = (currentMode == "event") ? "img/event" : "";  // Use /img/event/ of /img/event/theme/
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, overrideDirectory);
       textHtml = `Spend ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
@@ -788,12 +812,28 @@ function describeReward(reward) {
 
 // Given a root.Researchers object, returns an html string with a clickable version of their name with a popover description.
 function describeResearcher(researcher) {
-  let details = getResearcherDetails(researcher);
-  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-content="${details}">${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
+  let details = getResearcherFullDetailsHtml(researcher);
+  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="bottom" data-trigger="focus" data-content="${details}" data-html="true">${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
 }
 
-// Given a root.Researchers object, returns a description of that researcher's effect.
-function getResearcherDetails(researcher) {
+// Given a root.Researchers object, returns an html description of that researcher's effect, its unlock rank, and its first guaranteed mission
+function getResearcherFullDetailsHtml(researcher) {
+  let html = `<em>${getResearcherBasicDetails(researcher)}</em><br />`;
+  
+  html += `Unlocks at Rank ${researcher.PlayerRankUnlock}<br />`;
+  
+  let scriptedMission = getFirstMissionWithScriptedReward(researcher);
+  if (scriptedMission) {
+    html += `First guaranteed: ${describeMission(scriptedMission, "none")}`;
+  } else {
+    html += `No guaranteed copies.`;
+  };
+  
+  return html;
+}
+
+// Given a root.Researchers object, returns a plaintext description of that researcher's effect.
+function getResearcherBasicDetails(researcher) {
   let vals, resources;
   switch (researcher.ModType) {
     case "GenManagerAndSpeedMult":
@@ -1163,7 +1203,7 @@ function renderCalculator(mission) {
         <div class="tab-pane fade" id="researchers" role="tabpanel" aria-labelledby="researchers-tab">${getResearchersTab(mission, industryId)}</div>
         <div class="tab-pane fade" id="trades" role="tabpanel" aria-labelledby="trades-tab">${getTradesTab()}</div>
       </div>`;
-    html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label></div>`;
+    html += `<hr /><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label></div>`;
     
     if (conditionType == "ResourceQuantity") {
       html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configComradeLimited" onclick="clickComradeLimited('${condition.ConditionId}')"><label class="form-check-label" for="configComradeLimited">Limited by comrades only</label></div>`;
@@ -1182,6 +1222,27 @@ function renderCalculator(mission) {
   }
 }
 
+function getAllIndustryPopup() {
+  // Display three tabs: one for generators, one for production researchers, one for trades. Then below, options and submit.
+  return `
+    <ul class="nav nav-tabs" id="calc-tabs" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link" id="all-generators-tab" data-toggle="tab" href="#all-generators" role="tab" aria-controls="all-generators" aria-selected="false"><div class="resourceIcon" style="background-image: url('img/main/potato.png');">&nbsp;</div> Generators</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="all-researchers-tab" data-toggle="tab" href="#all-researchers" role="tab" aria-controls="all-researchers" aria-selected="false"><div class="resourceIcon cardIcon">&nbsp;</div> Researchers</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="all-trades-tab" data-toggle="tab" href="#all-trades" role="tab" aria-controls="all-trades" aria-selected="false"><div class="resourceIcon comradesPerSec">&nbsp;</div> Trades</a>
+      </li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane fade" id="all-generators" role="tabpanel" aria-labelledby="all-generators-tab">${getAllGeneratorsTab()}</div>
+      <div class="tab-pane fade" id="all-researchers" role="tabpanel" aria-labelledby="all-researchers-tab">${getResearchersTab()}</div>
+      <div class="tab-pane fade" id="all-trades" role="tabpanel" aria-labelledby="all-trades-tab">${getTradesTab()}</div>
+    </div>`;
+}
+
 // Returns html for the calculator's sub-tab where you input generator and resource counts.
 function getGeneratorsTab(mission, industryId) {
   let html = "";
@@ -1190,40 +1251,84 @@ function getGeneratorsTab(mission, industryId) {
   let formValues = getFormValuesObject();
   let researchers = getResearchersByIndustry(industryId);
   
+  // Make the generators' input boxes
   let generators = getData().Generators.filter(g => g.IndustryId == industryId);
   for (let generator of generators) {
     let id = generator.Id;
     let name = resourceName(id);
     let popoverTitle = `<img class='resourceIcon mr-1' src='${imgDirectory}/${id}.png'>${name}`;
     let popoverBody = describeGenerator(generator, researchers, formValues);
-    html += getResourceInput(`${id}-count`, `# of ${name}`, `${imgDirectory}/${id}.png`, "", "", "", popoverTitle, popoverBody);
+    
+    html += getResourceInput(`${id}-count`, `# of ${name}`, `${imgDirectory}/${id}.png`, name, "", "", "", popoverTitle, popoverBody);
   }
   
+  // Make the resources' input boxes
   html += "<hr />";
   
   let resource = getResourceByIndustry(industryId);
-  html += getResourceInput("resources", `# of ${resourceName(resource.Id)}`, `${imgDirectory}/${resource.Id}.png`);
+  let resourceNameString = resourceName(resource.Id);
+  html += getResourceInput("resources", `# of ${resourceNameString}`, `${imgDirectory}/${resource.Id}.png`, `# of ${resourceNameString}`);
   
   if (mission.Condition.ConditionType == "ResourcesEarnedSinceSubscription") {
-    html += getResourceInput("resourceProgress", "Mission Progress", `${imgDirectory}/${resource.Id}.png`);
+    html += getResourceInput("resourceProgress", "Mission Progress", `${imgDirectory}/${resource.Id}.png`, `${resourceNameString} (Mission Progress)`);
+  }
+  
+  // Make the comrades' input boxes
+  html += "<hr />";
+  
+  let cpsDefaultValue = formValues.Trades.TotalOverride || formValues.Trades.TotalComrades || "";
+  html += getResourceInput("comrades", "# of Comrades", "img/shared/comrade.png", "# of Comrades");
+  html += getResourceInput("comradesPerSec", "Comrades/second", "img/shared/comrades_per_second.png", "Comrades Per Second", cpsDefaultValue);
+  
+  return html;
+}
+
+// Returns html for a tab containing information on Generators for all industries
+function getAllGeneratorsTab() {
+  let imgDirectory = getImageDirectory();
+  let formValues = getFormValuesObject();
+  
+  let html = "";
+  
+  for (let industry of getData().Industries) {
+    if (industry != getData().Industries[0]) {
+      html += "<hr />";
+    } else {
+      html += "<div class='mt-3'></div>"; // Start the first group a bit lower
+    }
+    
+    let researchers = getResearchersByIndustry(industry.Id);
+    let resource = getResourceByIndustry(industry.Id);
+    let resourceNameString = resourceName(resource.Id);
+    
+    html += `<div class="font-weight-bold mb-2"><img class='resourceIcon mr-1' src='${imgDirectory}/${resource.Id}.png'>${resourceNameString}</div>`;
+    
+    let generators = getData().Generators.filter(g => g.IndustryId == industry.Id);
+    for (let generator of generators) {
+      let id = generator.Id;
+      let name = resourceName(id);
+      let popoverTitle = `<img class='resourceIcon mr-1' src='${imgDirectory}/${id}.png'>${name}`;
+      let popoverBody = describeGenerator(generator, researchers, formValues);
+      
+      html += `<div><a class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverBody}" data-html="true"><span class="researcherName">${popoverTitle}</span></a></div>`;
+    }
   }
   
   return html;
 }
 
 // Returns a div for a single input in the Generators tab.
-function getResourceInput(tagId, description, imageUrl, defaultValue = "", extraInputClasses = "", extraInputProperties = "", popoverTitle = "", popoverHtml = "") {
+function getResourceInput(tagId, description, imageUrl, imageTitle, defaultValue = "", extraInputClasses = "", extraInputProperties = "", popoverTitle = "", popoverHtml = "") {
   let preSpanHtml = "";
   let postSpanHtml = "";
   
   if (popoverHtml) {
-    preSpanHtml = `<a class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-title="${popoverTitle}" data-content="${popoverHtml}" data-html="true">`;
-    //preSpanHtml = `<a class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverHtml}" data-html="true">`;
+    preSpanHtml = `<a class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverHtml}" data-html="true" title="${imageTitle}">`;
     postSpanHtml = `</a>`;
   }
   
   return `<div class="input-group my-1" >
-            <div class="input-group-prepend">
+            <div class="input-group-prepend" title="${imageTitle}">
               ${preSpanHtml}
               <span class="input-group-text inputIcon" style="background-image: url('${imageUrl}');">&nbsp;</span>
               ${postSpanHtml}
@@ -1245,9 +1350,9 @@ function describeGenerator(generator, researchers, formValues) {
   for (let cost of costs) {
     if (cost.Resource != "comrade") {
       cost.Qty /= genValues.CostReduction;
-      html += `<span class='mx-1'><img class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png'>${bigNum(cost.Qty)}</span>`;
+      html += `<span class='mx-1'><img class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${bigNum(cost.Qty)}</span>`;
     } else {
-      html += `<span class='mx-1'><img class='resourceIcon mr-1' src='img/shared/comrade.png'>${bigNum(cost.Qty)}</span>`;
+      html += `<span class='mx-1'><img class='resourceIcon mr-1' src='img/shared/comrade.png' title='Comrades'>${bigNum(cost.Qty)}</span>`;
     }
   }
   
@@ -1267,26 +1372,29 @@ function describeGenerator(generator, researchers, formValues) {
     genTimeString = `1/${Math.round(1/genTime)} s`;
   }
   
+  // Strip 0 off, since it will frequently be out of place.
+  genTimeString = genTimeString.replace(/^0*/, '');
+  
   let qtyProduced = bigNum(generator.Generate.Qty * genValues.Power);
-  html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png'>${qtyProduced} `;
+  html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(qtyProduced)} `;
   html += `per <img class='resourceIcon mx-1' src='img/shared/speed.png'>${genTimeString}<div class='my-3'></div>`;
   
-  html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png'>${genValues.CritChance * 100}% `;
-  html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png'> x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
+  html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png' title='Crit Chance'>${genValues.CritChance * 100}% `;
+  html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png' title='Crit Power'> x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
   
   let totalPerSec = qtyProduced * (genValues.CritChance * genValues.CritPower + 1 - genValues.CritChance) / genTime;
   if (totalPerSec < 1e4) {
     totalPerSec = totalPerSec.toPrecision(3);
   }
-  html += `Avg Output: <img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png'>${shortBigNum(totalPerSec)}/sec`;
+  html += `Avg Output: <img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(totalPerSec)}/sec`;
   
   let industry = getData().Industries.find(i => i.Id == generator.IndustryId);
   if (generator.Unlock.Threshold > 0 || industry.UnlockCostResourceQty > 0) {
     html += `<br /><br /><strong>Unlocks at:</strong><br />`;
     if (generator.Unlock.Threshold > 0 ) {
-      html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Unlock.ConditionId}.png'>${bigNum(generator.Unlock.Threshold)}`;
+      html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Unlock.ConditionId}.png' title='${resourceName(generator.Unlock.ConditionId)}'>${bigNum(generator.Unlock.Threshold)}`;
     } else {
-      html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${industry.UnlockCostResourceId.toLowerCase()}.png'>${bigNum(industry.UnlockCostResourceQty)}`;
+      html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${industry.UnlockCostResourceId.toLowerCase()}.png' title='${resourceName(industry.UnlockCostResourceId.toLowerCase())}'>${bigNum(industry.UnlockCostResourceQty)}`;
     }
   }
   
@@ -1294,15 +1402,7 @@ function describeGenerator(generator, researchers, formValues) {
   
   let autoResearcher = getData().Researchers.find(r => r.ModType == "GenManagerAndSpeedMult" && r.TargetIds[0] == generator.Id);
   html += `<div class='resourceIcon cardIcon mr-1'>&nbsp;</div>${autoResearcher.Name}<br />`;
-  html += `<em>${getResearcherDetails(autoResearcher)}</em><br />`;
-  html += `Unlocks at Rank ${autoResearcher.PlayerRankUnlock}<br />`;
-  
-  let scriptedMission = getFirstMissionWithScriptedReward(autoResearcher);
-  if (scriptedMission) {
-    html += `First guaranteed: ${describeMission(scriptedMission, "none")}`;
-  } else {
-    html += `No guaranteed copies.`;
-  }
+  html += getResearcherFullDetailsHtml(autoResearcher);
   
   return html;
 }
@@ -1412,25 +1512,30 @@ function getResearcherCard(researcher, formValues) {
   let maxLevel = getData().ResearcherRankCosts.find(cost => cost.Rarity == researcher.Rarity).Quantity.length + 1;
   let upVisibilityClass = (level >= maxLevel) ? "invisible" : "visible";
   
+  let popupTitle = researcher.Name;
+  let popupBody = getResearcherFullDetailsHtml(researcher);
+  
   return `
-    <div class="researcherCard ${rarityClass} mx-auto" style="background-image: url('${imgDirectory}/${researcher.Id}.png');">
-      <div class="researcherIcon float-right" style="background-image: url('${targetIconUrl}');">&nbsp;</div>
-      <div class="researcherLevel text-center">Level ${level}</div>
-    </div>
+    <a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-title="${popupTitle}" data-content="${popupBody}" data-html="true">
+      <div class="researcherCard ${rarityClass} mx-auto" style="background-image: url('${imgDirectory}/${researcher.Id}.png');">
+        <div class="researcherIcon float-right" style="background-image: url('${targetIconUrl}');">&nbsp;</div>
+        <div class="researcherLevel text-center">Level ${level}</div>
+      </div>
+    </a>
 
-      <div class="my-2 text-center">
-        <div class="${downVisibilityClass} float-left researcherLevelButton text-danger">
-          <a onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button">&#x25BC;</a>
-        </div>
-        
-        
-        <div class="resourceIcon ${researcher.ModType}">&nbsp;</div>
-        ${valueString}
-        
-        <div class="${upVisibilityClass} researcherLevelButton float-right text-success">
-          <a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button">&#x25B2;</a>
-        </div>
-      </div>`;
+    <div class="my-2 text-center">
+      <div class="${downVisibilityClass} float-left researcherLevelButton text-danger">
+        <a onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button" title="Level ${researcher.Name} down to ${level - 1}">&#x25BC;</a>
+      </div>
+      
+      
+      <div class="resourceIcon ${researcher.ModType}">&nbsp;</div>
+      ${valueString}
+      
+      <div class="${upVisibilityClass} researcherLevelButton float-right text-success">
+        <a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button" title="Level ${researcher.Name} up to ${level + 1}">&#x25B2;</a>
+      </div>
+    </div>`;
 }
 
 function getPropagandaBoostCard(formValues) {
@@ -1447,14 +1552,15 @@ function getPropagandaBoostCard(formValues) {
   let upVisibilityClass = (level >= 1) ? "invisible" : "visible";
   
   return `
-    <div class="researcherCard propagandaBoost mx-auto" style="background-image: url('${backgroundImageUrl}');">
-      <div class="researcherIcon float-right" style="background-image: url('${targetIconUrl}');">&nbsp;</div>
-      <div class="researcherLevel text-center">${levelText}</div>
-    </div>
+    <a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-title="Propaganda Boost" data-content="Watch ads to boost the output of all generators by 2x" data-html="true">
+      <div class="researcherCard propagandaBoost mx-auto" style="background-image: url('${backgroundImageUrl}');">
+        <div class="researcherIcon float-right" style="background-image: url('${targetIconUrl}');">&nbsp;</div>
+        <div class="researcherLevel text-center">${levelText}</div>
+      </div>
 
       <div class="my-2 text-center">
         <div class="${downVisibilityClass} float-left researcherLevelButton text-danger">
-          <a onclick="clickLevelResearcher('PropagandaBoost', 0)" role="button">&#x25BC;</a>
+          <a onclick="clickLevelResearcher('PropagandaBoost', 0)" role="button" title="Disable Propaganda Boost">&#x25BC;</a>
         </div>
         
         
@@ -1462,9 +1568,10 @@ function getPropagandaBoostCard(formValues) {
         ${valueString}
         
         <div class="${upVisibilityClass} researcherLevelButton float-right text-success">
-          <a onclick="clickLevelResearcher('PropagandaBoost', 1)" role="button">&#x25B2;</a>
+          <a onclick="clickLevelResearcher('PropagandaBoost', 1)" role="button" title="Enable Propaganda Boost">&#x25B2;</a>
         </div>
-      </div>`;
+      </div>
+    </a>`;
 }
 
 // Returns the multiplier (>1x) or chance (0-1) given a researcher and their level.
@@ -1509,24 +1616,37 @@ function clickLevelResearcher(researcherId, newLevelValue) {
 }
 
 function redrawResearchersTab() {
-  let industryId = $('#industryId').val();
-  let missionId = $('#missionId').val();
-  let mission = getData().Missions.find(m => m.Id == missionId);
-  
-  $('#researchers').html(getResearchersTab(mission, industryId));
+  if ($('#infoPopup').hasClass('show')) {
+    let industryId = $('#industryId').val();
+    let missionId = $('#missionId').val();
+    let mission = getData().Missions.find(m => m.Id == missionId);
+    
+    $('#researchers').html(getResearchersTab(mission, industryId));
+  } else if ($('#allInfoPopup').hasClass('show')) {
+    $('#all-researchers').html(getResearchersTab());
+  }
 }
 
 function redrawGeneratorsTab() {
-  let industryId = $('#industryId').val();
-  let missionId = $('#missionId').val();
-  let mission = getData().Missions.find(m => m.Id == missionId);
-  
-  $('#generators').html(getGeneratorsTab(mission, industryId));
+  if ($('#infoPopup').hasClass('show')) {
+    let industryId = $('#industryId').val();
+    let missionId = $('#missionId').val();
+    let mission = getData().Missions.find(m => m.Id == missionId);
+    
+    $('#generators').html(getGeneratorsTab(mission, industryId));
+    
+  } else if ($('#allInfoPopup').hasClass('show')) {
+    $('#all-generators').html(getAllGeneratorsTab());
+  }
   $(function () { $('[data-toggle="popover"]').popover(); });
 }
 
 function redrawTradesTab() {
-  $('#trades').html(getTradesTab());
+  if ($('#infoPopup').hasClass('show')) {
+    $('#trades').html(getTradesTab());
+  } else if ($('#allInfoPopup').hasClass('show')) {
+    $('#all-trades').html(getTradesTab());
+  }
 }
 
 // Returns the url of an icon representing the target of the researcher
@@ -1569,14 +1689,22 @@ function getResearcherTargetIconUrl(researcher) {
   }
 }
 
-// Returns every root.Researchers object that affects generators (not trades) from the given industryId
+// Returns every root.Researchers object that affects generators (not trades) from the given industryId (or all if null)
 function getResearchersByIndustry(industryId) {
-  let generators = getData().Generators.filter(g => g.IndustryId == industryId);
+  let generators = getData().Generators;
+  let industryIds = [];
+  
+  if (industryId) {
+    generators = generators.filter(g => g.IndustryId == industryId);
+    industryIds = [industryId];
+  } else {
+    industryIds = getData().Industries.map(i => i.Id.toLowerCase());
+  }
+  
   let generatorIds = generators.map(g => g.Id.toLowerCase());
+  let resourceIds = industryIds.map(id => getResourceByIndustry(id).Id.toLowerCase());
   
-  let resourceId = getResourceByIndustry(industryId).Id.toLowerCase();
-  
-  let idWhitelist = new Set([industryId.toLowerCase(), resourceId, ...generatorIds]);
+  let idWhitelist = new Set([...industryIds, ...resourceIds, ...generatorIds]);
   
   return getData().Researchers.filter( researcher => {
     // Ignore trade researchers
@@ -1592,55 +1720,57 @@ function getResearchersByIndustry(industryId) {
 }
 
 function getTradesTab() {
-    let imgDirectory = getImageDirectory();
-    let formValues = getFormValuesObject();
+  let imgDirectory = getImageDirectory();
+  let formValues = getFormValuesObject();
 
-    let html = `
-    <div class="container-fluid my-1">
-      <div class="justify-content-center align-self-center text-center">
-        <div class="resourceIcon comradesPerSec">&nbsp;</div> <strong>${bigNum(formValues.Trades.TotalComrades || 0)}</strong>/sec
-      </div>
-    </div>`;
+  let html = `
+  <div class="container-fluid mt-2 mb-1">
+    <div class="justify-content-center align-self-center text-center">
+      <div class="resourceIcon comradesPerSec">&nbsp;</div> <strong>${bigNum(formValues.Trades.TotalComrades || 0)}</strong>/sec
+    </div>
+  </div>`;
+  
+  for (let industry of getData().Industries) {
+    let resource = getResourceByIndustry(industry.Id);
     
-    for (let industry of getData().Industries) {
-      let resource = getResourceByIndustry(industry.Id);
+    let formTrades = formValues.Trades.Resource[resource.Id];
+    if (!formTrades) {
+      let tradeInfo = getData().Trades.find(t => t.Resource == resource.Id);
+      let comradesPerTrade = getTotalTradeValueForResource(resource.Id, formValues, tradeInfo);
       
-      let formTrades = formValues.Trades[resource.Id];
-      if (!formTrades) {
-        let tradeInfo = getData().Trades.find(t => t.Resource == resource.Id);
-        let comradesPerTrade = getTotalTradeValueForResource(resource.Id, formValues, tradeInfo);
-        
-        formTrades = {
-          NextCost: "",
-          Count: 0,
-          ComradesPerTrade: comradesPerTrade,
-          TotalComrades: 0,
-          IsInvalid: false
-        };
-      }
-      
-      let inputId = `${resource.Id}-trade-cost`;
-      let inputDescription = `Next trade cost (${resourceName(resource.Id)})`;
-      let iconUrl = `${imgDirectory}/${resource.Id}.png`;
-      let extraClasses = (formTrades.IsInvalid) ? "is-invalid" : "";
-      let extraProperties = `onchange="recalculateTradeTotals(); redrawTradesTab();"`;
-      let input = getResourceInput(inputId, inputDescription, iconUrl, formTrades.NextCost, extraClasses, extraProperties);
-      
-      let percentTotal = Math.round(formTrades.TotalComrades / formValues.Trades.TotalComrades * 100) || 0;
-      
-      html += `
-        <div class="container-fluid">
-          <div class="row">
-            <div class="col-5">${input}</div>
-            <div class="col-3 justify-content-center align-self-center"><strong>${formTrades.Count}</strong> x ${shortBigNum(formTrades.ComradesPerTrade)}</div>
-            <div class="col-4 justify-content-center align-self-center">${shortBigNum(formTrades.TotalComrades)} (${percentTotal}%)</div>
-          </div>
-        </div>`;
+      formTrades = {
+        NextCost: "",
+        Count: 0,
+        ComradesPerTrade: comradesPerTrade,
+        TotalComrades: 0,
+        IsInvalid: false
+      };
     }
     
+    let inputId = `${resource.Id}-trade-cost`;
+    let inputName = resourceName(resource.Id);
+    let inputDescription = `Next trade cost (${inputName})`;
+    let iconUrl = `${imgDirectory}/${resource.Id}.png`;
+    let extraClasses = (formTrades.IsInvalid) ? "is-invalid" : "";
+    let extraProperties = `onchange="recalculateTradeTotals(); redrawTradesTab();"`;
+    let input = getResourceInput(inputId, inputDescription, iconUrl, inputDescription, formTrades.NextCost, extraClasses, extraProperties);
+    
+    let percentTotal = Math.round(formTrades.TotalComrades / formValues.Trades.TotalComrades * 100) || 0;
+    
     html += `
-      <div class="container">
-        <div class="row">`;
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-5">${input}</div>
+          <div class="col-3 justify-content-center align-self-center"><strong>${formTrades.Count}</strong> x ${shortBigNum(formTrades.ComradesPerTrade)}</div>
+          <div class="col-4 justify-content-center align-self-center">${shortBigNum(formTrades.TotalComrades)} (${percentTotal}%)</div>
+        </div>
+      </div>`;
+  }
+  
+  html += `
+    <hr />
+    <div class="container">
+      <div class="row">`;
   
   let researchers = getData().Researchers.filter(r => r.ModType == "TradePayoutMultiplier");
   
@@ -1679,10 +1809,14 @@ function recalculateTradeTotals() {
   }
   
   // If there are no invalid trades, update the total, including a base 1 cps.
-  let allTrades = Object.values(formValues.Trades);
+  let allTrades = Object.values(formValues.Trades.Resource);
   if (!allTrades.find(t => t.IsInvalid)) {
     formValues.Trades.TotalComrades = allTrades.reduce((sum, t) => sum += (t.TotalComrades || 0), 1);
   }
+  
+  // Using the non-override process to change your CPS will erase your previous override.
+  $('#comradesPerSec').val(formValues.Trades.TotalComrades);
+  formValues.Trades.TotalOverride = null;
   
   saveFormValues(formValues);
 }
@@ -1696,7 +1830,7 @@ function updateTradesForResource(resourceId, costString, formValues) {
   let tradeCount = getTradesForCost(cost, tradeInfo);
   
   if (isNaN(tradeCount)) {
-    formValues.Trades[resourceId] = {
+    formValues.Trades.Resource[resourceId] = {
       NextCost: costString,
       Count: 0,
       ComradesPerTrade: comradesPerTrade,
@@ -1704,7 +1838,7 @@ function updateTradesForResource(resourceId, costString, formValues) {
       IsInvalid: true
     };
   } else {
-    formValues.Trades[resourceId] = {
+    formValues.Trades.Resource[resourceId] = {
       NextCost: bigNum(cost), // Normalize it
       Count: tradeCount,
       ComradesPerTrade: comradesPerTrade,
@@ -1734,6 +1868,8 @@ function getTotalTradeValueForResource(resourceId, formValues, tradeInfo) {
 function getTradesForCost(cost, tradeInfo) {
   if (isNaN(cost)) {
     return NaN;
+  } else if (cost == "") {
+    return 0;
   }
   
   let tradeCount = Math.log(cost / tradeInfo.CostMultiplier) / Math.log(tradeInfo.CostExponent);
@@ -1825,7 +1961,7 @@ function getProductionSimDataFromForm() {
   }
   simData.Counts["resourceProgress"] = resourceProgress;
   
-  let comradesPerSec = 1; /*************** TODO:  actually deal with comrades ************/
+  let comradesPerSec = getValueFromForm('#comradesPerSec', 0, simData, null);
   let comrades = getValueFromForm('#comrades', 0, simData, null);
   simData.Generators.push({Id: "comradegenerator", Resource: "comrade", QtyPerSec: comradesPerSec, Cost: []});
   simData.Counts["comrade"] = comrades;
@@ -2050,7 +2186,7 @@ function mergeObjects(left, right) {
 }
 
 
-let NEW_FORM_VALUES_OBJECT = {ResearcherLevels: {}, GeneratorCounts: {}, Trades: { TotalComrades: 1 }};
+let NEW_FORM_VALUES_OBJECT = { ResearcherLevels: {}, GeneratorCounts: {}, Trades: { TotalComrades: 1, TotalOverride: null, Resource: {} } };
 
 // Returns an object representing saved form information
 function getFormValuesObject() {
