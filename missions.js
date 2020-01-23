@@ -1452,7 +1452,7 @@ function describeGenerator(generator, researchers, formValues) {
   
   let genTime = generator.BaseCompletionTime / Math.max(genValues.Speed, 1);
   
-  let qtyProduced = bigNum(generator.Generate.Qty * genValues.Power);
+  let qtyProduced = generator.Generate.Qty * genValues.Power;
   html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(qtyProduced)} `;
   html += `per <img class='resourceIcon mx-1' src='img/shared/speed.png'>${getEta(genTime)}<div class='my-3'></div>`;
   
