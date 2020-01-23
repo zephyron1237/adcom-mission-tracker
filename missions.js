@@ -1297,6 +1297,7 @@ function updateImportButton() {
   if ($('#allInfoPopup').hasClass('show')) {
     return; // Don't do anything if it's the all-industries popup.
   }
+  
   let industryId = $('#industryId').val();
   let resource = getResourceByIndustry(industryId);
   let formValues = getFormValuesObject();
@@ -1312,11 +1313,13 @@ function updateImportButton() {
 }
 
 function getAllIndustryPopup() {
+  let resourceId = getData().Resources[0].Id;
+  
   // Display three tabs: one for generators, one for production researchers, one for trades. Then below, options and submit.
   return `
     <ul class="nav nav-tabs" id="calc-tabs" role="tablist">
       <li class="nav-item">
-        <a class="nav-link" id="all-generators-tab" data-toggle="tab" href="#all-generators" role="tab" aria-controls="all-generators" aria-selected="false"><div class="resourceIcon" style="background-image: url('img/main/potato.png');">&nbsp;</div> Generators</a>
+        <a class="nav-link" id="all-generators-tab" data-toggle="tab" href="#all-generators" role="tab" aria-controls="all-generators" aria-selected="false"><div class="resourceIcon" style="background-image: url('${getImageDirectory()}/${resourceId}.png');">&nbsp;</div> Generators</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" id="all-researchers-tab" data-toggle="tab" href="#all-researchers" role="tab" aria-controls="all-researchers" aria-selected="false"><div class="resourceIcon cardIcon">&nbsp;</div> Researchers</a>
