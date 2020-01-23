@@ -1294,6 +1294,9 @@ function renderCalculator(mission) {
 }
 
 function updateImportButton() {
+  if ($('#allInfoPopup').hasClass('show')) {
+    return; // Don't do anything if it's the all-industries popup.
+  }
   let industryId = $('#industryId').val();
   let resource = getResourceByIndustry(industryId);
   let formValues = getFormValuesObject();
