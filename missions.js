@@ -1502,15 +1502,33 @@ function getResearchersTab(mission, industryId) {
   let researchers = getResearchersByIndustry(industryId);
   sortResearchers(researchers);
   
-  // Make rows with 3ish researchers per row.
+  // This is a huge hack until I figure out a better, more responsive way of handling this.
+  // If innerWidth is too small (e.g., a phone) only do two columns per row.
+  let columnsPerRow = (window.innerWidth > 450) ? 3 : 2;
+  
+  // Make rows with 2-3 researchers per row and end each one with a row-ending div.
+  let columnsLeft = columnsPerRow;  
   for (let researcher of researchers) {
-    html += `<div class="col-4 mt-3">${getResearcherCard(researcher, formValues)}</div>`;
+    html += `<div class="col mt-3">${getResearcherCard(researcher, formValues)}</div>`;
+    
+    if (columnsLeft == 1) {
+      html += '<div class="w-100"></div>';
+      columnsLeft = columnsPerRow;
+    } else {
+      columnsLeft -= 1;
+    }
   }
   
   // Add an additional PropagandaBoost pseudo-researcher.
-  html += `<div class="col-4 mt-3">${getPropagandaBoostCard(formValues)}</div>`;
+  html += `<div class="col mt-3">${getPropagandaBoostCard(formValues)}</div>`;
+  columnsLeft -= 1;
   
-  html += `
+  // Finish out the columns to be a multiple of columnsPerRow
+  if (columnsLeft != 0) {
+    html += '<div class="col mt-1"></div>'.repeat(columnsLeft);
+  }
+  
+   html += `
       </div>
     </div>`;
   return html;
@@ -1832,14 +1850,32 @@ function getTradesTab() {
   
   let researchers = getData().Researchers.filter(r => r.ModType == "TradePayoutMultiplier");
   
-  // Make rows with 3ish researchers per row
+  // This is a huge hack until I figure out a better, more responsive way of handling this.
+  // If innerWidth is too small (e.g., a phone) only do two columns per row.
+  let columnsPerRow = (window.innerWidth > 450) ? 3 : 2;
+  
+  // Make rows with 2-3 researchers per row and end each one with a row-ending div.
+  let columnsLeft = columnsPerRow;  
   for (let researcher of researchers) {
-    html += `<div class="col-4 mt-3">${getResearcherCard(researcher, formValues)}</div>`;
+    html += `<div class="col mt-3">${getResearcherCard(researcher, formValues)}</div>`;
+    
+    if (columnsLeft == 1) {
+      html += '<div class="w-100"></div>';
+      columnsLeft = columnsPerRow;
+    } else {
+      columnsLeft -= 1;
+    }
+  }
+  
+  // Finish out the columns to be a multiple of columnsPerRow
+  if (columnsLeft != columnsPerRow) {
+    html += '<div class="col mt-1"></div>'.repeat(columnsLeft);
   }
   
    html += `
       </div>
     </div>`;
+    
   return html;
 }
 
