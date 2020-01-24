@@ -1894,7 +1894,7 @@ function recalculateTradeTotals() {
   
   for (let industry of getData().Industries) {
     let resourceId = getResourceByIndustry(industry.Id).Id;
-    let costString = $(`#${resourceId}-trade-cost`).val();
+    let costString = $(`.modal.show #${resourceId}-trade-cost`).val();
     updateTradesForResource(resourceId, costString, formValues);
   }
   
