@@ -1299,6 +1299,10 @@ function updateImportButton() {
   }
   
   let industryId = $('#industryId').val();
+  if (!industryId) {
+    return;
+  }
+  
   let resource = getResourceByIndustry(industryId);
   let formValues = getFormValuesObject();
   
@@ -1402,11 +1406,28 @@ function getAllGeneratorsTab() {
       let popoverTitle = `<img class='resourceIcon mr-1' src='${imgDirectory}/${id}.png'>${name}`;
       let popoverBody = describeGenerator(generator, researchers, formValues);
       
-      html += `<div><a class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverBody}" data-html="true"><span class="researcherName">${popoverTitle}</span></a></div>`;
+      html += `<div><a id="${id}-count-popover-link" class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverBody}" data-html="true"><span class="researcherName">${popoverTitle}</span></a></div>`;
     }
   }
   
   return html;
+}
+
+function updateGeneratorsTab() {
+  let formValues = getFormValuesObject();
+  let researchers = getData().Researchers;
+  let generators = getData().Generators.slice(1); // skip comrade generator
+  let industryId = "";
+  
+  if ($('#infoPopup').hasClass('show')) {
+    industryId = $('#industryId').val();
+    researchers = getResearchersByIndustry(industryId);
+    generators = generators.filter(g => g.IndustryId == industryId);
+  }
+  
+  for (let generator of generators) {
+    $(`#${generator.Id}-count-popover-link`).attr('data-content', describeGenerator(generator, researchers, formValues));
+  }
 }
 
 // Returns a div for a single input in the Generators tab.
@@ -1415,7 +1436,7 @@ function getResourceInput(tagId, description, imageUrl, imageTitle, defaultValue
   let postSpanHtml = "";
   
   if (popoverHtml) {
-    preSpanHtml = `<a class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverHtml}" data-html="true" title="${imageTitle}">`;
+    preSpanHtml = `<a id="${tagId}-popover-link" class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverHtml}" data-html="true" title="${imageTitle}">`;
     postSpanHtml = `</a>`;
   }
   
@@ -1529,7 +1550,7 @@ function getResearchersTab(mission, industryId) {
   }
   
   // Add an additional PropagandaBoost pseudo-researcher.
-  html += `<div class="col mt-3">${getPropagandaBoostCard(formValues)}</div>`;
+  html += `<div id="propBoostCol" class="col mt-3">${getPropagandaBoostCard(formValues)}</div>`;
   columnsLeft -= 1;
   
   // Finish out the columns to be a multiple of columnsPerRow
@@ -1541,6 +1562,32 @@ function getResearchersTab(mission, industryId) {
       </div>
     </div>`;
   return html;
+}
+
+// Maybe find a better way to do this at some point?
+function updateTabResearcher(researcher) {
+  let level = getFormValuesObject().ResearcherLevels[researcher.Id] || 0;  
+  
+  let researcherValue = getValueForResearcherLevel(researcher, level);
+  let valueString = "";
+  if (level > 0) {
+    if (researcher.ExpoMultiplier) {
+      valueString = `x${shortBigNum(researcherValue)}`;
+    } else {
+      valueString = `${shortBigNum(researcherValue * 100)}%`;
+    }
+  }
+  
+  let downVisibilityClass = (level <= 0) ? "invisible" : "visible";
+  let downHtml = `<a onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button" title="Level ${researcher.Name} down to ${level - 1}">&#x25BC;</a>`;
+  let maxLevel = getData().ResearcherRankCosts.find(cost => cost.Rarity == researcher.Rarity).Quantity.length + 1;
+  let upVisibilityClass = (level >= maxLevel) ? "invisible" : "visible";
+  let upHtml = `<a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button" title="Level ${researcher.Name} up to ${level + 1}">&#x25B2;</a>`;
+  
+  $(`.modal.show #${researcher.Id}-level`).html(`Level ${level}`);
+  $(`.modal.show #${researcher.Id}-value`).html(valueString);
+  $(`.modal.show #${researcher.Id}-down-button`).removeClass("visible invisible").addClass(downVisibilityClass).html(downHtml);
+  $(`.modal.show #${researcher.Id}-up-button`).removeClass("visible invisible").addClass(upVisibilityClass).html(upHtml);
 }
 
 // Sorts the given array in-place to match the in-game ordering
@@ -1603,20 +1650,20 @@ function getResearcherCard(researcher, formValues) {
     <a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-title="${popupTitle}" data-content="${popupBody}" data-html="true">
       <div class="researcherCard ${rarityClass} mx-auto" style="background-image: url('${imgDirectory}/${researcher.Id}.png');">
         <div class="researcherIcon float-right" style="background-image: url('${targetIconUrl}');">&nbsp;</div>
-        <div class="researcherLevel text-center">Level ${level}</div>
+        <div id="${researcher.Id}-level" class="researcherLevel text-center">Level ${level}</div>
       </div>
     </a>
 
     <div class="my-2 text-center">
-      <div class="${downVisibilityClass} float-left researcherLevelButton text-danger">
+      <div id="${researcher.Id}-down-button" class="${downVisibilityClass} float-left researcherLevelButton text-danger">
         <a onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button" title="Level ${researcher.Name} down to ${level - 1}">&#x25BC;</a>
       </div>
       
       
       <div class="resourceIcon ${researcher.ModType}">&nbsp;</div>
-      ${valueString}
+      <span id="${researcher.Id}-value">${valueString}</span>
       
-      <div class="${upVisibilityClass} researcherLevelButton float-right text-success">
+      <div id="${researcher.Id}-up-button" class="${upVisibilityClass} researcherLevelButton float-right text-success">
         <a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button" title="Level ${researcher.Name} up to ${level + 1}">&#x25B2;</a>
       </div>
     </div>`;
@@ -1644,7 +1691,7 @@ function getPropagandaBoostCard(formValues) {
 
       <div class="my-2 text-center">
         <div class="${downVisibilityClass} float-left researcherLevelButton text-danger">
-          <a onclick="clickLevelResearcher('PropagandaBoost', 0)" role="button" title="Disable Propaganda Boost">&#x25BC;</a>
+          <a onclick="clickChangePropagandaBoost(0)" role="button" title="Disable Propaganda Boost">&#x25BC;</a>
         </div>
         
         
@@ -1652,7 +1699,7 @@ function getPropagandaBoostCard(formValues) {
         ${valueString}
         
         <div class="${upVisibilityClass} researcherLevelButton float-right text-success">
-          <a onclick="clickLevelResearcher('PropagandaBoost', 1)" role="button" title="Enable Propaganda Boost">&#x25B2;</a>
+          <a onclick="clickChangePropagandaBoost(1)" role="button" title="Enable Propaganda Boost">&#x25B2;</a>
         </div>
       </div>
     </a>`;
@@ -1691,47 +1738,20 @@ function clickLevelResearcher(researcherId, newLevelValue) {
   
   let researcher = getData().Researchers.find(r => r.Id == researcherId);
   if (researcher && researcher.ModType == "TradePayoutMultiplier") {
-    recalculateTradeTotals();
-    redrawTradesTab();
+    updateTradeTabTotals(researcher);
   } else {
-    redrawResearchersTab();
-    redrawGeneratorsTab();
+    updateTabResearcher(researcher);
+    updateGeneratorsTab();
   }
 }
 
-function redrawResearchersTab() {
-  if ($('#infoPopup').hasClass('show')) {
-    let industryId = $('#industryId').val();
-    let missionId = $('#missionId').val();
-    let mission = getData().Missions.find(m => m.Id == missionId);
-    
-    $('#researchers').html(getResearchersTab(mission, industryId));
-  } else if ($('#allInfoPopup').hasClass('show')) {
-    $('#all-researchers').html(getResearchersTab());
-  }
-}
-
-function redrawGeneratorsTab() {
-  if ($('#infoPopup').hasClass('show')) {
-    let industryId = $('#industryId').val();
-    let missionId = $('#missionId').val();
-    let mission = getData().Missions.find(m => m.Id == missionId);
-    
-    $('#generators').html(getGeneratorsTab(mission, industryId));
-    updateImportButton();
-    
-  } else if ($('#allInfoPopup').hasClass('show')) {
-    $('#all-generators').html(getAllGeneratorsTab());
-  }
-  $(function () { $('[data-toggle="popover"]').popover(); });
-}
-
-function redrawTradesTab() {
-  if ($('#infoPopup').hasClass('show')) {
-    $('#trades').html(getTradesTab());
-  } else if ($('#allInfoPopup').hasClass('show')) {
-    $('#all-trades').html(getTradesTab());
-  }
+function clickChangePropagandaBoost(newLevelValue) {
+  let formValues = getFormValuesObject();
+  formValues.ResearcherLevels['PropagandaBoost'] = newLevelValue;
+  saveFormValues(formValues);
+  
+  $(`.modal.show #propBoostCol`).html(getPropagandaBoostCard(formValues));
+  updateGeneratorsTab();
 }
 
 // Returns the url of an icon representing the target of the researcher
@@ -1811,43 +1831,26 @@ function getTradesTab() {
   let html = `
   <div class="container-fluid mt-2 mb-1">
     <div class="justify-content-center align-self-center text-center">
-      <div class="resourceIcon comradesPerSec">&nbsp;</div> <strong>${bigNum(formValues.Trades.TotalComrades || 0)}</strong>/sec
+      <div class="resourceIcon comradesPerSec">&nbsp;</div> <strong id="totalDerivedComrades">${bigNum(formValues.Trades.TotalComrades || 0)}</strong>/sec
     </div>
   </div>`;
   
-  for (let industry of getData().Industries) {
-    let resource = getResourceByIndustry(industry.Id);
-    
-    let formTrades = formValues.Trades.Resource[resource.Id];
-    if (!formTrades) {
-      let tradeInfo = getData().Trades.find(t => t.Resource == resource.Id);
-      let comradesPerTrade = getTotalTradeValueForResource(resource.Id, formValues, tradeInfo);
-      
-      formTrades = {
-        NextCost: "",
-        Count: 0,
-        ComradesPerTrade: comradesPerTrade,
-        TotalComrades: 0,
-        IsInvalid: false
-      };
-    }
-    
-    let inputId = `${resource.Id}-trade-cost`;
-    let inputName = resourceName(resource.Id);
+  let industryTrades = getIndustryTradeBreakdown(formValues);
+  for (let industryTrade of industryTrades) {
+    let inputId = `${industryTrade.ResourceId}-trade-cost`;
+    let inputName = resourceName(industryTrade.ResourceId);
     let inputDescription = `Next trade cost (${inputName})`;
-    let iconUrl = `${imgDirectory}/${resource.Id}.png`;
-    let extraClasses = (formTrades.IsInvalid) ? "is-invalid" : "";
-    let extraProperties = `onchange="recalculateTradeTotals(); redrawTradesTab();"`;
-    let input = getResourceInput(inputId, inputDescription, iconUrl, inputDescription, formTrades.NextCost, extraClasses, extraProperties);
-    
-    let percentTotal = Math.round(formTrades.TotalComrades / formValues.Trades.TotalComrades * 100) || 0;
+    let iconUrl = `${imgDirectory}/${industryTrade.ResourceId}.png`;
+    let extraClasses = (industryTrade.IsInvalid) ? "is-invalid" : "";
+    let extraProperties = `onchange="updateTradeTabTotals();"`;
+    let input = getResourceInput(inputId, inputDescription, iconUrl, inputDescription, industryTrade.NextCost, extraClasses, extraProperties);
     
     html += `
       <div class="container-fluid">
         <div class="row">
           <div class="col-5">${input}</div>
-          <div class="col-3 justify-content-center align-self-center"><strong>${formTrades.Count}</strong> x ${shortBigNum(formTrades.ComradesPerTrade)}</div>
-          <div class="col-4 justify-content-center align-self-center">${shortBigNum(formTrades.TotalComrades)} (${percentTotal}%)</div>
+          <div id="${industryTrade.ResourceId}-formula" class="col-3 justify-content-center align-self-center">${industryTrade.FormulaHtml}</div>
+          <div id="${industryTrade.ResourceId}-total" class="col-4 justify-content-center align-self-center">${industryTrade.TotalHtml}</div>
         </div>
       </div>`;
   }
@@ -1888,8 +1891,8 @@ function getTradesTab() {
   return html;
 }
 
-// Called when the inputs for next trade cost or researcher levels are changed
-function recalculateTradeTotals() {
+// Called when an input for next trade cost changes, or if a researcher is given, when its level changes
+function updateTradeTabTotals(researcher = null) {
   let formValues = getFormValuesObject();
   
   for (let industry of getData().Industries) {
@@ -1904,10 +1907,62 @@ function recalculateTradeTotals() {
     formValues.Trades.TotalComrades = allTrades.reduce((sum, t) => sum += (t.TotalComrades || 0), 1);
   }
   
+  saveFormValues(formValues);
+  
+  // Fill in values in the trade tab.
+  $('#totalDerivedComrades').text(formValues.Trades.TotalComrades);
+  
+  let industryTrades = getIndustryTradeBreakdown(formValues);
+  for (let industryTrade of industryTrades) {
+    let costElement = $(`.modal.show #${industryTrade.ResourceId}-trade-cost`).val(industryTrade.NextCost);
+    if (industryTrade.IsInvalid) {
+      costElement.addClass("is-invalid");
+    } else {
+      costElement.removeClass("is-invalid");
+    }
+    
+    $(`.modal.show #${industryTrade.ResourceId}-formula`).html(industryTrade.FormulaHtml);
+    $(`.modal.show #${industryTrade.ResourceId}-total`).html(industryTrade.TotalHtml);
+  }
+  
+  if (researcher) {
+    updateTabResearcher(researcher);
+  }
+  
   // Changing your CPS will erase any previous override.
   $('#comradesPerSec').val(formValues.Trades.TotalComrades);
+}
+
+function getIndustryTradeBreakdown(formValues) {
+  let industryTrades = [];
   
-  saveFormValues(formValues);
+  for (let industry of getData().Industries) {
+    let resource = getResourceByIndustry(industry.Id);
+    
+    let formTrades = formValues.Trades.Resource[resource.Id];
+    if (!formTrades) {
+      let tradeInfo = getData().Trades.find(t => t.Resource == resource.Id);
+      let comradesPerTrade = getTotalTradeValueForResource(resource.Id, formValues, tradeInfo);
+      
+      formTrades = {
+        NextCost: "",
+        Count: 0,
+        ComradesPerTrade: comradesPerTrade,
+        TotalComrades: 0,
+        IsInvalid: false
+      };
+    }
+    
+    industryTrades.push({
+      ResourceId: resource.Id,
+      IsInvalid: formTrades.IsInvalid,
+      NextCost: formTrades.NextCost,
+      FormulaHtml: `<strong>${formTrades.Count}</strong> x ${shortBigNum(formTrades.ComradesPerTrade)}`,
+      TotalHtml: `<strong>${formTrades.Count}</strong> x ${shortBigNum(formTrades.ComradesPerTrade)}`
+    });
+  }
+  
+  return industryTrades;
 }
 
 // Called when the inputs for next trade cost are changed
