@@ -2039,7 +2039,7 @@ function getEta(timeSeconds) {
     eta = `${minutes}m ${seconds}s`;
   } else if (seconds > 0.5) {
     eta = `${seconds}s`;
-  } else if (seconds <= 0) {
+  } else if (timeSeconds <= 0) {
     eta = 'Instant';
   } else {
     eta = `1/${Math.round(1/timeSeconds)} s`;
