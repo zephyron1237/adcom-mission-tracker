@@ -864,8 +864,8 @@ function describeReward(reward) {
       if (!script) { return `Unknown gacha script id: ${gacha.Id}`; }      
             
       let gold = script.Gold ? `${script.Gold} Gold` : null;
-      let science = script.Science ? `${script.Science} <span class="resourceIcon darkscience">&nbsp;</span>` : null;      
-      let cards = script.Card.map(card => `${cardValueCount(card)}${describeResearcher(getData().Researchers.find(r => r.Id == card.Id))}`).join(', ') || null;
+      let science = script.Science ? `${script.Science}<span class="resourceIcon darkscience">&nbsp;</span>` : null;      
+      let cards = script.Card.map(card => `<span class="text-nowrap">${cardValueCount(card)}${describeResearcher(getData().Researchers.find(r => r.Id == card.Id))}</span>`).join(', ') || null;
       
       let rewards = [gold, science, cards].filter(x => x != null).join('. ');
       
@@ -882,7 +882,7 @@ function describeReward(reward) {
 // Given a root.Researchers object, returns an html string with a clickable version of their name with a popover description.
 function describeResearcher(researcher) {
   let details = getResearcherFullDetailsHtml(researcher);
-  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="bottom" data-trigger="focus" data-content="${details}" data-html="true"><div class="resourceIcon cardIcon">&nbsp;</div>${researcher.Name.replace(/ /g, '&nbsp;')}</a>`;
+  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="bottom" data-trigger="focus" data-content="${details}" data-html="true"><div class="resourceIcon cardIcon">&nbsp;</div>${researcher.Name}</a>`;
 }
 
 // Given a root.Researchers object, returns an html description of that researcher's effect, its unlock rank, and its first guaranteed mission
@@ -1011,7 +1011,7 @@ function getIndustryByResource(resourceId) {
 // Given a root.GachaScripts.Card element, return a string describing how many copies you would get (e.g., '15x ')
 function cardValueCount(card) {
   // Trying to decide between hiding 1x. I think I want it.
-  return `${card.Value}x&nbsp;`;
+  return `${card.Value}x`;
 }
 
 var MISSION_EMOJI = {
@@ -1456,14 +1456,17 @@ function describeGenerator(generator, researchers, formValues) {
   html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(qtyProduced)} `;
   html += `per <img class='resourceIcon mx-1' src='img/shared/speed.png'>${getEta(genTime)}<div class='my-3'></div>`;
   
-  html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png' title='Crit Chance'>${genValues.CritChance * 100}% `;
-  html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png' title='Crit Power'> x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
+  html += `<img class='resourceIcon mr-1' src='img/shared/boost_power.png' title='Power'>x${shortBigNum(genValues.Power)} `;
+  html += `<img class='resourceIcon mx-1' src='img/shared/discount.png' title='Power'>x${shortBigNum(genValues.CostReduction)} `;
+  html += `<img class='resourceIcon mx-1' src='img/shared/speed.png' title='Power'>x${shortBigNum(genValues.Speed)}<div class='my-1'></div>`;
+  html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png' title='Crit Chance'>${shortBigNum(genValues.CritChance * 100)}% `;
+  html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png' title='Crit Power'>x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
   
   let totalPerSec = qtyProduced * (genValues.CritChance * genValues.CritPower + 1 - genValues.CritChance) / genTime;
   if (totalPerSec < 1e4) {
     totalPerSec = totalPerSec.toPrecision(3);
   }
-  html += `Avg Output: <img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(totalPerSec)}/sec`;
+  html += `Each Outputs: <img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(totalPerSec)}/sec`;
   
   let industry = getData().Industries.find(i => i.Id == generator.IndustryId);
   if (generator.Unlock.Threshold > 0 || industry.UnlockCostResourceQty > 0) {
@@ -2036,6 +2039,8 @@ function getEta(timeSeconds) {
     eta = `${minutes}m ${seconds}s`;
   } else if (seconds > 0.5) {
     eta = `${seconds}s`;
+  } else if (seconds <= 0) {
+    eta = 'Instant';
   } else {
     eta = `1/${Math.round(1/timeSeconds)} s`;
   }
@@ -2086,6 +2091,9 @@ function importCounts() {
   setValueToCountOrEmpty('#resources', simData.Counts[resourceId]);
   setValueToCountOrEmpty('#resourceProgress', simData.Counts["resourceProgress"]);
   setValueToCountOrEmpty('#comrades', simData.Counts["comrade"]);
+  
+  // Switch to the generators tab
+  $('#generators-tab').tab('show');
 }
 
 function setValueToCountOrEmpty(elementId, count) {
@@ -2130,6 +2138,10 @@ function getProductionSimDataFromForm() {
   
   formValues.Counts["comrade"].TimeStamp = (new Date()).getTime();
   formValues.Counts[resourceId].TimeStamp = formValues.Counts["comrade"].TimeStamp;
+  
+  // Overwrite the calculated value with whatever is on the form.
+  // Useful is the user wants to override the Trades tab with their own saved manual CPS.
+  formValues.Trades.TotalComrades = comradesPerSec;
   
   saveFormValues(formValues);
   
