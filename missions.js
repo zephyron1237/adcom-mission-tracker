@@ -1953,12 +1953,14 @@ function getIndustryTradeBreakdown(formValues) {
       };
     }
     
+    let percentTotal = Math.round(formTrades.TotalComrades / formValues.Trades.TotalComrades * 100) || 0;
+    
     industryTrades.push({
       ResourceId: resource.Id,
       IsInvalid: formTrades.IsInvalid,
       NextCost: formTrades.NextCost,
       FormulaHtml: `<strong>${formTrades.Count}</strong> x ${shortBigNum(formTrades.ComradesPerTrade)}`,
-      TotalHtml: `<strong>${formTrades.Count}</strong> x ${shortBigNum(formTrades.ComradesPerTrade)}`
+      TotalHtml: `${shortBigNum(formTrades.TotalComrades)} (${percentTotal}%)`
     });
   }
   
