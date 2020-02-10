@@ -1496,10 +1496,10 @@ function describeGenerator(generator, researchers, formValues) {
       let current = generator;
       let production = 1;
       let tiers = 0;
-      while (current.Id != cost.Resource) {
+      while (current && current.Id != cost.Resource) {
         tiers++;
         production *= avgGeneration(current, researchers, formValues);
-        current = getResource(current.Generate.Resource);
+        current = getGenerator(current.Generate.Resource);
       }
       let time = Math.pow(production / cost.Qty, -1 / tiers);
       html += `<br /><image class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(cost.Resource)}'>${getEta(time)}`;
