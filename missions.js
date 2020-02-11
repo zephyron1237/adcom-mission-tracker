@@ -1483,7 +1483,7 @@ function describeGenerator(generator, researchers, formValues) {
   html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png' title='Crit Chance'>${shortBigNum(genValues.CritChance * 100)}% `;
   html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png' title='Crit Power'>x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
   
-  let totalPerSec = avgGeneration(generator, researchers, formValues);
+  try { let totalPerSec = avgGeneration(generator, researchers, formValues);
   if (totalPerSec < 1e4) {
     totalPerSec = totalPerSec.toPrecision(3);
   }
@@ -1504,7 +1504,7 @@ function describeGenerator(generator, researchers, formValues) {
       let time = Math.pow(production / cost.Qty, -1 / tiers);
       html += `<br /><image class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${getEta(time)}`;
     }
-  }
+  } } catch (e) { alert(e) }
   
   let industry = getData().Industries.find(i => i.Id == generator.IndustryId);
   if (generator.Unlock.Threshold > 0 || industry.UnlockCostResourceQty > 0) {
