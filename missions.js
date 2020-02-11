@@ -1502,7 +1502,7 @@ function describeGenerator(generator, researchers, formValues) {
         current = getGenerator(current.Generate.Resource);
       }
       let time = Math.pow(production / cost.Qty, -1 / tiers);
-      html += `<br /><image class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(cost.Resource)}'>${getEta(time)}`;
+      html += `<br /><image class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${getEta(time)}`;
     }
   }
   
