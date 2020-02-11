@@ -1483,7 +1483,7 @@ function describeGenerator(generator, researchers, formValues) {
   html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png' title='Crit Chance'>${shortBigNum(genValues.CritChance * 100)}% `;
   html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png' title='Crit Power'>x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
   
-  try { let totalPerSec = avgGeneration(generator, researchers, formValues);
+  let totalPerSec = avgGeneration(generator, researchers, formValues);
   if (totalPerSec < 1e4) {
     totalPerSec = totalPerSec.toPrecision(3);
   }
@@ -1504,7 +1504,7 @@ function describeGenerator(generator, researchers, formValues) {
       let time = Math.pow(production / cost.Qty, -1 / tiers);
       html += `<br /><image class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${getEta(time)}`;
     }
-  } } catch (e) { alert(e) }
+  }
   
   let industry = getData().Industries.find(i => i.Id == generator.IndustryId);
   if (generator.Unlock.Threshold > 0 || industry.UnlockCostResourceQty > 0) {
@@ -2103,10 +2103,12 @@ function doProductionSim() {
   $('#result').effect('highlight', {}, 2000);
 }
 
-// Returns a string 
+// Returns a string
 function getEta(timeSeconds) {
   /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
   let days = Math.floor(timeSeconds / (60 * 60 * 24));
+  if (days >= 365)
+    return shortBigNum(days / 365) + ' y';
   let [hours, minutes, seconds] = new Date(timeSeconds * 1000).toISOString().substr(11, 8).split(':');
   
   let eta = '';
@@ -2116,10 +2118,13 @@ function getEta(timeSeconds) {
     eta = `${hours}h ${minutes}m ${seconds}s`;
   } else if (minutes > 0) {
     eta = `${minutes}m ${seconds}s`;
-  } else if (seconds > 0.5) {
+  } else if (seconds > 1) {
     eta = `${seconds}s`;
   } else if (timeSeconds <= 0) {
     eta = 'Instant';
+  } else if (timeSeconds >= 0.5) {
+    let denom = Math.round(1/(1-timeSeconds));
+    eta = `${denom - 1}/${denom} s`;
   } else {
     eta = `1/${Math.round(1/timeSeconds)} s`;
   }
