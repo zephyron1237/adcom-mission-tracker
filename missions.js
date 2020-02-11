@@ -1462,7 +1462,7 @@ function describeGenerator(generator, researchers, formValues) {
   let costs = generator.Cost.map(c => ({ Resource: c.Resource.toLowerCase(), Qty: Number(c.Qty) }));
   for (let cost of costs) {
     if (cost.Resource != "comrade") {
-      cost.Qty = Math.max(genValues.CostReduction, 1);
+      cost.Qty = Math.max(cost.Qty / genValues.CostReduction, 1);
       html += `<span class='mx-1'><img class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${bigNum(cost.Qty)}</span>`;
     } else {
       html += `<span class='mx-1'><img class='resourceIcon mr-1' src='img/shared/comrade.png' title='Comrades'>${bigNum(cost.Qty)}</span>`;
