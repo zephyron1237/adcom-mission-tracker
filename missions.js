@@ -2120,8 +2120,10 @@ function getEta(timeSeconds) {
     eta = `${minutes}m ${seconds}s`;
   } else if (seconds > 1) {
     eta = `${seconds}s`;
-  } else if (timeSeconds <= 0) {
+  } else if (timeSeconds <= 0.001) {
     eta = 'Instant';
+  } else if (timeSeconds > 0.99) {
+    eta = '1s';
   } else if (timeSeconds >= 0.5) {
     let denom = Math.round(1/(1-timeSeconds));
     eta = `${denom - 1}/${denom} s`;
