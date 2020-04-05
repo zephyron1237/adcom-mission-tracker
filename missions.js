@@ -2,7 +2,7 @@ var missionData = {}; //  The main data structure used to store the current stat
 var missionCompletionTimes = {}; // Maps missionId's to when you completed them.  Can be viewed in the info popup of completed missions.
 var currentMode = "main"; 
 var currentMainRank = 1;
-var currentEventTheme = "";  // e.g. "space" or "ninja".  Primarily used to locate icons.
+var eventScheduleInfo = null;  // The main schedule metadata associated with the current LteEvent
 
 function main() {
   loadModeSettings();
@@ -47,28 +47,107 @@ function loadModeSettings() {
   $('#mode-select-title').text(title);
   $('#mode-select-title').addClass("show");
   
-  // Determine DATA.event and EVENT_ID based on the Schedule
+  // Determine eventScheduleInfo, DATA.event and EVENT_ID based on the Schedule
   if (currentMode == "event") {
-    let now = new Date();
+    eventScheduleInfo = getCurrentEventInfo();
     
-    // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
-    let prevEventIndex = SCHEDULE.Schedule.findIndex(event  => new Date(event.EndTime + "Z") < now);
-    let curEventIndex = prevEventIndex - 1; // schedule is ordered from newest to oldest.
-    
-    if (curEventIndex < 0) {
+    if (!eventScheduleInfo) {
       $('#alertNoSchedule').addClass("show");
     } else {
-      EVENT_ID = SCHEDULE.Schedule[curEventIndex].LteId;
-      
-      let balanceId = SCHEDULE.Schedule[curEventIndex].BalanceId;
-      DATA["event"] = DATA[balanceId];
-      currentEventTheme = balanceId.split("-")[0]; // get "ninja" from "ninja-bal-1"
+      EVENT_ID = eventScheduleInfo.LteId;
+      DATA.event = DATA[eventScheduleInfo.BalanceId];
     }
   }
   
   // Set up the icon for the "All Generators" button in the navbar
   let firstResourceId = getData().Resources[0].Id;
   $('#viewAllGeneratorsButton').attr('style', `background-image:url('${getImageDirectory()}/${firstResourceId}.png`);
+}
+
+// Returns the current event info based on the time and the schedule's cycles
+function getCurrentEventInfo() {
+  let DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  let now = new Date();
+  
+  // Start by checking to see if we're off-cycle in a specific "one-off" event.
+  let oneOffEvent = SCHEDULE_CYCLES.LteOneOff.find( event =>
+    // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
+    new Date(event.StartTime + "Z") < now && now < new Date(event.EndTime + "Z")
+  );
+  
+  if (oneOffEvent) {
+    return {
+      EventId: oneOffEvent.LegacyLteId, // this might need more logic in the future?
+      BalanceId: oneOffEvent.BalanceId,
+      ThemeId: oneOffEvent.ThemeId,
+      Rewards: getRewardsById(oneOffEvent.RewardId)
+    };
+  }
+  
+  // Since we're not in a one-off, we must be on a cycle.  But first we must figure out which cycle.
+  let cycle = SCHEDULE_CYCLES.LteSchedule.find( event =>
+    new Date(event.StartTime + "Z") < now && now < new Date(event.EndTime + "Z")
+  );
+  
+  if (!cycle) {
+    console.log("ERROR: Could not find event or cycle for today's date.");
+    return null;
+  }
+  
+  // Now we must figure out when events actually start each week for the given cycle.
+  // We start by finding the first StartDay (usually Thursday) in the cycle.
+  let goalDayOfWeek = DAYS.indexOf(cycle.StartDayOfTheWeek);
+  let firstStartTime = new Date(cycle.StartTime + "Z");
+  
+  if (goalDayOfWeek == -1) {
+    console.log(`ERROR: Cannot understand day of week: ${cycle.StartDayOfTheWeek}`);
+    return null;
+  }
+  
+  while (firstStartTime.getUTCDay() != goalDayOfWeek) {
+    firstStartTime.setUTCDate(firstStartTime.getUTCDate() + 1);
+  }
+  
+  firstStartTime.setUTCHours(cycle.StartHourUTC);
+  
+  // We want to show the event after the last one ends
+  // Currently, this means CurrentEvent.StartTime + 100h - 1 week
+  let firstShowTime = new Date(firstStartTime);
+  firstShowTime.setUTCHours(firstShowTime.getUTCHours() + 100);
+  firstShowTime.setUTCDate(firstShowTime.getUTCDate() - 7);
+  
+  // Calculate how many weeks/events since the start of the period.
+  let weeksSinceStart = Math.floor((new Date() - firstShowTime) / (7 * 24 * 60 * 60 * 1000));
+  
+  let eventId = parseInt(cycle.EventIdStartValue) + weeksSinceStart;
+  let balanceId = cycle.LteBalanceIds[weeksSinceStart % cycle.LteBalanceIds.length];
+  let rewardId = cycle.LteRewardIds[weeksSinceStart % cycle.LteRewardIds.length];
+  let themeId = SCHEDULE_CYCLES.LteBalanceData.find(bal => bal.BalanceId == balanceId).ThemeId;
+  
+  let startTime = new Date(firstStartTime);
+  startTime.setUTCDate(startTime.getUTCDate() + 7 * weeksSinceStart);
+  
+  let endTime = new Date(startTime);
+  endTime.setUTCHours(endTime.getUTCHours() + 100);
+  
+  return {
+    LteId: eventId,
+    BalanceId: balanceId,
+    ThemeId: themeId,
+    StartTime: startTime,
+    EndTime: endTime,
+    Rewards: getRewardsById(rewardId)
+  };
+}
+
+// Returns just the rank rewards array for a given rewardId
+function getRewardsById(rewardId) {
+  let reward = SCHEDULE_CYCLES.LteRewards.find(r => r.RewardId == rewardId);
+  if (reward) {
+    return reward.Rewards;
+  } else {
+    return [];
+  }
 }
 
 // Sets up missionData based on game data and your save data.
@@ -381,11 +460,8 @@ function renderMissions() {
   
   let missionEtas = getMissionEtas();
   
-  let eventScheduleInfo;  
   let sortedRanks;
   if (currentMode == "event") {
-    eventScheduleInfo = SCHEDULE.Schedule.find(s => s.LteId == EVENT_ID);
-    
     sortedRanks = Object.keys(missionData);
     sortedRanks.splice(sortedRanks.indexOf("Completed"), 1);
     sortedRanks.splice(sortedRanks.indexOf("Current"), 1);
@@ -1028,8 +1104,8 @@ var MISSION_EMOJI = {
 function getImageDirectory(overrideDirectory = "") {
   if (overrideDirectory) {
     return overrideDirectory;
-  } else if (currentEventTheme) {
-    return `img/${currentMode}/${currentEventTheme}`;
+  } else if (eventScheduleInfo.ThemeId) {
+    return `img/${currentMode}/${eventScheduleInfo.ThemeId}`;
   } else {
     return `img/${currentMode}`;
   }
