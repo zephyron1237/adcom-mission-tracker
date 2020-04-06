@@ -1104,7 +1104,7 @@ var MISSION_EMOJI = {
 function getImageDirectory(overrideDirectory = "") {
   if (overrideDirectory) {
     return overrideDirectory;
-  } else if (eventScheduleInfo.ThemeId) {
+  } else if (eventScheduleInfo && eventScheduleInfo.ThemeId) {
     return `img/${currentMode}/${eventScheduleInfo.ThemeId}`;
   } else {
     return `img/${currentMode}`;
