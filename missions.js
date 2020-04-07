@@ -1547,7 +1547,8 @@ function describeGenerator(generator, researchers, formValues) {
   
   html += `<br /><br /><strong>Generates:</strong><br />`;
   
-  let genTime = generator.BaseCompletionTime / Math.max(genValues.Speed, 1);
+  genValues.Speed = genValues.Speed || 1;
+  let genTime = generator.BaseCompletionTime / genValues.Speed;
   
   let qtyProduced = generator.Generate.Qty * genValues.Power;
   html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(qtyProduced)} `;
@@ -1646,7 +1647,7 @@ function updateTabResearcher(researcher) {
   
   let researcherValue = getValueForResearcherLevel(researcher, level);
   let valueString = "";
-  if (level > 0) {
+  if (level != 0) {
     if (researcher.ExpoMultiplier) {
       valueString = `x${shortBigNum(researcherValue)}`;
     } else {
@@ -1654,13 +1655,35 @@ function updateTabResearcher(researcher) {
     }
   }
   
-  let downVisibilityClass = (level <= 0) ? "invisible" : "visible";
-  let downHtml = `<a onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button" title="Level ${researcher.Name} down to ${level - 1}">&#x25BC;</a>`;
+  // -1 is a special case for level meaning "custom value"
+  // Custom values get an emphasis
+  let levelString = `Level ${level}`;
+  if (level == -1) {
+    valueString = `<strong>${valueString}</strong>`;
+    levelString = "Custom";
+  }
+  
+  let downVisibilityClass = (level <= -1) ? "invisible" : "visible";
+  let downColorClass, downTitle, downLabel;
+  if (level > 0) {
+    // Red down arrow for decreasing researcher level.
+    downColorClass = "text-danger";
+    downTitle = `Level ${researcher.Name} down to ${level - 1}`;
+    downLabel = "&#x25BC;";
+  } else {
+    // Yellow '#' for setting a specific researcher value
+    downColorClass = "text-warning";
+    downTitle = "Set custom value (esp. for manual running)";
+    downLabel = "#";
+  }
+  
+  let downHtml = `<a onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button" title="${downTitle}" class="${downColorClass}">${downLabel}</a>`;
+  
   let maxLevel = getData().ResearcherRankCosts.find(cost => cost.Rarity == researcher.Rarity).Quantity.length + 1;
   let upVisibilityClass = (level >= maxLevel) ? "invisible" : "visible";
   let upHtml = `<a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button" title="Level ${researcher.Name} up to ${level + 1}">&#x25B2;</a>`;
   
-  $(`.modal.show #${researcher.Id}-level`).html(`Level ${level}`);
+  $(`.modal.show #${researcher.Id}-level`).html(levelString);
   $(`.modal.show #${researcher.Id}-value`).html(valueString);
   $(`.modal.show #${researcher.Id}-down-button`).removeClass("visible invisible").addClass(downVisibilityClass).html(downHtml);
   $(`.modal.show #${researcher.Id}-up-button`).removeClass("visible invisible").addClass(upVisibilityClass).html(upHtml);
@@ -1707,7 +1730,8 @@ function getResearcherCard(researcher, formValues) {
   let level = formValues.ResearcherLevels[researcher.Id] || 0;
   let researcherValue = getValueForResearcherLevel(researcher, level);
   let valueString = "";
-  if (level > 0) {
+  
+  if (level != 0) {
     if (researcher.ExpoMultiplier) {
       valueString = `x${shortBigNum(researcherValue)}`;
     } else {
@@ -1715,7 +1739,28 @@ function getResearcherCard(researcher, formValues) {
     }
   }
   
-  let downVisibilityClass = (level <= 0) ? "invisible" : "visible";
+  // -1 is a special case for level meaning "custom value."
+  // Custom values get an emphasis
+  let levelString = `Level ${level}`;
+  if (level == -1) {
+    valueString = `<strong>${valueString}</strong>`;
+    levelString = "Custom";
+  }
+  
+  let downVisibilityClass = (level <= -1) ? "invisible" : "visible";
+  let downColorClass, downTitle, downLabel;
+  if (level > 0) {
+    // Red down arrow for decreasing researcher level.
+    downColorClass = "text-danger";
+    downTitle = `Level ${researcher.Name} down to ${level - 1}`;
+    downLabel = "&#x25BC;";
+  } else {
+    // Yellow '#' for setting a specific researcher value
+    downColorClass = "text-warning";
+    downTitle = "Set custom value (esp. for manual running)";
+    downLabel = "#";
+  }
+  
   let maxLevel = getData().ResearcherRankCosts.find(cost => cost.Rarity == researcher.Rarity).Quantity.length + 1;
   let upVisibilityClass = (level >= maxLevel) ? "invisible" : "visible";
   
@@ -1726,13 +1771,13 @@ function getResearcherCard(researcher, formValues) {
     <a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="top" data-trigger="focus" data-title="${popupTitle}" data-content="${popupBody}" data-html="true">
       <div class="researcherCard ${rarityClass} mx-auto" style="background-image: url('${imgDirectory}/${researcher.Id}.png');">
         <div class="researcherIcon float-right" style="background-image: url('${targetIconUrl}');">&nbsp;</div>
-        <div id="${researcher.Id}-level" class="researcherLevel text-center">Level ${level}</div>
+        <div id="${researcher.Id}-level" class="researcherLevel text-center">${levelString}</div>
       </div>
     </a>
 
     <div class="my-2 text-center">
-      <div id="${researcher.Id}-down-button" class="${downVisibilityClass} float-left researcherLevelButton text-danger">
-        <a onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button" title="Level ${researcher.Name} down to ${level - 1}">&#x25BC;</a>
+      <div id="${researcher.Id}-down-button" class="${downVisibilityClass} float-left researcherLevelButton ${downColorClass}">
+        <a onclick="clickLevelResearcher('${researcher.Id}', ${level - 1})" role="button" title="${downTitle}">${downLabel}</a>
       </div>
       
       
@@ -1781,7 +1826,7 @@ function getPropagandaBoostCard(formValues) {
     </a>`;
 }
 
-// Returns the multiplier (>1x) or chance (0-1) given a researcher and their level.
+// Returns the multiplier (>1x) or chance (0-1) given a researcher and their level.  If level is -1, the user's override is returned.
 function getValueForResearcherLevel(researcher, level) {
   if (!level) {
     if (researcher.ExpoMultiplier && researcher.ModType != "GenManagerAndSpeedMult") {
@@ -1792,7 +1837,10 @@ function getValueForResearcherLevel(researcher, level) {
     }
   }
   
-  if (researcher.ExpoMultiplier) {
+  if (level == -1) {
+    // This is a special case that indicates a custom value.
+    return getFormValuesObject().ResearcherOverrides[researcher.Id];
+  } else if (researcher.ExpoMultiplier) {
     // It's exponential
     return researcher.ExpoMultiplier * Math.pow(researcher.ExpoGrowth, level);
   } else {
@@ -1808,11 +1856,34 @@ function getValueForResearcherWithForm(researcher, formValues) {
 
 // Called when the level down/up buttons are clicked
 function clickLevelResearcher(researcherId, newLevelValue) {
+  let researcher = getData().Researchers.find(r => r.Id == researcherId);
+  
   let formValues = getFormValuesObject();
   formValues.ResearcherLevels[researcherId] = newLevelValue;
+  formValues.ResearcherOverrides = formValues.ResearcherOverrides || {}; // This may not exist in older saves.
+  
+  // -1 is a special case meaning "custom value"
+  if (newLevelValue == -1) {
+    let commonAddendum = "";
+    if (researcher.Rarity == "Common" || researcher.Rarity == "LteCommon") {
+      commonAddendum = "\n(Setting a Common to 1 simulates constantly running it manually, 0.5 half the time, etc)";
+    }
+  
+    let previousOverride = formValues.ResearcherOverrides[researcherId] || "";
+    
+    let customValue = prompt(`Enter custom value for ${researcher.Name}.${commonAddendum}`, previousOverride);
+    
+    let customFloat = parseFloat(customValue);
+    if (!customValue || !customFloat) {
+      // User has entered a empty/invalid value, or cancelled, let's just return without saving changes.
+      return;
+    }
+    
+    formValues.ResearcherOverrides[researcherId] = customFloat;
+  }
+  
   saveFormValues(formValues);
   
-  let researcher = getData().Researchers.find(r => r.Id == researcherId);
   if (researcher && researcher.ModType == "TradePayoutMultiplier") {
     updateTradeTabTotals(researcher);
   } else {
@@ -2404,6 +2475,7 @@ function mergeObjects(left, right) {
 let NEW_FORM_VALUES_OBJECT = { 
   Config: {}, // e.g., 'AutoBuy': true
   ResearcherLevels: {}, // e.g., 'RS0011': 2
+  ResearcherOverrides: {}, // e.g., 'RS0011': 0.5
   Counts: {}, // e.g., 'land': {'worker': 10, ..., 'land': 150, 'resourceProgress': 100, 'TimeStamp': 1579683943747}
   Trades: {
     TotalComrades: 1,
