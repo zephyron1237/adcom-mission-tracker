@@ -2580,22 +2580,26 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
       goals = [{ Resource: industry.UnlockCostResourceId, Qty: industry.UnlockCostResourceQty }];
       break;
     case "ResourceQuantity":
-      // Instead of directly waiting until we get N generators, we figure out the cost difference
-      // This allows us not to be forced into autobuying (which actually isn't always better anyway!)
-      let gensNeeded = condition.Threshold - simData.Counts[condition.ConditionId];
-      for (let cost of simData.Generators.find(g => g.Id == condition.ConditionId).Cost) {
-        if (cost.Resource == "comrade") {
-          goals.push(({ Resource: "comradeProgress", Qty: cost.Qty * gensNeeded }));
-          simData.Counts["comradeProgress"] = simData.Counts["comrade"];
-        } else if (cost.Resource == simData.Generators[1].Resource) {
-          goals.push(({ Resource: "resourceProgress", Qty: cost.Qty * gensNeeded }));
-          simData.Counts["resourceProgress"] = simData.Counts[simData.Generators[1].Resource];
-        } else {
-          // the generator before it
-          goals.push(({ Resource: cost.Resource, Qty: cost.Qty * gensNeeded }));
+      if (simData.Config.Autobuy) {
+        // If Autobuy is enabled, we can assume reaching the condition is plausible
+        goals = [{ Resource: condition.ConditionId, Qty: condition.Threshold }];
+      } else {
+        // Instead of directly waiting until we get N generators, we figure out the cost difference
+        // This is since we might not be able to reach the condition directly without autobuy.
+        let gensNeeded = condition.Threshold - simData.Counts[condition.ConditionId];
+        for (let cost of simData.Generators.find(g => g.Id == condition.ConditionId).Cost) {
+          if (cost.Resource == "comrade") {
+            goals.push(({ Resource: "comradeProgress", Qty: cost.Qty * gensNeeded }));
+            simData.Counts["comradeProgress"] = simData.Counts["comrade"];
+          } else if (cost.Resource == simData.Generators[1].Resource) {
+            goals.push(({ Resource: "resourceProgress", Qty: cost.Qty * gensNeeded }));
+            simData.Counts["resourceProgress"] = simData.Counts[simData.Generators[1].Resource];
+          } else {
+            // the generator before it
+            goals.push(({ Resource: cost.Resource, Qty: cost.Qty * gensNeeded }));
+          }
         }
       }
-      //goal = { Resource: condition.ConditionId, Qty: condition.Threshold };
       break;
     default:
       console.log(`Error: Weird situation! Simulating unknown ConditionType=${condition.ConditionType}`);
