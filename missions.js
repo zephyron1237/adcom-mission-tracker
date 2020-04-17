@@ -862,8 +862,8 @@ function fromBigNum(x) {
 
 /* From https://stackoverflow.com/questions/12004808/does-javascript-take-local-decimal-separators-into-account/42213804#42213804 */
 function parseLocaleNumber(stringNumber) {
-  var thousandSeparator = (1111).toLocaleString().replace(/1/g, '');
-  var decimalSeparator = (1.1).toLocaleString().replace(/1/g, '');
+  var thousandSeparator = (11111).toLocaleString().replace(/1/g, ''); // This is typically "," "." or " "
+  var decimalSeparator = (1.1).toLocaleString().replace(/1/g, ''); // This is typically "." or ","
 
   return Number(stringNumber
     .replace(new RegExp('\\' + thousandSeparator, 'g'), '')
