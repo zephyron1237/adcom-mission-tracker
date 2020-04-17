@@ -2094,7 +2094,7 @@ function updateTradeTabTotals(researcher = null) {
   saveFormValues(formValues);
   
   // Fill in values in the trade tab.
-  $('#totalDerivedComrades').text(formValues.Trades.TotalComrades);
+  $('#totalDerivedComrades').text(bigNum(formValues.Trades.TotalComrades));
   
   let industryTrades = getIndustryTradeBreakdown(formValues);
   for (let industryTrade of industryTrades) {
