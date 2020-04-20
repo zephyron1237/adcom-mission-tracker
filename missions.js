@@ -70,14 +70,14 @@ function getCurrentEventInfo() {
   let now = new Date();
   
   // Start by checking to see if we're off-cycle in a specific "one-off" event.
-  let oneOffEvent = SCHEDULE_CYCLES.LteOneOff.find( event =>
-    // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
-    new Date(event.StartTime + "Z") < now && now < new Date(event.EndTime + "Z")
-  );
+  let oneOffEvent = SCHEDULE_CYCLES.LteOneOff.find( lte => isBetweenEventDates(now, lte) );
   
   if (oneOffEvent) {
+    // Non-legacy one-off's don't currently have a unique identifier, so let's use the startTime's timestamp.
+    let lteId = oneOffEvent.LegacyLteId || (new Date(oneOffEvent.StartTime + "Z")).getTime();
+    
     return {
-      EventId: oneOffEvent.LegacyLteId, // this might need more logic in the future?
+      LteId: lteId,
       BalanceId: oneOffEvent.BalanceId,
       ThemeId: oneOffEvent.ThemeId,
       Rewards: getRewardsById(oneOffEvent.RewardId)
@@ -85,9 +85,7 @@ function getCurrentEventInfo() {
   }
   
   // Since we're not in a one-off, we must be on a cycle.  But first we must figure out which cycle.
-  let cycle = SCHEDULE_CYCLES.LteSchedule.find( event =>
-    new Date(event.StartTime + "Z") < now && now < new Date(event.EndTime + "Z")
-  );
+  let cycle = SCHEDULE_CYCLES.LteSchedule.find( lte => isBetweenEventDates(now, lte) );
   
   if (!cycle) {
     console.log("ERROR: Could not find event or cycle for today's date.");
@@ -119,6 +117,9 @@ function getCurrentEventInfo() {
   // Calculate how many weeks/events since the start of the period.
   let weeksSinceStart = Math.floor((new Date() - firstShowTime) / (7 * 24 * 60 * 60 * 1000));
   
+  // Since one-off's can appear inside of cycles, we need to subtract a week for each week an internal one-off is running.
+  //weeksSinceStart -= getOneOffWeekCount(cycle);
+  
   let eventId = parseInt(cycle.EventIdStartValue) + weeksSinceStart;
   let balanceId = cycle.LteBalanceIds[weeksSinceStart % cycle.LteBalanceIds.length];
   let rewardId = cycle.LteRewardIds[weeksSinceStart % cycle.LteRewardIds.length];
@@ -139,6 +140,42 @@ function getCurrentEventInfo() {
     Rewards: getRewardsById(rewardId)
   };
 }
+
+function isBetweenEventDates(now, eventSchedule) {
+  // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
+  let endTime = new Date(eventSchedule.EndTime + "Z");
+  
+  // There are 168 (7*24) hours in a week, so there are 68h between events
+  // We want to switch to the event right after the last one ends (i.e., 68 hours before this starts)
+  let startTime = new Date(eventSchedule.StartTime + "Z");
+  startTime.setUTCHours(startTime.getUTCHours() - 68);
+  
+  return (startTime < now) && (now <= endTime);
+}
+
+/*
+TODO: In progress.  Needs to be completed before the Santa event is over or the cycle will be off.
+
+function getOneOffWeekCount(cycle) {
+  // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
+  let cycleBounds = {
+    StartTime: new Date(cycle.StartTime + "Z"),
+    EndTime: new Date()
+  };
+  //let cycleStart = new Date(cycle.StartTime + "Z");
+  //let now = new Date();
+  
+  let internalOneOffs = SCHEDULE_CYCLES.LteOneOff.filter( lte => {
+    let lteStart = new Date(lte.StartTime + "Z");
+    let lteEnd = new Date(lte.EndTime + "Z");
+    return isBetweenEventDates(lteStart, cycleBounds) || isBetweenEventDates(lteEnd, cycleBounds);
+    //return (cycleStart <= lteStart && lteStart <= now) ||
+    //       (cycleStart <= lteEnd   && lteEnd   <= now);
+  });
+  
+  console.log(internalOneOffs);
+}
+*/
 
 // Returns just the rank rewards array for a given rewardId
 function getRewardsById(rewardId) {
