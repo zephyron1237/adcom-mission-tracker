@@ -816,8 +816,8 @@ function clickMission(missionId) {
   }
 }
 
-// Converts numbers to AdCom style. bigNum(1E21) => "1 CC"
-function bigNum(x, minimumCutoff = 1e+6, significantDigits = 100) {
+// Converts numbers to AdCom style. bigNum(1E21) => "1 CC", significantCharacters includes the decimal point
+function bigNum(x, minimumCutoff = 1e+6, significantCharacters = 100) {
   if (x < minimumCutoff) {
     return x.toLocaleString();
   }
@@ -825,7 +825,8 @@ function bigNum(x, minimumCutoff = 1e+6, significantDigits = 100) {
   let digits = Math.floor(Math.log10(x));
   let thousands = Math.floor(digits / 3);
   let mantissa = x / Math.pow(10, thousands * 3);
-  return `${+mantissa.toFixed(2).slice(0, significantDigits + 1)} ${POWERS[thousands - 1]}`;
+  let numberString = mantissa.toLocaleString(undefined, {maximumSignificantDigits: 2}).slice(0, significantCharacters + 1);
+  return `${numberString} ${POWERS[thousands - 1]}`;
 }
 
 // This is like bigNum but enforces 3 sig figs after 9999
