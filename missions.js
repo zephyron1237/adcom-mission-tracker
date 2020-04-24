@@ -2614,7 +2614,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
       break;
     case "IndustryUnlocked":
       let industry = getData().Industries.find(i => i.Id == condition.ConditionId);
-      goals = [{ Resource: industry.UnlockCostResourceId, Qty: industry.UnlockCostResourceQty }];
+      goals = [{ Resource: industry.UnlockCostResourceId.toLowerCase(), Qty: industry.UnlockCostResourceQty }];
       break;
     case "ResourceQuantity":
       if (simData.Config.Autobuy) {
