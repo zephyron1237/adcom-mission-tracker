@@ -825,7 +825,7 @@ function bigNum(x, minimumCutoff = 1e+6, significantCharacters = 100) {
   let digits = Math.floor(Math.log10(x));
   let thousands = Math.floor(digits / 3);
   let mantissa = x / Math.pow(10, thousands * 3);
-  let numberString = mantissa.toLocaleString(undefined, {maximumSignificantDigits: 2}).slice(0, significantCharacters + 1);
+  let numberString = mantissa.toLocaleString(undefined, {maximumFractionDigits: 2}).slice(0, significantCharacters + 1);
   return `${numberString} ${POWERS[thousands - 1]}`;
 }
 
