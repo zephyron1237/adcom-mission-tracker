@@ -576,9 +576,9 @@ function renderMissions() {
     if (rank == "Completed" && missionData.Completed.Remaining.length == 0) {
       missionHtml += `<ul><li class="my-1">Click <strong>Current</strong> missions to move them to Completed.</li>`;
       missionHtml += `<li class="my-1">Click <strong>Completed</strong> missions to move them back to Current.</li>`;
-      missionHtml += `<li class="my-1">Click this tab's <strong>toggle</strong> in the top-right &UpperRightArrow; to hide Completed missions.</li>`;
-      missionHtml += `<li class="my-1">Click the &#9432; button next to a mission to access its <strong>Calculator</strong>.</li>`;
-      missionHtml += `<li class="my-1">If the <span class="scriptedRewardInfo">&#9432;</span> is bold, you can also view the <strong>pre-scripted rewards</strong>.</li>`;
+      missionHtml += `<li class="my-1">Click this tab's toggle in the top-right &UpperRightArrow; to <strong>hide Completed</strong> missions.</li>`;
+      missionHtml += `<li class="my-1">Click the capsule <span class="resourceIcon wood">&nbsp;</span> next to a mission to access its <strong>Calculator</strong>.</li>`;
+      missionHtml += `<li class="my-1">If the capsule <span class="scriptedRewardInfo resourceIcon wood">&nbsp;</span> is circled, you can also view the <strong>pre-scripted rewards</strong>.</li>`;
       missionHtml += `<li class="my-1">Got <strong>questions?</strong>  Check out the <a href="https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/">Game Guide/FAQ</a>, <a href="https://discord.gg/VPa4WTM">Discord</a>, or <a href="https://reddit.com/r/AdventureCommunist/">Reddit</a>.</li></ul>`;
     }
     
@@ -701,9 +701,26 @@ function renderMissionButton(mission, rank, missionEtas) {
     buttonClass += `${buttonOutlineStyle}-secondary`;
   }
   
-  let infoClass = hasScriptedReward(mission) ? "scriptedRewardInfo" : ""; 
+  let rewardImageClasses = getRewardImageClass(mission);
   
-  return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link infoButton ${infoClass}" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&#9432;</a>`;
+  return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link infoButton" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc"><div class="${rewardImageClasses} resourceIcon">&nbsp;</div></a>`;
+}
+
+// Returns the css class(es) of the reward associated with a given mission
+function getRewardImageClass(mission) {
+  if (mission.Reward.Reward != "Gacha") {
+    return "wood scriptedRewardInfo"; // Default to wood capsule icons for unusual rewards
+  }
+  
+  let gacha = getData().GachaLootTable.find(gacha => gacha.Id == mission.Reward.RewardId);
+  
+  if (gacha.Type != "Scripted") {
+    return gacha.Id;
+    
+  } else {
+    let script = getData().GachaScripts.find(script => script.GachaId == gacha.Id);
+    return `${script.MimicGachaId} scriptedRewardInfo`;
+  }
 }
 
 // Returns a formatted string that's used for full eta descriptions for missions
