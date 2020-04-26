@@ -703,7 +703,7 @@ function renderMissionButton(mission, rank, missionEtas) {
   
   let rewardImageClasses = getRewardImageClass(mission);
   
-  return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link infoButton" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc"><div class="${rewardImageClasses} resourceIcon">&nbsp;</div></a>`;
+  return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link infoButton ${rewardImageClasses} resourceIcon ml-1" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&nbsp;</a>`;
 }
 
 // Returns the css class(es) of the reward associated with a given mission
