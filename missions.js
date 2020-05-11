@@ -115,10 +115,10 @@ function getCurrentEventInfo() {
   firstShowTime.setUTCDate(firstShowTime.getUTCDate() - 7);
   
   // Calculate how many weeks/events since the start of the period.
-  let weeksSinceStart = Math.floor((new Date() - firstShowTime) / (7 * 24 * 60 * 60 * 1000));
+  let weeksSinceStart = Math.floor((new Date() - firstShowTime) / (604800000)); // 604.8M milliseconds per week
   
   // Since one-off's can appear inside of cycles, we need to subtract a week for each week an internal one-off is running.
-  //weeksSinceStart -= getOneOffWeekCount(cycle);
+  weeksSinceStart -= getOneOffWeekCount(cycle);
   
   let eventId = parseInt(cycle.EventIdStartValue) + weeksSinceStart;
   let balanceId = cycle.LteBalanceIds[weeksSinceStart % cycle.LteBalanceIds.length];
@@ -153,29 +153,29 @@ function isBetweenEventDates(now, eventSchedule) {
   return (startTime < now) && (now <= endTime);
 }
 
-/*
-TODO: In progress.  Needs to be completed before the Santa event is over or the cycle will be off.
-
+// Returns the number of weeks in the current cycle that have been taken up by one-off events (e.g., a one-off crusade and santa would take 3 weeks)
 function getOneOffWeekCount(cycle) {
   // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
   let cycleBounds = {
     StartTime: new Date(cycle.StartTime + "Z"),
     EndTime: new Date()
   };
-  //let cycleStart = new Date(cycle.StartTime + "Z");
-  //let now = new Date();
   
   let internalOneOffs = SCHEDULE_CYCLES.LteOneOff.filter( lte => {
     let lteStart = new Date(lte.StartTime + "Z");
     let lteEnd = new Date(lte.EndTime + "Z");
     return isBetweenEventDates(lteStart, cycleBounds) || isBetweenEventDates(lteEnd, cycleBounds);
-    //return (cycleStart <= lteStart && lteStart <= now) ||
-    //       (cycleStart <= lteEnd   && lteEnd   <= now);
   });
   
-  console.log(internalOneOffs);
+  // For each internal one-off, add up the number of weeks it will take
+  return internalOneOffs.reduce( (oneOffWeeks, lte) => {
+    let lteStart = new Date(lte.StartTime + "Z");
+    let lteEnd = new Date(lte.EndTime + "Z");
+    
+    // A more robust solution might count the number of event start days, but counting weeks is close.
+    return oneOffWeeks + Math.floor((lteEnd - lteStart) / 604800000) + 1; // 604.8M milliseconds per week
+  }, 0);
 }
-*/
 
 // Returns just the rank rewards array for a given rewardId
 function getRewardsById(rewardId) {
@@ -703,7 +703,7 @@ function renderMissionButton(mission, rank, missionEtas) {
   
   let rewardImageClasses = getRewardImageClass(mission);
   
-  return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="btn btn-link infoButton ${rewardImageClasses} resourceIcon ml-1" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&nbsp;</a>`;
+  return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="infoButton ${rewardImageClasses} resourceIcon ml-1" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&nbsp;</a>`;
 }
 
 // Returns the css class(es) of the reward associated with a given mission

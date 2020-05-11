@@ -143,6 +143,7 @@ input:checked + .slider:before {
 
 .infoButton, .infoButton:hover, .infoButton:focus {
   text-decoration: none;
+  vertical-align: middle;
 }
 
 .infoButton:hover {
