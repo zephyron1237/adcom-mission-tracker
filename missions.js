@@ -142,12 +142,20 @@ function getCurrentEventInfo() {
 }
 
 function isBetweenEventDates(now, eventSchedule) {
-  // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
-  let endTime = new Date(eventSchedule.EndTime + "Z");
+  let endTime = eventSchedule.EndTime;
+  
+  // Start/EndTime can either be a Date or a string that needs to be converted to a date.
+  if (!(endTime instanceof Date)) {
+    // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
+    endTime = new Date(endTime + "Z");
+  }
   
   // There are 168 (7*24) hours in a week, so there are 68h between events
   // We want to switch to the event right after the last one ends (i.e., 68 hours before this starts)
-  let startTime = new Date(eventSchedule.StartTime + "Z");
+  let startTime = eventSchedule.StartTime;
+  if (!(startTime instanceof Date)) {
+    startTime = new Date(startTime + "Z");
+  }
   startTime.setUTCHours(startTime.getUTCHours() - 68);
   
   return (startTime < now) && (now <= endTime);
@@ -155,7 +163,7 @@ function isBetweenEventDates(now, eventSchedule) {
 
 // Returns the number of weeks in the current cycle that have been taken up by one-off events (e.g., a one-off crusade and santa would take 3 weeks)
 function getOneOffWeekCount(cycle) {
-  // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
+  // We append "Z" to StartTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
   let cycleBounds = {
     StartTime: new Date(cycle.StartTime + "Z"),
     EndTime: new Date()
