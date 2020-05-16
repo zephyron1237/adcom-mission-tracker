@@ -375,11 +375,19 @@ function loadEventSaveData() {
   
   // Now load mission progress
   let loadedEventId = getLocal("event", "Id");
+  if (loadedEventId == null) {
+    loadedEventId = EVENT_ID;
+    setLocal("event", "Id", EVENT_ID);
+  }
+  
   let loadedEventVersion = getLocal("event", "Version");
-  if ((loadedEventId != null && loadedEventId != EVENT_ID) ||
-       (loadedEventVersion != null && loadedEventVersion != EVENT_VERSION)) {
+  if (loadedEventVersion == null) {
+    loadedEventVersion = EVENT_VERSION;
+    setLocal("event", "Version", EVENT_VERSION);
+  }
+  
+  if (loadedEventId != EVENT_ID || loadedEventVersion != EVENT_VERSION) {
     // This save is from a previous event, so let's clear our save.
-    // TODO: It might be nice to inform the user this just happened besides the log.
     console.log(`Event ${loadedEventId} version ${loadedEventVersion} is outdated.  Clearing save data.`);
     removeLocal("event", "Completed");
     removeLocal("event", "FormValues");
