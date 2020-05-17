@@ -2442,11 +2442,14 @@ function setupSimDataGenerators(simData, industryId, formValues, readSavedCounts
       }
     }
     
+    let unlockQty = generator.Unlock ? generator.Unlock.Threshold : 0;
+    
     simData.Generators.push(({
       Id: generator.Id,
       Resource: generator.Generate.Resource,
       QtyPerSec: generator.Generate.Qty / generator.BaseCompletionTime * genValues.Power * genValues.Speed * (genValues.CritChance * genValues.CritPower + 1 - genValues.CritChance),
-      Cost: costs
+      Cost: costs,
+      UnlockQty: unlockQty
     }));
     
     if (!readSavedCounts) {
@@ -2629,11 +2632,18 @@ function calcLimitedComrades(simData) {
 function simulateProductionMission(simData, deltaTime = 1.0) {
   // First, handle autobuy, if enabled.
   let autobuyGenerator = null;
+  let nextAutobuyGenerator = null;
+  
+  // search backwards through the generators for the first one with Qty > 0
   if (simData.Config.Autobuy) {
-    // search backwards through the generators for the first one with >0
     for (let genIndex = simData.Generators.length - 1; genIndex >= 0; genIndex--) {
       if (simData.Counts[simData.Generators[genIndex].Id] > 0) {
         autobuyGenerator = simData.Generators[genIndex];
+        
+        if (genIndex + 1 < simData.Generators.length) {
+          nextAutobuyGenerator = simData.Generators[genIndex + 1];
+        }
+        
         break;
       }
     }
@@ -2695,12 +2705,23 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
     
     // After generating, handle autobuying
     if (autobuyGenerator) {
+      // First buy as many of the autobuyGenerator as possible
       let buyCount = getBuyCount(simData, autobuyGenerator);
       for (let cost of autobuyGenerator.Cost) {
         simData.Counts[cost.Resource] -= cost.Qty * buyCount;
       }
       simData.Counts[autobuyGenerator.Id] += buyCount;
+      
+      // Then check to see if the purchases have unlocked a new tier of generator.
+      if (nextAutobuyGenerator && simData.Counts[autobuyGenerator.Id] >= nextAutobuyGenerator.UnlockQty) {
+        autobuyGenerator = nextAutobuyGenerator;
+        simData.Counts[autobuyGenerator.Id] = 1;
+        
+        let autobuyGeneratorIndex = simData.Generators.indexOf(autobuyGenerator);
+        nextAutobuyGenerator = simData.Generators[autobuyGeneratorIndex + 1]; // may be undefined if at the last tier
+      }
     }
+    
   }
   
   if (time >= maxTime) {
