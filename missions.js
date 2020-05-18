@@ -6,6 +6,7 @@ var eventScheduleInfo = null;  // The main schedule metadata associated with the
 
 function main() {
   loadModeSettings();
+  initializeLocalization();
   initializeMissionData();
   initializeInfoPopup();
   loadSaveData();
@@ -192,6 +193,16 @@ function getRewardsById(rewardId) {
     return reward.Rewards;
   } else {
     return [];
+  }
+}
+
+// Sets up ENGLISH_MAP based on ENGLISH_LOCALIZATION_STRING
+function initializeLocalization() {
+  // Get all lines in the form key=value.  Values may include anything but real new lines.
+  let lines = ENGLISH_LOCALIZATION_STRING.matchAll(/^(.*?)=(.*)$/gm);
+  
+  for (let line of lines) {
+    ENGLISH_MAP[line[1]] = line[2];
   }
 }
 
@@ -575,7 +586,7 @@ function renderMissions() {
       
       let rankResearchers = getData().Researchers.filter(r => r.PlayerRankUnlock == rank);
       if (rankResearchers.length > 0) {
-        let rankResearcherDescriptions = rankResearchers.map(r => `<div class='resourceIcon cardIcon'>&nbsp;</div>${r.Name}: <em>${getResearcherBasicDetails(r)}</em>`);
+        let rankResearcherDescriptions = rankResearchers.map(r => `<div class='resourceIcon cardIcon'>&nbsp;</div>${researcherName(r)}: <em>${getResearcherBasicDetails(r)}</em>`);
         let rankResearcherText = `<strong>New Researchers:</strong><br />${rankResearcherDescriptions.join("<br /><br />")}`;
         popupHtml += `${popupHtml ? "<hr />" : ""}${rankResearcherText}`;
       }
@@ -929,20 +940,25 @@ function getResource(id) {
   return resourcesById[id];
 }
 
-function resourceName(name) {
-  let resource = getResource(name);
-  return resource.Plural;
-  /* Let's test without for a bit and see how it feels
-  if ('StartingQty' in resource) {
-    return resource.Plural;
-  } else {
-    return resource.Singular;
-  }
-  */
+function resourceName(resourceId) {
+  return ENGLISH_MAP[`resource.${resourceId}.plural`];
 }
 
-function industryName(name) {
-  upperCaseFirstLetter(name);
+function industryName(industryId) {
+  // We lowercase since the game is somewhat inconsistant with industry capitalization
+  return ENGLISH_MAP[industryId.toLowerCase()];
+}
+
+// researcherIdOrObj can either be a root.Researchers object or a string id
+function researcherName(researcherIdOrObj) {
+  let id = "";
+  if (typeof researcherIdOrObj === 'string' || researcherIdOrObj instanceof String) {
+    id = researcherIdOrObj;
+  } else  if (researcherIdOrObj && 'Id' in researcherIdOrObj) {
+    id = researcherIdOrObj.Id;
+  }
+  
+  return ENGLISH_MAP[`researcher.${id}.name`]
 }
 
 function upperCaseFirstLetter(name) {
@@ -1029,7 +1045,7 @@ function describeReward(reward) {
 // Given a root.Researchers object, returns an html string with a clickable version of their name with a popover description.
 function describeResearcher(researcher) {
   let details = getResearcherFullDetailsHtml(researcher);
-  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="bottom" data-trigger="focus" data-content="${details}" data-html="true"><div class="resourceIcon cardIcon">&nbsp;</div>${researcher.Name}</a>`;
+  return `<a tabindex="0" class="researcherName" role="button" data-toggle="popover" data-placement="bottom" data-trigger="focus" data-content="${details}" data-html="true"><div class="resourceIcon cardIcon">&nbsp;</div>${researcherName(researcher)}</a>`;
 }
 
 // Given a root.Researchers object, returns an html description of that researcher's effect, its unlock rank, and its first guaranteed mission
@@ -1080,7 +1096,7 @@ function getResearcherBasicDetails(researcher) {
       if (resources) {
         return `Multiplies output of ${resourceName(resources.Id)} by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       } else {
-        resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id));
+        resources = researcher.TargetIds[0].split(/, ?/).map(ind => industryName(ind));
         if (resources.length == getData().Industries.length) {
           return `Multiplies output of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
         } else {
@@ -1098,7 +1114,7 @@ function getResearcherBasicDetails(researcher) {
       if (resources.length == getData().Industries.length) {
         return `Increases crit chance of all generators by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
       } else {
-        resources = resources.map(ind => resourceName(getResourceByIndustry(ind).Id)).join('/');
+        resources = resources.map(ind => industryName(ind)).join('/');
         return `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
       }
       break;
@@ -1108,7 +1124,7 @@ function getResearcherBasicDetails(researcher) {
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       // TargetIds[0] is a set of industries ("Baking, NorthPole, SnowArmy, SantaWorkshop")
-      resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id));
+      resources = researcher.TargetIds[0].split(/, ?/).map(ind => industryName(ind));
       if (resources.length == getData().Industries.length) {
         return `Lowers cost of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       } else {
@@ -1121,7 +1137,7 @@ function getResearcherBasicDetails(researcher) {
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       // TargetIds[0] is a set of industries ("Baking, NorthPole, SnowArmy, SantaWorkshop")
-      resources = researcher.TargetIds[0].split(/, ?/).map(ind => resourceName(getResourceByIndustry(ind).Id));
+      resources = researcher.TargetIds[0].split(/, ?/).map(ind => industryName(ind));
       if (resources.length == getData().Industries.length) {
         return `Multiplies crit bonus of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       } else {
@@ -1650,7 +1666,7 @@ function describeGenerator(generator, researchers, formValues) {
   html += `<br /><br /><strong>Automator:</strong><br />`;
   
   let autoResearcher = getData().Researchers.find(r => r.ModType == "GenManagerAndSpeedMult" && r.TargetIds[0] == generator.Id);
-  html += `<div class='resourceIcon cardIcon mr-1'>&nbsp;</div>${autoResearcher.Name}<br />`;
+  html += `<div class='resourceIcon cardIcon mr-1'>&nbsp;</div>${researcherName(autoResearcher)}<br />`;
   html += getResearcherFullDetailsHtml(autoResearcher);
   
   return html;
@@ -1739,7 +1755,7 @@ function updateTabResearcher(researcher) {
   if (level > 0) {
     // Red down arrow for decreasing researcher level.
     downColorClass = "text-danger";
-    downTitle = `Level ${researcher.Name} down to ${level - 1}`;
+    downTitle = `Level ${researcherName(researcher)} down to ${level - 1}`;
     downLabel = "&#x25BC;";
   } else {
     // Yellow '#' for setting a specific researcher value
@@ -1752,7 +1768,7 @@ function updateTabResearcher(researcher) {
   
   let maxLevel = getData().ResearcherRankCosts.find(cost => cost.Rarity == researcher.Rarity).Quantity.length + 1;
   let upVisibilityClass = (level >= maxLevel) ? "invisible" : "visible";
-  let upHtml = `<a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button" title="Level ${researcher.Name} up to ${level + 1}">&#x25B2;</a>`;
+  let upHtml = `<a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button" title="Level ${researcherName(researcher)} up to ${level + 1}">&#x25B2;</a>`;
   
   $(`.modal.show #${researcher.Id}-level`).html(levelString);
   $(`.modal.show #${researcher.Id}-value`).html(valueString);
@@ -1823,7 +1839,7 @@ function getResearcherCard(researcher, formValues) {
   if (level > 0) {
     // Red down arrow for decreasing researcher level.
     downColorClass = "text-danger";
-    downTitle = `Level ${researcher.Name} down to ${level - 1}`;
+    downTitle = `Level ${researcherName(researcher)} down to ${level - 1}`;
     downLabel = "&#x25BC;";
   } else {
     // Yellow '#' for setting a specific researcher value
@@ -1835,7 +1851,7 @@ function getResearcherCard(researcher, formValues) {
   let maxLevel = getData().ResearcherRankCosts.find(cost => cost.Rarity == researcher.Rarity).Quantity.length + 1;
   let upVisibilityClass = (level >= maxLevel) ? "invisible" : "visible";
   
-  let popupTitle = researcher.Name;
+  let popupTitle = researcherName(researcher);
   let popupBody = getResearcherFullDetailsHtml(researcher);
   
   return `
@@ -1856,7 +1872,7 @@ function getResearcherCard(researcher, formValues) {
       <span id="${researcher.Id}-value">${valueString}</span>
       
       <div id="${researcher.Id}-up-button" class="${upVisibilityClass} researcherLevelButton float-right text-success">
-        <a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button" title="Level ${researcher.Name} up to ${level + 1}">&#x25B2;</a>
+        <a onclick="clickLevelResearcher('${researcher.Id}', ${level + 1})" role="button" title="Level ${researcherName(researcher)} up to ${level + 1}">&#x25B2;</a>
       </div>
     </div>`;
 }
@@ -1942,7 +1958,7 @@ function clickLevelResearcher(researcherId, newLevelValue) {
   
     let previousOverride = formValues.ResearcherOverrides[researcherId] || "";
     
-    let customValue = prompt(`Enter custom value for ${researcher.Name}.${commonAddendum}`, previousOverride);
+    let customValue = prompt(`Enter custom value for ${researcherName(researcher)}.${commonAddendum}`, previousOverride);
     
     let customFloat = parseFloat(customValue);
     if (!customValue || !customFloat) {
