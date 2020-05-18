@@ -199,10 +199,14 @@ function getRewardsById(rewardId) {
 // Sets up ENGLISH_MAP based on ENGLISH_LOCALIZATION_STRING
 function initializeLocalization() {
   // Get all lines in the form key=value.  Values may include anything but real new lines.
-  let lines = ENGLISH_LOCALIZATION_STRING.matchAll(/^(.*?)=(.*)$/gm);
+  let lines = ENGLISH_LOCALIZATION_STRING.split(/\r?\n/);
   
   for (let line of lines) {
-    ENGLISH_MAP[line[1]] = line[2];
+    let keyValue = line.match(/(.*?)=(.*)/);
+    
+    if (keyValue) {
+      ENGLISH_MAP[keyValue[1]] = keyValue[2];
+    }
   }
 }
 
