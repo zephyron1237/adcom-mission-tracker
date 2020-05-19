@@ -2660,7 +2660,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
       if (simData.Counts[simData.Generators[genIndex].Id] > 0) {
         autobuyGenerator = simData.Generators[genIndex];
         
-        if (genIndex + 1 < simData.Generators.length) {
+        if (genIndex + 1 < simData.Generators.length && simData.Generators[genIndex + 1].QtyPerSec > 0) {
           nextAutobuyGenerator = simData.Generators[genIndex + 1];
         }
         
@@ -2739,6 +2739,11 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
         
         let autobuyGeneratorIndex = simData.Generators.indexOf(autobuyGenerator);
         nextAutobuyGenerator = simData.Generators[autobuyGeneratorIndex + 1]; // may be undefined if at the last tier
+        
+        // If the next generator won't produce anything, don't switch to it.
+        if (nextAutobuyGenerator && nextAutobuyGenerator.QtyPerSec == 0) {
+          nextAutobuyGenerator = null;
+        }
       }
     }
     
