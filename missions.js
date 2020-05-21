@@ -893,7 +893,7 @@ function fromBigNum(x) {
   }
 
   // Grab digits and the letters, and filter out anything missing.
-  let split = [.../([\d\.,]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
+  let split = [.../([\d\., ]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
   
   if (split.length == 1) {
     return parseLocaleNumber(split[0]);
