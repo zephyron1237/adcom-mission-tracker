@@ -8,9 +8,9 @@ Hosted at: <https://zephyron1237.github.io/adcom-mission-tracker/>
 
 Click on missions in the "Current" area to mark them as Completed.  Click missions in the "Completed" area to undo that, kicking the newest mission back out.
 
-Each mission has a (i) button next to it.  Clicking this brings up a pop-up with details on the mission, as well as a calculator.  Click "Details" on the calculator for more info.
+Each mission has a button of its reward capsule next to it.  Clicking this brings up a pop-up with details on the mission, as well as a calculator.  Click "Details" on the calculator for more info.
 
-Switch between Motherland (main) and Event by clicking on the title's dropdown.  Change settings from the "Settings" dropdown.
+Switch between Motherland (main) and Event by clicking on the title's dropdown.  Change settings from the "Settings" dropdown.  Other tools can be accessed by clicking the resource, researcher and comrade icons at the top-right.
 
 ## Thanks
 
