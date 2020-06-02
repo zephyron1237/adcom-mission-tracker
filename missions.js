@@ -1550,7 +1550,7 @@ function getGeneratorsTab(mission, industryId) {
   html += "<hr />";
   
   let cpsDefaultValue = formValues.Trades.TotalComrades || "";
-  html += getResourceInput("comrades", "# of Comrades", "img/shared/comrade.png", "# of Comrades");
+  html += getResourceInput("comrades", "# of Comrades", `${imgDirectory}/comrade.png`, "# of Comrades");
   html += getResourceInput("comradesPerSec", "Comrades/second", "img/shared/comrades_per_second.png", "Comrades Per Second", cpsDefaultValue);
   
   return html;
@@ -1640,10 +1640,8 @@ function describeGenerator(generator, researchers, formValues) {
   for (let cost of costs) {
     if (cost.Resource != "comrade") {
       cost.Qty /= genValues.CostReduction;
-      html += `<span class='mx-1'><img class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${bigNum(cost.Qty)}</span>`;
-    } else {
-      html += `<span class='mx-1'><img class='resourceIcon mr-1' src='img/shared/comrade.png' title='Comrades'>${bigNum(cost.Qty)}</span>`;
     }
+    html += `<span class='mx-1'><img class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${bigNum(cost.Qty)}</span>`;
   }
   
   html += `<br /><br /><strong>Generates:</strong><br />`;
