@@ -14,7 +14,7 @@ Switch between Motherland (main) and Event by clicking on the title's dropdown. 
 
 ## Thanks
 
-AdCom Wiki (Icons at launch).  Alyce (Santa icons).  Julian (Emoji selection, development assistance).  Manifold0 (Some dark mode styling).  Phil109 (Crusade icons, development assistance).  The_Random_Guy (Balance data at launch).  Vdisco (Propaganda boost animations).
+AdCom Wiki (Icons at launch).  Alyce (Santa/Winter icons).  Julian (Emoji selection, development assistance).  Manifold0 (Some dark mode styling).  Phil109 (Crusade icons, development assistance).  Phoebe (Crusade/Ninja icons).  The_Random_Guy (Balance data at launch).  Vdisco (Propaganda boost animations).
 
 Special thanks to those that have submitted issues and written pull requests!
 
