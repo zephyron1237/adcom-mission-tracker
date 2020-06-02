@@ -1639,7 +1639,7 @@ function describeGenerator(generator, researchers, formValues) {
   let costs = generator.Cost.map(c => ({ Resource: c.Resource.toLowerCase(), Qty: Number(c.Qty) }));
   for (let cost of costs) {
     if (cost.Resource != "comrade") {
-      cost.Qty /= genValues.CostReduction;
+      cost.Qty = Math.max(cost.Qty / genValues.CostReduction, 1);
       html += `<span class='mx-1'><img class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${bigNum(cost.Qty)}</span>`;
     } else {
       html += `<span class='mx-1'><img class='resourceIcon mr-1' src='img/shared/comrade.png' title='Comrades'>${bigNum(cost.Qty)}</span>`;
@@ -1661,11 +1661,28 @@ function describeGenerator(generator, researchers, formValues) {
   html += `<img class='resourceIcon mr-1' src='img/shared/crit_chance.png' title='Crit Chance'>${shortBigNum(genValues.CritChance * 100)}% `;
   html += `<img class='resourceIcon mx-1' src='img/shared/crit_power.png' title='Crit Power'>x${shortBigNum(genValues.CritPower)}<div class='my-3'></div>`;
   
-  let totalPerSec = qtyProduced * (genValues.CritChance * genValues.CritPower + 1 - genValues.CritChance) / genTime;
+  let totalPerSec = avgGeneration(generator, researchers, formValues);
   if (totalPerSec < 1e4) {
     totalPerSec = totalPerSec.toPrecision(3);
   }
   html += `Each Outputs: <img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Generate.Resource}.png' title='${resourceName(generator.Generate.Resource)}'>${shortBigNum(totalPerSec)}/sec`;
+  
+  // calculate the growth time, not the most efficient implementation but good enough
+  html += `<br /><br /><strong>Growth Periods:</strong>`;
+  for (let cost of costs) {
+    if (cost.Resource != "comrade") {
+      let current = generator;
+      let production = 1;
+      let tiers = 0;
+      while (current && current.Id != cost.Resource) {
+        tiers++;
+        production *= avgGeneration(current, researchers, formValues);
+        current = getGenerator(current.Generate.Resource);
+      }
+      let time = Math.pow(production / cost.Qty, -1 / tiers);
+      html += `<br /><image class='resourceIcon mr-1' src='${imgDirectory}/${cost.Resource}.png' title='${resourceName(cost.Resource)}'>${getEta(time)}`;
+    }
+  }
   
   let industry = getData().Industries.find(i => i.Id == generator.IndustryId);
   if (generator.Unlock.Threshold > 0 || industry.UnlockCostResourceQty > 0) {
@@ -1684,6 +1701,11 @@ function describeGenerator(generator, researchers, formValues) {
   html += getResearcherFullDetailsHtml(autoResearcher);
   
   return html;
+}
+
+function avgGeneration(generator, researchers, formValues) {
+  let genValues = getDerivedResearcherValues(generator, researchers, formValues);
+  return generator.Generate.Qty * genValues.Power * (genValues.CritChance * genValues.CritPower + 1 - genValues.CritChance) * Math.max(genValues.Speed, 1) / generator.BaseCompletionTime;
 }
 
 function getFirstMissionWithScriptedReward(researcher) {
@@ -2329,10 +2351,12 @@ function doProductionSim() {
   $('#result').effect('highlight', {}, 2000);
 }
 
-// Returns a string 
+// Returns a string
 function getEta(timeSeconds) {
   /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
   let days = Math.floor(timeSeconds / (60 * 60 * 24));
+  if (days >= 365)
+    return shortBigNum(days / 365) + ' y';
   let [hours, minutes, seconds] = new Date(timeSeconds * 1000).toISOString().substr(11, 8).split(':');
   
   let eta = '';
@@ -2342,10 +2366,15 @@ function getEta(timeSeconds) {
     eta = `${hours}h ${minutes}m ${seconds}s`;
   } else if (minutes > 0) {
     eta = `${minutes}m ${seconds}s`;
-  } else if (seconds > 0.5) {
+  } else if (seconds > 1) {
     eta = `${seconds}s`;
-  } else if (timeSeconds <= 0) {
+  } else if (timeSeconds <= 0.001) {
     eta = 'Instant';
+  } else if (timeSeconds > 0.99) {
+    eta = '1s';
+  } else if (timeSeconds >= 0.5) {
+    let denom = Math.round(1/(1-timeSeconds));
+    eta = `${denom - 1}/${denom} s`;
   } else {
     eta = `1/${Math.round(1/timeSeconds)} s`;
   }
