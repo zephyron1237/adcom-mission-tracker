@@ -24,6 +24,7 @@ function loadModeSettings() {
     let arguments = splitUrl[1].split('&');
     for (let arg of arguments) {
       let keyValue = arg.split('=');
+      
       if (keyValue.length == 2 && keyValue[0] == "rank") {
         if (keyValue[1] == "event") {
           localStorage.setItem("CurrentMode", "event");
@@ -33,6 +34,19 @@ function loadModeSettings() {
           localStorage.setItem("CurrentMode", "main");
           setLocal("main", "CurrentRank", keyValue[1]);
         }
+        
+      } else if (keyValue.length == 2 && keyValue[0] == "eventOverride"
+                  && keyValue[1] in DATA) {
+        // This is a quick hack to allow switching to non-current events.
+        localStorage.setItem("CurrentMode", "event");
+        EVENT_ID = keyValue[1]; // ID typically refers to instances
+        DATA.event = DATA[keyValue[1]];
+        eventScheduleInfo = {
+          LteId: EVENT_ID,
+          BalanceId: EVENT_ID,
+          ThemeId: EVENT_ID.split('-')[0], // take the xxx part of xxx-bal-5
+          Rewards: SCHEDULE_CYCLES.LteRewards[0].Rewards
+        };
       }
     }
   }
@@ -49,7 +63,7 @@ function loadModeSettings() {
   $('#mode-select-title').addClass("show");
   
   // Determine eventScheduleInfo, DATA.event and EVENT_ID based on the Schedule
-  if (currentMode == "event") {
+  if (currentMode == "event" && !EVENT_ID) {
     eventScheduleInfo = getCurrentEventInfo();
     
     if (!eventScheduleInfo) {
