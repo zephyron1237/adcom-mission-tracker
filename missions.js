@@ -48,6 +48,7 @@ function loadModeSettings() {
           Rewards: Array(20) // empty values, which the tracker handles gracefully
         };
         $('#overrideWarning').addClass("show");
+        $('#alertReset').remove(); // don't show the Reset Alert ever in this mode.  Hacky.
       }
     }
   }
