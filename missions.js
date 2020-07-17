@@ -36,7 +36,7 @@ function loadModeSettings() {
         }
         
       } else if (keyValue.length == 2 && keyValue[0] == "eventOverride"
-                  && keyValue[1] in DATA) {
+                  && keyValue[1] in DATA && keyValue[1] != "main") {
         // This is a quick hack to allow switching to non-current events.
         localStorage.setItem("CurrentMode", "event");
         EVENT_ID = keyValue[1]; // ID typically refers to instances
@@ -45,8 +45,9 @@ function loadModeSettings() {
           LteId: EVENT_ID,
           BalanceId: EVENT_ID,
           ThemeId: EVENT_ID.split('-')[0], // take the xxx part of xxx-bal-5
-          Rewards: SCHEDULE_CYCLES.LteRewards[0].Rewards
+          Rewards: Array(20) // empty values, which the tracker handles gracefully
         };
+        $('#overrideWarning').addClass("show");
       }
     }
   }
