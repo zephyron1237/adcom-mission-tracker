@@ -1684,7 +1684,7 @@ function describeGenerator(generator, researchers, formValues) {
   let industry = getData().Industries.find(i => i.Id == generator.IndustryId);
   if (generator.Unlock.Threshold > 0 || industry.UnlockCostResourceQty > 0) {
     html += `<br /><br /><strong>Unlocks at:</strong><br />`;
-    if (generator.Unlock.Threshold > 0 ) {
+    if (generator.Unlock.Threshold > 0 && generator.Unlock.ConditionType != "IndustryUnlocked") {
       html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${generator.Unlock.ConditionId}.png' title='${resourceName(generator.Unlock.ConditionId)}'>${bigNum(generator.Unlock.Threshold)}`;
     } else {
       html += `<img class='resourceIcon mr-1' src='${imgDirectory}/${industry.UnlockCostResourceId.toLowerCase()}.png' title='${resourceName(industry.UnlockCostResourceId.toLowerCase())}'>${bigNum(industry.UnlockCostResourceQty)}`;
