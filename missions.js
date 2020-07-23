@@ -82,41 +82,76 @@ function loadModeSettings() {
 }
 
 // Returns the current event info based on the time and the schedule's cycles
-function getCurrentEventInfo() {
-  let DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  let now = new Date();
+// "now" is an argument to allow for easier testing, but defaults to the current time.
+function getCurrentEventInfo(now = Date.now()) {
+  // The current algorithm is: Search events where EndTime > Now and find the one with the minimum EndTime.
+  // Currently keeps track of a single minimum, but could return the N lowest (for a schedule) using a priority queue.
+  let soonestEvent = { EndTimeMillis: Infinity, EventInfo: null };
   
-  // Start by checking to see if we're off-cycle in a specific "one-off" event.
-  let oneOffEvent = SCHEDULE_CYCLES.LteOneOff.find( lte => isBetweenEventDates(now, lte) );
+  // oneOffEndTimes is a lookup table of one-offs by their EndTime (integer millis from Epoch).
+  // This is used when going through cycles to quickly determine if a one-off interrupts
+  let oneOffEndTimes = {};
   
-  if (oneOffEvent) {
-    // Non-legacy one-off's don't currently have a unique identifier, so let's use the startTime's timestamp.
-    let lteId = oneOffEvent.LegacyLteId || (new Date(oneOffEvent.StartTime + "Z")).getTime();
+  // Iterate through all the one-offs first before doing the cycles
+  for (let oneOffEvent of SCHEDULE_CYCLES.LteOneOff) {
+    updateSoonestOneOff(oneOffEvent, now, soonestEvent, oneOffEndTimes);
+  }
+  
+  // Before iterating through the cycles, limit them to ones that aren't over.
+  let currentCycles = SCHEDULE_CYCLES.LteSchedule.filter(cycle => now < getScheduleTimeMillis(cycle.EndTime));
+  let hoursPerBalanceType = getHoursPerBalanceType();
+  
+  for (let cycle of currentCycles) {
+    updateSoonestCycle(cycle, now, soonestEvent, oneOffEndTimes, hoursPerBalanceType);
+  }
+  
+  return soonestEvent.EventInfo;
+}
+
+function updateSoonestOneOff(oneOffEvent, now, soonestEvent, oneOffEndTimes) {
+  let startTimeMillis = getScheduleTimeMillis(oneOffEvent.StartTime);
+  let endTimeMillis = getScheduleTimeMillis(oneOffEvent.EndTime);
+  oneOffEndTimes[endTimeMillis] = oneOffEvent;
+  
+  // SPECIAL CASE: If a one-off lasts for more than a week, mark all of its days as end times.
+  // (This will, e.g., make sure that a mini-event will see a one-off in its spot during Santa)
+  if ((endTimeMillis - startTimeMillis) > 1000*60*60*24*7) {
+    for (let fakeEndTime = new Date(endTimeMillis);
+         fakeEndTime.getTime() > startTimeMillis;
+         fakeEndTime.setUTCDate(fakeEndTime.getUTCDate() - 1)) {
+           
+           oneOffEndTimes[fakeEndTime.getTime()] = oneOffEvent;
+    }
+  }
+  
+  if (now < endTimeMillis && endTimeMillis < soonestEvent.EndTimeMillis) {
+    // A new soonest event!
+    // Non-legacy one-off's don't currently have a unique identifier, so let's use the endTime's timestamp.
+    let lteId = oneOffEvent.LegacyLteId || endTimeMillis;
     
-    return {
+    soonestEvent.EndTimeMillis = endTimeMillis;
+    soonestEvent.EventInfo = {
       LteId: lteId,
       BalanceId: oneOffEvent.BalanceId,
       ThemeId: oneOffEvent.ThemeId,
       Rewards: getRewardsById(oneOffEvent.RewardId)
     };
   }
+}
+
+function updateSoonestCycle(cycle, now, soonestEvent, oneOffEndTimes, hoursPerBalanceType) {
+  // Iterate through the cycle until we find the first event where now < EndTime, compare with soonestEvent
+  // (For a schedule of N, you could add the first N such events to the priority queue.)
   
-  // Since we're not in a one-off, we must be on a cycle.  But first we must figure out which cycle.
-  let cycle = SCHEDULE_CYCLES.LteSchedule.find( lte => isBetweenEventDates(now, lte) );
+  let DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   
-  if (!cycle) {
-    console.log("ERROR: Could not find event or cycle for today's date.");
-    return null;
-  }
-  
-  // Now we must figure out when events actually start each week for the given cycle.
-  // We start by finding the first StartDay (usually Thursday) in the cycle.
+  // Get the first StartTime of the event (Increase days from StartTime until we hit StartDayOfTheWeek)
   let goalDayOfWeek = DAYS.indexOf(cycle.StartDayOfTheWeek);
-  let firstStartTime = new Date(cycle.StartTime + "Z");
+  let firstStartTime = new Date(getScheduleTimeMillis(cycle.StartTime));
   
   if (goalDayOfWeek == -1) {
     console.log(`ERROR: Cannot understand day of week: ${cycle.StartDayOfTheWeek}`);
-    return null;
+    return;
   }
   
   while (firstStartTime.getUTCDay() != goalDayOfWeek) {
@@ -125,81 +160,68 @@ function getCurrentEventInfo() {
   
   firstStartTime.setUTCHours(cycle.StartHourUTC);
   
-  // We want to show the event after the last one ends
-  // Currently, this means CurrentEvent.StartTime + 100h - 1 week
-  let firstShowTime = new Date(firstStartTime);
-  firstShowTime.setUTCHours(firstShowTime.getUTCHours() + 100);
-  firstShowTime.setUTCDate(firstShowTime.getUTCDate() - 7);
+  // From the first start time, calculate the first end time,
+  // then iterate through each end time until now < EndTime
+  let curCycleIndex = 0;
+  let curEndTime = new Date(firstStartTime);
+  curEndTime.setUTCHours(curEndTime.getUTCHours() + hoursPerBalanceType[cycle.BalanceType]);
+  let cycleEndTime = new Date(getScheduleTimeMillis(cycle.EndTime));
   
-  // Calculate how many weeks/events since the start of the period.
-  let weeksSinceStart = Math.floor((new Date() - firstShowTime) / (604800000)); // 604.8M milliseconds per week
-  
-  // Since one-off's can appear inside of cycles, we need to subtract a week for each week an internal one-off is running.
-  weeksSinceStart -= getOneOffWeekCount(cycle);
-  
-  let eventId = parseInt(cycle.EventIdStartValue) + weeksSinceStart;
-  let balanceId = cycle.LteBalanceIds[weeksSinceStart % cycle.LteBalanceIds.length];
-  let rewardId = cycle.LteRewardIds[weeksSinceStart % cycle.LteRewardIds.length];
-  let themeId = SCHEDULE_CYCLES.LteBalanceData.find(bal => bal.BalanceId == balanceId).ThemeId;
-  
-  let startTime = new Date(firstStartTime);
-  startTime.setUTCDate(startTime.getUTCDate() + 7 * weeksSinceStart);
-  
-  let endTime = new Date(startTime);
-  endTime.setUTCHours(endTime.getUTCHours() + 100);
-  
-  return {
-    LteId: eventId,
-    BalanceId: balanceId,
-    ThemeId: themeId,
-    StartTime: startTime,
-    EndTime: endTime,
-    Rewards: getRewardsById(rewardId)
-  };
-}
-
-function isBetweenEventDates(now, eventSchedule) {
-  let endTime = eventSchedule.EndTime;
-  
-  // Start/EndTime can either be a Date or a string that needs to be converted to a date.
-  if (!(endTime instanceof Date)) {
-    // We append "Z" to EndTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
-    endTime = new Date(endTime + "Z");
-  }
-  
-  // There are 168 (7*24) hours in a week, so there are 68h between events
-  // We want to switch to the event right after the last one ends (i.e., 68 hours before this starts)
-  let startTime = eventSchedule.StartTime;
-  if (!(startTime instanceof Date)) {
-    startTime = new Date(startTime + "Z");
-  }
-  startTime.setUTCHours(startTime.getUTCHours() - 68);
-  
-  return (startTime < now) && (now <= endTime);
-}
-
-// Returns the number of weeks in the current cycle that have been taken up by one-off events (e.g., a one-off crusade and santa would take 3 weeks)
-function getOneOffWeekCount(cycle) {
-  // We append "Z" to StartTime's ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
-  let cycleBounds = {
-    StartTime: new Date(cycle.StartTime + "Z"),
-    EndTime: new Date()
-  };
-  
-  let internalOneOffs = SCHEDULE_CYCLES.LteOneOff.filter( lte => {
-    let lteStart = new Date(lte.StartTime + "Z");
-    let lteEnd = new Date(lte.EndTime + "Z");
-    return isBetweenEventDates(lteStart, cycleBounds) || isBetweenEventDates(lteEnd, cycleBounds);
-  });
-  
-  // For each internal one-off, add up the number of weeks it will take
-  return internalOneOffs.reduce( (oneOffWeeks, lte) => {
-    let lteStart = new Date(lte.StartTime + "Z");
-    let lteEnd = new Date(lte.EndTime + "Z");
+  while (curEndTime < cycleEndTime) {
+    // Move forward one week at a time until it's not replaced with a one-off.
+    while (curEndTime.getTime() in oneOffEndTimes) {
+      curEndTime.setUTCDate(curEndTime.getUTCDate() + 7)
+    }
     
-    // A more robust solution might count the number of event start days, but counting weeks is close.
-    return oneOffWeeks + Math.floor((lteEnd - lteStart) / 604800000) + 1; // 604.8M milliseconds per week
-  }, 0);
+    if (now < curEndTime) {
+      // We've reached the first unfinished event of the cycle.  Is it the overall soonest?
+      if (curEndTime.getTime() < soonestEvent.EndTimeMillis) {
+        let balanceId = cycle.LteBalanceIds[curCycleIndex % cycle.LteBalanceIds.length];
+        let rewardId = cycle.LteRewardIds[curCycleIndex % cycle.LteRewardIds.length];
+        let themeId = SCHEDULE_CYCLES.LteBalanceData.find(bal => bal.BalanceId == balanceId).ThemeId;
+        
+        soonestEvent.EndTimeMillis = curEndTime.getTime();
+        soonestEvent.EventInfo = {
+          LteId: curEndTime.getTime(),
+          BalanceId: balanceId,
+          ThemeId: themeId,
+          Rewards: getRewardsById(rewardId)
+        };
+      }
+      return;
+    }
+    
+    curEndTime.setUTCDate(curEndTime.getUTCDate() + 7)
+    curCycleIndex += 1;
+  }
+}
+
+// Cleans up HH's date format on things like eventSchedule.EndTime and returns millis from Epoch.
+function getScheduleTimeMillis(hhDateString) {
+  // We append "Z" to the ISO8601 format to ensure it is interpretted as being GMT (instead of local time).
+  if (hhDateString.slice(-1) != "Z") {
+    hhDateString += "Z";
+  }
+  
+  let date = new Date(hhDateString);
+  return date.getTime();
+}
+
+// Returns a dictionary like {Lte: 100, LteMidWeek: 32}
+function getHoursPerBalanceType() {
+  // Uses the first balance id for each unique BalanceType.
+  // This is a little bit of a hack, but is probably robust enough.
+  let hoursPerBalanceType = {};
+  
+  for (let cycle of SCHEDULE_CYCLES.LteSchedule) {
+    if (!(cycle.BalanceType in hoursPerBalanceType)) {
+      let firstId = cycle.LteBalanceIds[0];
+      let firstBalance = SCHEDULE_CYCLES.LteBalanceData.find(lte => lte.BalanceId == firstId);
+      hoursPerBalanceType[cycle.BalanceType] = firstBalance.DurationHours;
+    }
+  }
+  
+  return hoursPerBalanceType;
 }
 
 // Returns just the rank rewards array for a given rewardId
