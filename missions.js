@@ -17,15 +17,33 @@ function main() {
 // Determines whether the page is in Main or Event mode, based on the url and save state.
 // If event, also determines the event (based on the current time and event schedule).
 function loadModeSettings() {
-  // Parse url for a ?rank=X, where X is "event" or 1-MAX_RANK
+  // URL PARAMETER OPTIONS:
+  // + (none)
+  //   -  Opens motherland or the current event, whichever was used last.
+  // + ?rank=X
+  //   -  X can be "event" (for current event) or a motherland rank (1-MAX_RANK)
+  // + ?event=X
+  //   -  X is any event's EndTime, in milliseconds from epoch UTC.
+  // + ?eventOverride=X
+  //   -  Mostly for testing, X is a balance id like "crusade-bal-1"
+  // + ?timeOverride=X
+  //   -  For testing. Sets to the event running at X (milliseconds from epoch UTC).
+  
+  let now = Date.now();
+  
   let splitUrl = window.location.href.split('#');
   splitUrl = splitUrl[0].split('?');
   if (splitUrl.length == 2) {
     let arguments = splitUrl[1].split('&');
     for (let arg of arguments) {
       let keyValue = arg.split('=');
+      if (keyValue.length != 2) {
+        continue;
+      }
       
-      if (keyValue.length == 2 && keyValue[0] == "rank") {
+      if (keyValue[0] == "rank") {
+        // Parse ?rank=X
+        
         if (keyValue[1] == "event") {
           localStorage.setItem("CurrentMode", "event");
         } else if (keyValue[1] == "main") {
@@ -35,16 +53,39 @@ function loadModeSettings() {
           setLocal("main", "CurrentRank", keyValue[1]);
         }
         
-      } else if (keyValue.length == 2 && keyValue[0] == "eventOverride"
+      } else if (keyValue[0] == "event") {
+        // Parse ?event=
+        
+        // This is a lot like timeOverride, but more rigid
+        let eventTime = parseInt(keyValue[1]);
+        
+        // Test one millisecond before the end time.
+        // If right, the next event should end at that time.
+        let eventCandidate = getCurrentEventInfo(eventTime - 1);
+        if (eventCandidate.EndTimeMillis == eventTime) {
+          eventScheduleInfo = eventCandidate;
+          localStorage.setItem("CurrentMode", "event");
+        }
+        
+      } else if (keyValue[0] == "timeOverride") {
+        // Parse ?timeOverride=
+        
+        now = parseInt(keyValue[1]);
+        localStorage.setItem("CurrentMode", "event");
+        
+      } else if (keyValue[0] == "eventOverride"
                   && keyValue[1] in DATA && keyValue[1] != "main") {
+        // Parse ?eventOverride=X
+        
         // This is a quick hack to allow switching to non-current events.
         localStorage.setItem("CurrentMode", "event");
-        EVENT_ID = keyValue[1]; // ID typically refers to instances
         DATA.event = DATA[keyValue[1]];
         eventScheduleInfo = {
-          LteId: EVENT_ID,
-          BalanceId: EVENT_ID,
-          ThemeId: EVENT_ID.split('-')[0], // take the xxx part of xxx-bal-5
+          LteId: keyValue[1],
+          BalanceId: keyValue[1],
+          ThemeId: keyValue[1].split('-')[0], // take the xxx part of xxx-bal-5
+          StartTimeMillis: now,
+          EndTimeMillis: now,
           Rewards: Array(20) // empty values, which the tracker handles gracefully
         };
         $('#overrideWarning').addClass("show");
@@ -57,19 +98,13 @@ function loadModeSettings() {
   currentMode = localStorage.getItem("CurrentMode") || currentMode;
   currentMainRank = parseInt(getLocal("main", "CurrentRank")) || currentMainRank;
   
-  $(`#mode-select-main,#mode-select-event`).removeClass("active");
-  $(`#mode-select-${currentMode}`).addClass("active");
+  // Determine eventScheduleInfo and DATA.event based on the Schedule (if needed).
+  if (!eventScheduleInfo) {
+    eventScheduleInfo = getCurrentEventInfo(now);
+  }
   
-  // Determine eventScheduleInfo, DATA.event and EVENT_ID based on the Schedule
-  eventScheduleInfo = getCurrentEventInfo();
-  
-  if (currentMode == "event" && !EVENT_ID) {
-    if (!eventScheduleInfo) {
-      $('#alertNoSchedule').addClass("show");
-    } else {
-      EVENT_ID = eventScheduleInfo.LteId;
-      DATA.event = DATA[eventScheduleInfo.BalanceId];
-    }
+  if (!("event" in DATA)) {
+    DATA.event = DATA[eventScheduleInfo.BalanceId];
   }
   
   // Set up the top-left title in the navbar
@@ -78,9 +113,23 @@ function loadModeSettings() {
   let eventName = THEME_ID_TITLE_OVERRIDES[eventScheduleInfo.ThemeId] || eventScheduleInfo.ThemeId;
   eventName = upperCaseFirstLetter(eventName);
   let title = (currentMode == "main") ? "Motherland" : eventName;
+  
+  // The top-left dropdown always shows the current event, regardless of overrides.
+  let trueCurrentEvent = getCurrentEventInfo();
+  let trueCurrentEventTitle = THEME_ID_TITLE_OVERRIDES[trueCurrentEvent.ThemeId] || trueCurrentEvent.ThemeId;
+  trueCurrentEventTitle = upperCaseFirstLetter(trueCurrentEventTitle);
+  let trueEventIcon = `<img class="scheduleIcon" src="img/event/${trueCurrentEvent.ThemeId}/schedule.png">`;
+  
   $('#mode-select-title').html(`${icon} ${title}`);
   $('#mode-select-title').addClass("show");
-  $('#mode-select-event').html(`${eventIcon} ${eventName}`);
+  $('#mode-select-event').html(`${trueEventIcon} ${trueCurrentEventTitle}`);
+  
+  $(`#mode-select-main,#mode-select-event`).removeClass("active");
+  if (currentMode == "main" || trueCurrentEvent.EndTimeMillis == eventScheduleInfo.EndTimeMillis) {
+    $(`#mode-select-${currentMode}`).addClass("active");
+  } else {
+    $('#mode-select-schedule').addClass("active");
+  }
   
   // Set up the icon for the "All Generators" button in the navbar
   let firstResourceId = getData().Resources[0].Id;
@@ -120,7 +169,7 @@ function getSchedulePopupEvent(eventInfo) {
       </div>
       <div class="collapse" id="scheduleBody-${lteId}">
         <div class="card-body">
-          <div><strong>${name}</strong><span class="float-right"><a href="?futureEvent=${eventInfo.EndTimeMillis}">View in Tracker</a></span></div><br />
+          <div><strong>${name}</strong><span class="float-right"><a href="?event=${eventInfo.EndTimeMillis}">View in Tracker</a></span></div><br />
           <strong>Starts:</strong> ${startLong}<br />
           <strong>Ends:</strong> ${endLong}<br /><br />
           <strong>Rank Completion Rewards:</strong><br />
@@ -133,7 +182,7 @@ function getSchedulePopupEvent(eventInfo) {
 // Returns the current event info based on the time and the schedule's cycles
 // "now" is an argument to allow for easier testing, but defaults to the current time.
 function getCurrentEventInfo(now = Date.now()) {
-  return getSoonestEventInfos()[0];
+  return getSoonestEventInfos(1, now)[0];
 }
 
 function getSoonestEventInfos(maxEventCount = 10, now = Date.now()) {
@@ -559,9 +608,9 @@ function loadSaveData() {
   
   setListStyle(isListActive(), false);
   
-  if (getLocal(currentMode, "CompletedVisible") == null) {
-    let isNewSave = (getLocal(currentMode, "Completed") == null);
-    setLocal(currentMode, "CompletedVisible", isNewSave.toString());  // New saves start open
+  if (getLocal("main", "CompletedVisible") == null) {
+    let isNewSave = (getLocal("main", "Completed") == null);
+    setLocal("main", "CompletedVisible", isNewSave.toString());  // New saves start open
   }
   
   if (currentMode == "event") {
@@ -581,79 +630,49 @@ function loadSaveData() {
   }
 }
 
-function loadEventSaveData() {  
-  // Show permanent alert when DATA.event is unconfirmed
-  if (!IS_DATA_FINAL) {
-    $('#alertUnconfirmed').addClass('show');
-  }
-  
-  // Now load mission progress
-  let loadedEventId = getLocal("event", "Id");
-  if (loadedEventId == null) {
-    loadedEventId = EVENT_ID;
-    setLocal("event", "Id", EVENT_ID);
-  }
-  
-  let loadedEventVersion = getLocal("event", "Version");
-  if (loadedEventVersion == null) {
-    loadedEventVersion = EVENT_VERSION;
-    setLocal("event", "Version", EVENT_VERSION);
-  }
-  
-  if (loadedEventId != EVENT_ID || loadedEventVersion != EVENT_VERSION) {
-    // This save is from a previous event, so let's clear our save.
-    console.log(`Event ${loadedEventId} version ${loadedEventVersion} is outdated.  Clearing save data.`);
-    removeLocal("event", "Completed");
-    removeLocal("event", "FormValues");
-    removeLocal("event", "CompletionTimes");
-    removeLocal("event", "MissionEtas");
-    setLocal("event", "Id", EVENT_ID);
-    setLocal("event", "Version", EVENT_VERSION);
-    $('#alertReset').addClass('show');
-    
-  } else {
-    let dataString = getLocal("event", "Completed");
-    if (dataString) {
-      // Iterate through every mission in every rank, move completed ones to Completed.
-      /* This is a little inefficient, but it preserves the completion order. */
-      let completedIds = dataString.split(',');
-      for (let completedId of completedIds) {
-        if (!completedId) {
-          break;
-        }
-        
-        for (let rank in missionData) {
-          if (rank == "Completed") {
-            continue;
-          }
-          
-          for (let missionIndex = 0; missionIndex < missionData[rank].Remaining.length; missionIndex++) {
-            let mission = missionData[rank].Remaining[missionIndex];          
-            if (completedId == mission.Id) {
-              missionData[rank].Remaining.splice(missionIndex, 1);
-              missionData.Completed.Remaining.push(mission);
-              completedId = null;
-              break;
-            }
-          }
-        }
+function loadEventSaveData() {
+  let dataString = getLocal("event", "Completed");
+  if (dataString) {
+    // Iterate through every mission in every rank, move completed ones to Completed.
+    /* This is a little inefficient, but it preserves the completion order. */
+    let completedIds = dataString.split(',');
+    for (let completedId of completedIds) {
+      if (!completedId) {
+        break;
       }
       
-      // Now find the lowest-rank missions to fill in Current.
-      let missionsNeeded = missionData.Current.StartingCount - missionData.Current.Remaining.length;
-      for (let rank = 1; rank <= getData().Ranks.length; rank++) {
-        if (missionsNeeded == 0) {
-          break;
+      for (let rank in missionData) {
+        if (rank == "Completed") {
+          continue;
         }
         
-        while (missionData[rank].Remaining.length != 0 && missionsNeeded != 0) {
-          let newMission = missionData[rank].Remaining.shift();
-          missionData.Current.Remaining.push(newMission);
-          missionsNeeded -= 1;
+        for (let missionIndex = 0; missionIndex < missionData[rank].Remaining.length; missionIndex++) {
+          let mission = missionData[rank].Remaining[missionIndex];          
+          if (completedId == mission.Id) {
+            missionData[rank].Remaining.splice(missionIndex, 1);
+            missionData.Completed.Remaining.push(mission);
+            completedId = null;
+            break;
+          }
         }
       }
     }
+    
+    // Now find the lowest-rank missions to fill in Current.
+    let missionsNeeded = missionData.Current.StartingCount - missionData.Current.Remaining.length;
+    for (let rank = 1; rank <= getData().Ranks.length; rank++) {
+      if (missionsNeeded == 0) {
+        break;
+      }
+      
+      while (missionData[rank].Remaining.length != 0 && missionsNeeded != 0) {
+        let newMission = missionData[rank].Remaining.shift();
+        missionData.Current.Remaining.push(newMission);
+        missionsNeeded -= 1;
+      }
+    }
   }
+  
 }
 
 function loadMainSaveData() {
@@ -697,8 +716,6 @@ function updateSaveData() {
   if (currentMode == "event") {
     let saveData = missionData.Completed.Remaining.map(m => m.Id).join(',');
     setLocal("event", "Completed", saveData);
-    setLocal("event", "Id", EVENT_ID);
-    setLocal("event", "Version", EVENT_VERSION);
   } else {
     
     // Motherland
@@ -748,7 +765,7 @@ function renderMissions() {
     let bodyStyle = "";
     if (rank == "Completed") {
       let checked = "";
-      if (getLocal(currentMode, "CompletedVisible") == "true") {
+      if (getLocal("main", "CompletedVisible") == "true") {
         checked = "checked";
       } else {        
         bodyStyle = "style='display: none;'";
@@ -1428,11 +1445,11 @@ function getMissionIcon(resourceId, missionConditionType, overrideIcon = "", ove
 // Run OnClick for the big visibility toggle of Completed.
 function toggleCompleted() {
   let element = document.getElementById('Completed-body');
-  if (getLocal(currentMode, "CompletedVisible") == "true") {
-    setLocal(currentMode, "CompletedVisible", "false");
+  if (getLocal("main", "CompletedVisible") == "true") {
+    setLocal("main", "CompletedVisible", "false");
     element.style.display = "none";
   } else {
-    setLocal(currentMode, "CompletedVisible", "true");
+    setLocal("main", "CompletedVisible", "true");
     element.style.display = "block";
   }
 }
@@ -1587,17 +1604,25 @@ function selectNewRank() {
 
 // getLocal, setLocal and removeLocal is a layer of abstraction that creates a key name based on the mode and given key.
 function getLocal(mode, key) {
-  return localStorage.getItem(`${mode}-${key}`);
+  return localStorage.getItem(`${getModeKey(mode)}-${key}`);
 }
 
 function setLocal(mode, key, value) {
-  localStorage.setItem(`${mode}-${key}`, value);
+  localStorage.setItem(`${getModeKey(mode)}-${key}`, value);
 }
 
 function removeLocal(mode, key) {
-  localStorage.removeItem(`${mode}-${key}`);
+  localStorage.removeItem(`${getModeKey(mode)}-${key}`);
 }
 
+// returns "main" or "event-########" based on the mode and tracked event.
+function getModeKey(mode) {
+  if (mode == "event") {
+    return `event-${eventScheduleInfo.EndTimeMillis}`;
+  } else {
+    return mode;
+  }
+}
 
 function getData() {
   return DATA[currentMode];
