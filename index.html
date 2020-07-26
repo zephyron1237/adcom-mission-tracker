@@ -22,8 +22,10 @@
     <span class="dropdown">
       <a id="mode-select-title" class="navbar-brand mb-0 h1 dropdown-toggle collapse" href="#" id="modeMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Motherland Missions</a>
       <ul class="dropdown-menu" aria-labelledby="settingsDropdownMenuLink">
-        <a href="?rank=main" class="dropdown-item" id="mode-select-main">Motherland</a>
-        <a href="?rank=event" class="dropdown-item" id="mode-select-event">Event</a>
+        <a href="?rank=main" class="dropdown-item" id="mode-select-main" title="Switch to Motherland"><img class="scheduleIcon mx-1" src="img/main/schedule.png"> Motherland</a>
+        <a href="?rank=event" class="dropdown-item" id="mode-select-event" title="Switch to Current Event"><img class="scheduleIcon" src="img/event/space/schedule.png"> Event</a>
+        <div class="dropdown-divider"></div>
+        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#schedulePopup" title="View Schedule"><img class="scheduleIcon" src="img/shared/calendar.png"> Schedule</a>
       </ul>
     </span>
     <ul class="navbar-nav ml-auto">
@@ -88,17 +90,32 @@
       </div>
     </div>
   </div>
-  <div class="modal fade" id="allInfoPopup" tabindex="-1" role="dialog" aria-labelledby="infoTitle" aria-hidden="true">
+  <div class="modal fade" id="allInfoPopup" tabindex="-1" role="dialog" aria-labelledby="allInfoTitle" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="infoTitle">All Industries</h5>
+          <h5 class="modal-title" id="allInfoTitle">All Industries</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <div class="modal-body">
           <div id="allInfoPopupBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="schedulePopup" tabindex="-1" role="dialog" aria-labelledby="schedulePopupTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="schedulePopupTitle">Event Schedule</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="schedulePopupBody"></div>
         </div>
       </div>
     </div>

@@ -299,6 +299,20 @@ input:checked + .slider:before {
   display: block;
 }
 
+.scheduleIcon {
+  max-width: 1.5em;
+  max-height: 1.5em;
+}
+
+.scheduleIconLarge {
+  max-width: 2em;
+  max-height: 2em;
+}
+
+.scheduleHeader:hover {
+  cursor: pointer;
+}
+
 
 @media screen and (max-width: 400px) {
   .missionContainer { margin: .25rem .25rem .25rem .25rem }

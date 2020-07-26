@@ -8,7 +8,7 @@ function main() {
   loadModeSettings();
   initializeLocalization();
   initializeMissionData();
-  initializeInfoPopup();
+  initializePopups();
   loadSaveData();
   initializeIntervalFunctions();
   renderMissions();
@@ -60,14 +60,10 @@ function loadModeSettings() {
   $(`#mode-select-main,#mode-select-event`).removeClass("active");
   $(`#mode-select-${currentMode}`).addClass("active");
   
-  let title = (currentMode == "main") ? "Motherland" : "Event";
-  $('#mode-select-title').text(title);
-  $('#mode-select-title').addClass("show");
-  
   // Determine eventScheduleInfo, DATA.event and EVENT_ID based on the Schedule
+  eventScheduleInfo = getCurrentEventInfo();
+  
   if (currentMode == "event" && !EVENT_ID) {
-    eventScheduleInfo = getCurrentEventInfo();
-    
     if (!eventScheduleInfo) {
       $('#alertNoSchedule').addClass("show");
     } else {
@@ -76,17 +72,74 @@ function loadModeSettings() {
     }
   }
   
+  // Set up the top-left title in the navbar
+  let icon = `<img class="scheduleIcon" src="${getImageDirectory()}/schedule.png">`;
+  let eventIcon = `<img class="scheduleIcon" src="img/event/${eventScheduleInfo.ThemeId}/schedule.png">`;
+  let eventName = THEME_ID_TITLE_OVERRIDES[eventScheduleInfo.ThemeId] || eventScheduleInfo.ThemeId;
+  eventName = upperCaseFirstLetter(eventName);
+  let title = (currentMode == "main") ? "Motherland" : eventName;
+  $('#mode-select-title').html(`${icon} ${title}`);
+  $('#mode-select-title').addClass("show");
+  $('#mode-select-event').html(`${eventIcon} ${eventName}`);
+  
   // Set up the icon for the "All Generators" button in the navbar
   let firstResourceId = getData().Resources[0].Id;
   $('#viewAllGeneratorsButton').attr('style', `background-image:url('${getImageDirectory()}/${firstResourceId}.png`);
 }
 
+// Returns the HTML for the body of the schedule popup
+function getSchedulePopup() {
+  let soonestEvents = getSoonestEventInfos();
+  return soonestEvents.map(x => getSchedulePopupEvent(x)).join("<br />");
+}
+
+// Returns the HTML for the schedule event block for a given event
+function getSchedulePopupEvent(eventInfo) {
+  let shortOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+  let longOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', timeZoneName: 'short' };
+  
+  let start = new Date(eventInfo.StartTimeMillis);
+  let startShort = start.toLocaleDateString(undefined, shortOptions);
+  let startLong = start.toLocaleDateString(undefined, longOptions);
+  
+  let end = new Date(eventInfo.EndTimeMillis);
+  let endShort = end.toLocaleDateString(undefined, shortOptions)
+  let endLong = end.toLocaleDateString(undefined, longOptions);
+  
+  let lteId = eventInfo.LteId;
+  let name = ENGLISH_MAP[`lte.${eventInfo.ThemeId}.name`];
+  
+  let completionRewards = eventInfo.Rewards.map(r => `<li>${describeScheduleRankReward(r)}</li>`).join('');
+  
+  return `
+    <div class="card">
+      <div class="card-header scheduleHeader" data-toggle="collapse" data-target="#scheduleBody-${lteId}" aria-controls="scheduleBody-${lteId}">
+        <img src='img/event/${eventInfo.ThemeId}/schedule.png' class="scheduleIconLarge">
+        ${startShort} - ${endShort}
+        <span class="float-right">(+)</span>
+      </div>
+      <div class="collapse" id="scheduleBody-${lteId}">
+        <div class="card-body">
+          <div><strong>${name}</strong><span class="float-right"><a href="?futureEvent=${eventInfo.EndTimeMillis}">View in Tracker</a></span></div><br />
+          <strong>Starts:</strong> ${startLong}<br />
+          <strong>Ends:</strong> ${endLong}<br /><br />
+          <strong>Rank Completion Rewards:</strong><br />
+          <ol>${completionRewards}</ol>
+        </div>
+      </div>
+    </div>`;
+}
+
 // Returns the current event info based on the time and the schedule's cycles
 // "now" is an argument to allow for easier testing, but defaults to the current time.
 function getCurrentEventInfo(now = Date.now()) {
+  return getSoonestEventInfos()[0];
+}
+
+function getSoonestEventInfos(maxEventCount = 10, now = Date.now()) {
   // The current algorithm is: Search events where EndTime > Now and find the one with the minimum EndTime.
   // Currently keeps track of a single minimum, but could return the N lowest (for a schedule) using a priority queue.
-  let soonestEvent = { EndTimeMillis: Infinity, EventInfo: null };
+  let soonestEvents = new PriorityQueue(maxEventCount, value => value.EndTimeMillis);
   
   // oneOffEndTimes is a lookup table of one-offs by their EndTime (integer millis from Epoch).
   // This is used when going through cycles to quickly determine if a one-off interrupts
@@ -94,7 +147,7 @@ function getCurrentEventInfo(now = Date.now()) {
   
   // Iterate through all the one-offs first before doing the cycles
   for (let oneOffEvent of SCHEDULE_CYCLES.LteOneOff) {
-    updateSoonestOneOff(oneOffEvent, now, soonestEvent, oneOffEndTimes);
+    updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes);
   }
   
   // Before iterating through the cycles, limit them to ones that aren't over.
@@ -102,13 +155,20 @@ function getCurrentEventInfo(now = Date.now()) {
   let hoursPerBalanceType = getHoursPerBalanceType();
   
   for (let cycle of currentCycles) {
-    updateSoonestCycle(cycle, now, soonestEvent, oneOffEndTimes, hoursPerBalanceType);
+    updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceType);
   }
   
-  return soonestEvent.EventInfo;
+  // When we pop from the priority queue, they'll go from latest->soonest.
+  // We add each to the start to reverse.
+  let results = [];
+  while (soonestEvents.size() > 0) {
+    results.unshift(soonestEvents.pop());
+  }
+  
+  return results;
 }
 
-function updateSoonestOneOff(oneOffEvent, now, soonestEvent, oneOffEndTimes) {
+function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
   let startTimeMillis = getScheduleTimeMillis(oneOffEvent.StartTime);
   let endTimeMillis = getScheduleTimeMillis(oneOffEvent.EndTime);
   oneOffEndTimes[endTimeMillis] = oneOffEvent;
@@ -124,22 +184,23 @@ function updateSoonestOneOff(oneOffEvent, now, soonestEvent, oneOffEndTimes) {
     }
   }
   
-  if (now < endTimeMillis && endTimeMillis < soonestEvent.EndTimeMillis) {
-    // A new soonest event!
+  if (now < endTimeMillis) {
+    // This event is correctly in the future!
     // Non-legacy one-off's don't currently have a unique identifier, so let's use the endTime's timestamp.
     let lteId = oneOffEvent.LegacyLteId || endTimeMillis;
     
-    soonestEvent.EndTimeMillis = endTimeMillis;
-    soonestEvent.EventInfo = {
+    soonestEvents.push({
       LteId: lteId,
       BalanceId: oneOffEvent.BalanceId,
       ThemeId: oneOffEvent.ThemeId,
+      StartTimeMillis: startTimeMillis,
+      EndTimeMillis: endTimeMillis,
       Rewards: getRewardsById(oneOffEvent.RewardId)
-    };
+    });
   }
 }
 
-function updateSoonestCycle(cycle, now, soonestEvent, oneOffEndTimes, hoursPerBalanceType) {
+function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceType) {
   // Iterate through the cycle until we find the first event where now < EndTime, compare with soonestEvent
   // (For a schedule of N, you could add the first N such events to the priority queue.)
   
@@ -148,6 +209,7 @@ function updateSoonestCycle(cycle, now, soonestEvent, oneOffEndTimes, hoursPerBa
   // Get the first StartTime of the event (Increase days from StartTime until we hit StartDayOfTheWeek)
   let goalDayOfWeek = DAYS.indexOf(cycle.StartDayOfTheWeek);
   let firstStartTime = new Date(getScheduleTimeMillis(cycle.StartTime));
+  let durationHours = hoursPerBalanceType[cycle.BalanceType];
   
   if (goalDayOfWeek == -1) {
     console.log(`ERROR: Cannot understand day of week: ${cycle.StartDayOfTheWeek}`);
@@ -163,32 +225,35 @@ function updateSoonestCycle(cycle, now, soonestEvent, oneOffEndTimes, hoursPerBa
   // From the first start time, calculate the first end time,
   // then iterate through each end time until now < EndTime
   let curCycleIndex = 0;
+  let eventsFound = 0;
   let curEndTime = new Date(firstStartTime);
-  curEndTime.setUTCHours(curEndTime.getUTCHours() + hoursPerBalanceType[cycle.BalanceType]);
+  curEndTime.setUTCHours(curEndTime.getUTCHours() + durationHours);
+  
   let cycleEndTime = new Date(getScheduleTimeMillis(cycle.EndTime));
   
-  while (curEndTime < cycleEndTime) {
+  while (curEndTime < cycleEndTime && eventsFound < soonestEvents.maxSize) {
     // Move forward one week at a time until it's not replaced with a one-off.
     while (curEndTime.getTime() in oneOffEndTimes) {
       curEndTime.setUTCDate(curEndTime.getUTCDate() + 7)
     }
     
     if (now < curEndTime) {
-      // We've reached the first unfinished event of the cycle.  Is it the overall soonest?
-      if (curEndTime.getTime() < soonestEvent.EndTimeMillis) {
-        let balanceId = cycle.LteBalanceIds[curCycleIndex % cycle.LteBalanceIds.length];
-        let rewardId = cycle.LteRewardIds[curCycleIndex % cycle.LteRewardIds.length];
-        let themeId = SCHEDULE_CYCLES.LteBalanceData.find(bal => bal.BalanceId == balanceId).ThemeId;
-        
-        soonestEvent.EndTimeMillis = curEndTime.getTime();
-        soonestEvent.EventInfo = {
-          LteId: curEndTime.getTime(),
-          BalanceId: balanceId,
-          ThemeId: themeId,
-          Rewards: getRewardsById(rewardId)
-        };
-      }
-      return;
+      eventsFound += 1;
+      
+      let balanceId = cycle.LteBalanceIds[curCycleIndex % cycle.LteBalanceIds.length];
+      let rewardId = cycle.LteRewardIds[curCycleIndex % cycle.LteRewardIds.length];
+      let themeId = SCHEDULE_CYCLES.LteBalanceData.find(bal => bal.BalanceId == balanceId).ThemeId;
+      let curStartTime = new Date(curEndTime);
+      curStartTime.setUTCHours(curStartTime.getUTCHours() - durationHours);
+      
+      soonestEvents.push({
+        LteId: curEndTime.getTime(),
+        BalanceId: balanceId,
+        ThemeId: themeId,
+        StartTimeMillis: curStartTime.getTime(),
+        EndTimeMillis: curEndTime.getTime(),
+        Rewards: getRewardsById(rewardId)
+      });
     }
     
     curEndTime.setUTCDate(curEndTime.getUTCDate() + 7)
@@ -233,6 +298,92 @@ function getRewardsById(rewardId) {
     return [];
   }
 }
+
+// Based on https://stackoverflow.com/questions/42919469/efficient-way-to-implement-priority-queue-in-javascript/42919752#42919752
+// Sorry to whoever's reading this that this isn't well-organized
+class PriorityQueue {
+  constructor(maxSize = 0, priorityFunction = (value => value)) {
+    this._heap = [];
+    this._priorityFunction = priorityFunction; // For a given value, what is it's priority? e.g., value => value.Priority
+    this._top = 0;
+    this.maxSize = maxSize; // If maxSize > 0, enforces a maximum size() by the end of each operation.
+  }
+  size() {
+    return this._heap.length;
+  }
+  isEmpty() {
+    return this.size() == 0;
+  }
+  peek() {
+    return this._heap[this._top];
+  }
+  push(...values) {
+    values.forEach(value => {
+      if (this.maxSize <= 0 ||
+          this.size() < this.maxSize ||
+          this._greaterPriority(this.peek(), value)) {
+            
+        this._heap.push(value);
+        this._siftUp();
+      }
+    });
+    while (this.maxSize > 0 && this.size() > this.maxSize) {
+      this.pop();
+    }
+    return this.size();
+  }
+  pop() {
+    const poppedValue = this.peek();
+    const bottom = this.size() - 1;
+    if (bottom > this._top) {
+      this._swap(this._top, bottom);
+    }
+    this._heap.pop();
+    this._siftDown();
+    return poppedValue;
+  }
+  replace(value) {
+    const replacedValue = this.peek();
+    this._heap[this._top] = value;
+    this._siftDown();
+    return replacedValue;
+  }
+  _greaterPriority(i, j) {
+    return this._priorityFunction(i) > this._priorityFunction(j);
+  }
+  _greaterIndex(i, j) {
+    return this._priorityFunction(this._heap[i]) > this._priorityFunction(this._heap[j]);
+  }
+  _swap(i, j) {
+    [this._heap[i], this._heap[j]] = [this._heap[j], this._heap[i]];
+  }
+  _siftUp() {
+    let node = this.size() - 1;
+    while (node > this._top && this._greaterIndex(node, this._parent(node))) {
+      this._swap(node, this._parent(node));
+      node = this._parent(node);
+    }
+  }
+  _siftDown() {
+    let node = this._top;
+    while (
+      (this._left(node) < this.size() && this._greaterIndex(this._left(node), node)) ||
+      (this._right(node) < this.size() && this._greaterIndex(this._right(node), node))
+    ) {
+      let maxChild = (this._right(node) < this.size() &&
+                      this._greaterIndex(this._right(node), this._left(node))) ? 
+                        this._right(node) :
+                        this._left(node);
+      this._swap(node, maxChild);
+      node = maxChild;
+    }
+  }
+  _parent = i => ((i + 1) >>> 1) - 1;
+  _left = i => (i << 1) + 1;
+  _right = i => (i + 1) << 1;
+}
+
+
 
 // Sets up ENGLISH_MAP based on ENGLISH_LOCALIZATION_STRING
 function initializeLocalization() {
@@ -326,7 +477,7 @@ function initializeMainMissionData() {
 }
 
 // Manually initializes popups and popovers, since Bootstrap requires it.
-function initializeInfoPopup() {
+function initializePopups() {
   /* Based on code from https://getbootstrap.com/docs/4.0/components/modal/ */
   $('#infoPopup').on('show.bs.modal', function (event) {
     let button = $(event.relatedTarget); // Button that triggered the modal
@@ -380,6 +531,16 @@ function initializeInfoPopup() {
     activeTab.attr('aria-selected', 'true');
     
     modal.find(`[aria-labelledby="${activeTabId}"]`).addClass('show active');
+    
+    $(function () {
+      $('[data-toggle="popover"]').popover();
+    });
+  });
+  
+  $('#schedulePopup').on('show.bs.modal', function (event) {
+    // Fill in the body
+    let modal = $(this);
+    modal.find('#schedulePopupBody').html(getSchedulePopup());
     
     $(function () {
       $('[data-toggle="popover"]').popover();
@@ -1243,7 +1404,7 @@ var MISSION_EMOJI = {
 function getImageDirectory(overrideDirectory = "") {
   if (overrideDirectory) {
     return overrideDirectory;
-  } else if (eventScheduleInfo && eventScheduleInfo.ThemeId) {
+  } else if (currentMode == "event" && eventScheduleInfo && eventScheduleInfo.ThemeId) {
     return `img/${currentMode}/${eventScheduleInfo.ThemeId}`;
   } else {
     return `img/${currentMode}`;
