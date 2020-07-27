@@ -1294,7 +1294,7 @@ function getRewardIcon(reward, imageOnly = false) {
     fileName = `card-${reward.RewardId}`;
   }
   
-  let imgHtml = `<img class='mx-1 rewardIcon' src='img/main/${fileName}.png'>`;
+  let imgHtml = `<img class='mx-2 rewardIcon' src='img/main/${fileName}.png'>`;
   
   if (imageOnly || reward.Reward == "Gacha") {
     return imgHtml;
