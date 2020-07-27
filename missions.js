@@ -1305,7 +1305,7 @@ function getRewardIcon(reward, imageOnly = false) {
   if (imageOnly || reward.Reward == "Gacha") {
     return imgHtml;
   } else {
-    return `<span class='rewardIconWrapper'>${imgHtml}<span class='rewardIconText'>${shortBigNum(reward.Value)}</span></span>`;
+    return `<span class='rewardIconWrapper'>${imgHtml}<span class='rewardIconText'>${bigNum(reward.Value, 1000, 2)}</span></span>`;
   }
 }
 
