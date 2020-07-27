@@ -126,6 +126,10 @@ input:checked + .slider:before {
   display: inline-block;
 }
 
+.resourceIcon.disabled {
+  opacity: .65;
+}
+
 .inputIcon {
   background-size: contain;
   background-repeat: no-repeat;
@@ -341,6 +345,14 @@ input:checked + .slider:before {
 
 .scheduleHeader:hover {
   cursor: pointer;
+}
+
+.dark .scheduleHeader.selected {
+  background-color: #333;
+}
+
+.scheduleHeader.selected {
+  background-color: #999;
 }
 
 

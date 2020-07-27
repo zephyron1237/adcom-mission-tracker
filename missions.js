@@ -158,12 +158,18 @@ function getSchedulePopupEvent(eventInfo) {
   let lteId = eventInfo.LteId;
   let name = ENGLISH_MAP[`lte.${eventInfo.ThemeId}.name`];
   
+  let headerClasses = "";
+  if (currentMode == "event" && eventInfo.LteId == eventScheduleInfo.LteId) {
+    // This is the currently-tracked event, highlight the header.
+    headerClasses = "selected";
+  }
+  
   let top3RewardIcons = eventInfo.Rewards.slice(-3).map(r => getRewardIcon(r)).join('');
   let completionRewards = eventInfo.Rewards.map(r => `<li><span class="rewardListIconWrapper">${getRewardIcon(r)}</span> ${describeScheduleRankReward(r)}</li>`).join('');
   
   return `
     <div class="card">
-      <div class="card-header scheduleHeader" data-toggle="collapse" data-target="#scheduleBody-${lteId}" aria-controls="scheduleBody-${lteId}">
+      <div class="card-header scheduleHeader ${headerClasses}" data-toggle="collapse" data-target="#scheduleBody-${lteId}" aria-controls="scheduleBody-${lteId}">
         <img src='img/event/${eventInfo.ThemeId}/schedule.png' class="scheduleIconLarge">
         ${startShort} - ${endShort}
         <span class="float-right">${top3RewardIcons} <span class="ml-2">(+)</span></span>
@@ -951,6 +957,10 @@ function renderMissionButton(mission, rank, missionEtas) {
   }
   
   let rewardImageClasses = getRewardImageClass(mission);
+  
+  if (rank != "Completed" && rank != "Current") {
+    rewardImageClasses += " disabled";
+  }
   
   return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="infoButton ${rewardImageClasses} resourceIcon ml-1" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&nbsp;</a>`;
 }
@@ -2049,12 +2059,16 @@ function sortResearchers(researchers) {
   // Map the strings to their positions to cache them for lookup
   let rarityMap = new Map(RARITY_ORDER.map((value, index) => [value, index]));
   let modTypeMap = new Map(MOD_TYPE_ORDER.map((value, index) => [value, index]));
+  let industryMap = getResearcherIndustrySortOrderMap();
   
   // Sort by rarity first, then mod type, then finally by id (just in case)
   // I think the orders listed above are what the game uses, but may take some tuning.
   researchers.sort((left, right) => {
     if (left.Rarity != right.Rarity) {
       return rarityMap.get(left.Rarity) - rarityMap.get(right.Rarity);
+      
+    } else if (industryMap.get(left.TargetIds[0]) != industryMap.get(right.TargetIds[0])) {
+      return industryMap.get(left.TargetIds[0]) - industryMap.get(right.TargetIds[0]);
     
     } else if (left.ModType != right.ModType) {
       return modTypeMap.get(left.ModType) - modTypeMap.get(right.ModType);
@@ -2063,6 +2077,26 @@ function sortResearchers(researchers) {
       return left.Id.localeCompare(right.Id);
     }
   });
+}
+
+// A map of each TargetId (industry/generator/resource) to its industry's index
+var cachedIndustryMap = null;
+function getResearcherIndustrySortOrderMap() {
+  if (cachedIndustryMap) {
+    return cachedIndustryMap;
+  }
+  
+  cachedIndustryMap = new Map(getData().Industries.map((industry, index) => [industry.Id, index]));
+  
+  getData().Industries.forEach( (industry, index) => {
+    cachedIndustryMap.set(getData().Resources[index].Id, index); // assumes Industries[N] corresponds to Resources[N]
+  });
+  
+  getData().Generators.forEach( generator => {
+    cachedIndustryMap.set(generator.Id, cachedIndustryMap.get(generator.IndustryId));
+  });
+  
+  return cachedIndustryMap;
 }
 
 // Returns the html for the contents of a researcher's cell in the grid.
@@ -2352,6 +2386,7 @@ function getTradesTab() {
       <div class="row">`;
   
   let researchers = getData().Researchers.filter(r => r.ModType == "TradePayoutMultiplier");
+  sortResearchers(researchers);
   
   // This is a huge hack until I figure out a better, more responsive way of handling this.
   // If innerWidth is too small (e.g., a phone) only do two columns per row.
