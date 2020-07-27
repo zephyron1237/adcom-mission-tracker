@@ -243,11 +243,11 @@ input:checked + .slider:before {
 }
 
 .wood {
-  background-image: url("img/main/Wood.png");
+  background-image: url("img/main/capsule-wood.png");
 }
 
 .stone {
-  background-image: url("img/main/Stone.png");
+  background-image: url("img/main/capsule-stone.png");
 }
 
 .darkscience {
@@ -307,6 +307,36 @@ input:checked + .slider:before {
 .scheduleIconLarge {
   max-width: 2em;
   max-height: 2em;
+}
+
+.rewardIconWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.rewardIconWrapper .rewardIconText {
+  position: absolute;
+  z-index: 999;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
+  top: 15%;
+  text-align: center;
+  color: white;
+  text-shadow:1px 1px 0px black, 1px -1px 0px black, -1px 1px 0px black, -1px -1px 0px black;
+  font-size: .75em;
+  overflow: hidden;
+}
+
+.rewardIcon {
+  max-width: 1.5em;
+  max-height: 1.5em;
+}
+
+.rewardListIconWrapper {
+  min-width:2.5em;
+  display:inline-block;
+  text-align: center
 }
 
 .scheduleHeader:hover {

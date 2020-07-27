@@ -158,14 +158,15 @@ function getSchedulePopupEvent(eventInfo) {
   let lteId = eventInfo.LteId;
   let name = ENGLISH_MAP[`lte.${eventInfo.ThemeId}.name`];
   
-  let completionRewards = eventInfo.Rewards.map(r => `<li>${describeScheduleRankReward(r)}</li>`).join('');
+  let top3RewardIcons = eventInfo.Rewards.slice(-3).map(r => getRewardIcon(r)).join('');
+  let completionRewards = eventInfo.Rewards.map(r => `<li><span class="rewardListIconWrapper">${getRewardIcon(r)}</span> ${describeScheduleRankReward(r)}</li>`).join('');
   
   return `
     <div class="card">
       <div class="card-header scheduleHeader" data-toggle="collapse" data-target="#scheduleBody-${lteId}" aria-controls="scheduleBody-${lteId}">
         <img src='img/event/${eventInfo.ThemeId}/schedule.png' class="scheduleIconLarge">
         ${startShort} - ${endShort}
-        <span class="float-right">(+)</span>
+        <span class="float-right">${top3RewardIcons} <span class="ml-2">(+)</span></span>
       </div>
       <div class="collapse" id="scheduleBody-${lteId}">
         <div class="card-body">
@@ -283,7 +284,7 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
   while (curEndTime < cycleEndTime && eventsFound < soonestEvents.maxSize) {
     // Move forward one week at a time until it's not replaced with a one-off.
     while (curEndTime.getTime() in oneOffEndTimes) {
-      curEndTime.setUTCDate(curEndTime.getUTCDate() + 7)
+      curEndTime.setUTCDate(curEndTime.getUTCDate() + 7);
     }
     
     if (now < curEndTime) {
@@ -291,6 +292,7 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
       
       let balanceId = cycle.LteBalanceIds[curCycleIndex % cycle.LteBalanceIds.length];
       let rewardId = cycle.LteRewardIds[curCycleIndex % cycle.LteRewardIds.length];
+      
       let themeId = SCHEDULE_CYCLES.LteBalanceData.find(bal => bal.BalanceId == balanceId).ThemeId;
       let curStartTime = new Date(curEndTime);
       curStartTime.setUTCHours(curStartTime.getUTCHours() - durationHours);
@@ -802,7 +804,7 @@ function renderMissions() {
     } else {
       // A generic EVENT rank
       let rankReward = eventScheduleInfo.Rewards[rank - 1];
-      let popupHtml = rankReward ? `<strong>Completion Reward:</strong><br />${describeScheduleRankReward(rankReward)}` : "";
+      let popupHtml = rankReward ? `<strong>Completion Reward:</strong><br />${getRewardIcon(rankReward, true)} ${describeScheduleRankReward(rankReward)}` : "";
       
       let rankResearchers = getData().Researchers.filter(r => r.PlayerRankUnlock == rank);
       if (rankResearchers.length > 0) {
@@ -901,19 +903,19 @@ function getEventCurrentRankTitle() {
 }
 
 function describeScheduleRankReward(reward) {
-  let upperReward = upperCaseFirstLetter(reward.RewardId);
   switch (reward.Reward) {
     case "Resources":
-      if (upperReward == "Scientist") { upperReward = "Science"; }
-      return `${reward.Value} ${upperReward}`;
+      return `${reward.Value} ${resourceName(reward.RewardId)}`;
       break;
       
     case "Gacha":
-      return `${upperReward} capsule.`;
+      let gachaName = ENGLISH_MAP[`gacha.${reward.RewardId}.name`];
+      return `${gachaName} capsule`;
       break;
       
     case "Researcher":
-      return `${reward.Value} ${upperReward} researchers.`;
+      let researcherRarity = ENGLISH_MAP[`researcher.rarity.${reward.RewardId}.name`];
+      return `${reward.Value} ${researcherRarity} researcher${(reward.Value > 1) ? "s" : ""}`;
       break;
   }
 }
@@ -1269,6 +1271,25 @@ function describeReward(reward) {
     
   } else {    
     return `Unknown reward: ${reward.Reward}`;
+  }
+}
+
+// Given a SCHEDULE_CYCLES.LteRewards.Rewards[i] object, return an html string representing the reward as a small icon.
+function getRewardIcon(reward, imageOnly = false) {
+  let fileName = reward.RewardId;
+  
+  if (reward.Reward == "Gacha") {
+    fileName = `capsule-${reward.RewardId}`;
+  } else if (reward.Reward == "Researcher") {
+    fileName = `card-${reward.RewardId}`;
+  }
+  
+  let imgHtml = `<img class='mx-1 rewardIcon' src='img/main/${fileName}.png'>`;
+  
+  if (imageOnly || reward.Reward == "Gacha") {
+    return imgHtml;
+  } else {
+    return `<span class='rewardIconWrapper'>${imgHtml}<span class='rewardIconText'>${shortBigNum(reward.Value)}</span></span>`;
   }
 }
 
