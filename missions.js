@@ -435,9 +435,15 @@ class PriorityQueue {
       node = maxChild;
     }
   }
-  _parent = i => ((i + 1) >>> 1) - 1;
-  _left = i => (i << 1) + 1;
-  _right = i => (i + 1) << 1;
+  _parent(i) {
+     return ((i + 1) >>> 1) - 1;
+  }
+  _left(i) {
+     return (i << 1) + 1;
+  }
+  _right(i) {
+    return (i + 1) << 1;
+  }
 }
 
 
