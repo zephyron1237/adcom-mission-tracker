@@ -268,7 +268,7 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
   let durationHours = hoursPerBalanceType[cycle.BalanceType];
   
   if (goalDayOfWeek == -1) {
-    console.log(`ERROR: Cannot understand day of week: ${cycle.StartDayOfTheWeek}`);
+    console.error(`ERROR: Cannot understand day of week: ${cycle.StartDayOfTheWeek}`);
     return;
   }
   
@@ -2719,6 +2719,11 @@ function getProductionSimDataFromForm() {
   
   setupSimDataGenerators(simData, industryId, formValues);
   
+  // Having 0 qty of every Generator is degenerate.  Let's at least start with 1 of the first.
+  if (hasNoGenerators(simData)) {
+    simData.Counts[simData.Generators[1].Id] = 1; // Generator[0] is the comradegenerator
+  }
+  
   simData.Config.Autobuy = $('#configAutobuy').is(':checked');
   simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');  
   
@@ -2772,6 +2777,21 @@ function setupSimDataGenerators(simData, industryId, formValues, readSavedCounts
       simData.Counts[generator.Id] = formValues.Counts[resourceId][generator.Id] || 0;
     }
   }
+}
+
+// Returns whether all non-comrade generators have 0 count.
+function hasNoGenerators(simData) {
+  if (simData.Generators[0].Id != "comradegenerator") {
+    console.error(`simData.Generators[0] is not "comradegenerator"`);
+  }
+  
+  for (let i = 1; i < simData.Generators.length; i++) {
+    if (simData.Counts[simData.Generators[i].Id] != 0) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 // For a given generator and subset of researchers, returns the derived Speed, Power, CritChance, CritPower and CostReduction
@@ -2997,7 +3017,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
       }
       break;
     default:
-      console.log(`Error: Weird situation! Simulating unknown ConditionType=${condition.ConditionType}`);
+      console.error(`Error: Weird situation! Simulating unknown ConditionType=${condition.ConditionType}`);
   }
     
   // Now do the iteration
