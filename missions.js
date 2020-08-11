@@ -2066,6 +2066,7 @@ function sortResearchers(researchers) {
   let rarityMap = new Map(RARITY_ORDER.map((value, index) => [value, index]));
   let modTypeMap = new Map(MOD_TYPE_ORDER.map((value, index) => [value, index]));
   let industryMap = getResearcherIndustrySortOrderMap();
+  let generatorMap = new Map(getData().Generators.map((gen, index) => [gen.Id, index]));
   
   // Sort by rarity first, then mod type, then finally by id (just in case)
   // I think the orders listed above are what the game uses, but may take some tuning.
@@ -2079,7 +2080,10 @@ function sortResearchers(researchers) {
     } else if (left.ModType != right.ModType) {
       return modTypeMap.get(left.ModType) - modTypeMap.get(right.ModType);
       
-    } else {
+    } else if (generatorMap.get(left.TargetIds[0]) != generatorMap.get(right.TargetIds[0])) {
+      return generatorMap.get(left.TargetIds[0]) - generatorMap.get(right.TargetIds[0]);
+      
+    }  else {
       return left.Id.localeCompare(right.Id);
     }
   });
