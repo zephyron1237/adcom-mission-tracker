@@ -1,0 +1,382 @@
+/* Provided by Manifold0 */
+:root {
+  --red: 28;
+  --green: 150;
+  --blue: 130;
+
+  --accessible-color: calc(
+    (
+      (
+        (var(--red) * 299) +
+        (var(--green) * 587) +
+        (var(--blue) * 114)
+      ) - 128000 /* HIGHLIGHT */
+    ) * -1000
+  );
+}
+
+.dark .btn-outline-secondary,
+.dark .btn-outline-success,
+.dark .btn-outline-danger,
+.dark .btn-outline-secondary.disabled,
+.dark .btn-outline-success.disabled,
+.dark .btn-outline-danger.disabled {
+  color:
+    rgb(
+      var(--accessible-color),
+      var(--accessible-color),
+      var(--accessible-color)
+    );
+  background-color:
+    rgb(
+      var(--red),
+      var(--green),
+      var(--blue)
+    );
+}
+
+
+/* Taken from https://www.w3schools.com/howto/howto_css_switch.asp */
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+
+.currentRank {
+  color: #788781;	
+}
+
+.researcherName {
+  text-decoration: underline dotted;
+  color: inherit;
+  cursor: pointer;
+}
+
+.researcherName:hover {
+  text-decoration: underline dotted;
+  color: inherit;
+  cursor: pointer;
+}
+
+.resourceIcon {
+  height:1.5em;
+  width:1.5em;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+}
+
+.resourceIcon.disabled {
+  opacity: .65;
+}
+
+.inputIcon {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.capsule {
+  height: 1.5em;
+  width: 1.2em;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;  
+  display: inline-block;
+}
+
+.infoButton, .infoButton:hover, .infoButton:focus {
+  text-decoration: none;
+  vertical-align: middle;
+}
+
+.infoButton:hover {
+  cursor: pointer;
+}
+
+.scriptedRewardInfo {
+  border:1px solid grey;
+  border-radius: 50%;
+}
+
+.calcTable {
+  width: 100%;
+  border-collapse:separate;
+  border-spacing: 0 .5rem;
+}
+
+.calcTable td {
+  width: 50%;  
+}
+
+.researcherCard {
+  width: 100px;
+  height: 125px;
+  background-size: 100px 125px;
+  background-repeat: no-repeat;
+  background-position: center;
+  border: 4px solid black;
+  border-radius: 4px;
+}
+
+.researcherLteCommon {
+  background-color: lightgrey;
+}
+
+.researcherLteRare {
+  background-color: lightblue;
+}
+
+.researcherCommon {
+  background-color: lightgrey;
+}
+
+.researcherRare {
+  background-color: lightyellow;
+}
+
+.researcherEpic {
+  background-color: plum;
+}
+
+.researcherSupreme {
+  background-color: lightpink;
+}
+
+.propagandaBoost {
+  background-color: black;
+}
+
+.researcherIcon {
+  background-color: rgba(0, 0, 0, 0.5);
+  height:35px;
+  width:35px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  border-radius: 0 0 0 4px;
+}
+
+.researcherLevel {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: lightblue;
+  font-weight: bold;
+  
+  width: 92px;
+  height: 1.5em;
+  position: absolute;
+  bottom: 2.5em;
+}
+
+.researcherLevelButton {
+  width: 1em;
+  border: 1px outset;
+}
+
+.researcherLevelButton:hover {
+  cursor: pointer;
+}
+
+.plastic {
+  background-image: url("img/event/plastic.png");
+}
+
+.armored {
+  background-image: url("img/event/armored.png");
+}
+
+.wood {
+  background-image: url("img/main/capsule-wood.png");
+}
+
+.stone {
+  background-image: url("img/main/capsule-stone.png");
+}
+
+.darkscience {
+  background-image: url("img/event/darkscience.png");
+}
+
+.science {
+  background-image: url("img/main/scientist.png");
+}
+
+.comrades {
+  background-image: url("img/shared/comrade.png");
+}
+
+.comradesPerSec, .TradePayoutMultiplier {
+  background-image: url("img/shared/comrades_per_second.png");
+}
+
+.power, .GeneratorPayoutMultiplier {
+  background-image: url("img/shared/boost_power.png");
+}
+
+.discount, .GeneratorCostReduction {
+  background-image: url("img/shared/discount.png");
+}
+
+.critChance, .GeneratorCritChance {
+  background-image: url("img/shared/crit_chance.png");
+}
+
+.critPower, .GeneratorCritPowerMult {
+  background-image: url("img/shared/crit_power.png");
+}
+
+.speed, .GenManagerAndSpeedMult {
+  background-image: url("img/shared/speed.png");
+}
+
+.cardIcon {
+  background-image: url("img/shared/card.png");
+}
+
+.missionContainer {
+  display: inline-block;
+}
+
+.calcInputContainer {
+  overflow: hidden;
+  display: block;
+}
+
+.scheduleIcon {
+  max-width: 1.5em;
+  max-height: 1.5em;
+}
+
+.scheduleIconLarge {
+  max-width: 2em;
+  max-height: 2em;
+}
+
+.rewardIconWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.rewardIconWrapper .rewardIconText {
+  position: absolute;
+  z-index: 999;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
+  top: 15%;
+  text-align: center;
+  color: white;
+  text-shadow:1px 1px 0px black, 1px -1px 0px black, -1px 1px 0px black, -1px -1px 0px black;
+  font-size: .75em;
+  overflow: hidden;
+}
+
+.rewardIcon {
+  max-width: 1.5em;
+  max-height: 1.5em;
+}
+
+.rewardListIconWrapper {
+  min-width:2.5em;
+  display:inline-block;
+  text-align: center
+}
+
+.scheduleHeader:hover {
+  cursor: pointer;
+}
+
+.dark .scheduleHeader.selected {
+  background-color: #333;
+}
+
+.scheduleHeader.selected {
+  background-color: #999;
+}
+
+
+@media screen and (max-width: 400px) {
+  .missionContainer { margin: .25rem .25rem .25rem .25rem }
+  .missionContainer > button { width: 250px; }
+}
+
+@media screen and (min-width: 401px) and (max-width: 600px) {
+  .missionContainer { margin: .25rem .25rem .25rem .25rem }
+  .missionContainer > button { width: 275px; }
+}
+
+@media screen and (min-width: 601px) and (max-width: 700px) {
+  .missionContainer { margin: .25rem .25rem .25rem .25rem }
+  .missionContainer > button { width: 225px; }
+}
+
+@media screen and (min-width: 701px) and (max-width: 1100px) {
+  .missionContainer { margin: .25rem .25rem .25rem .25rem }
+  .missionContainer > button { width: 225px; }
+}
+
+@media screen and (min-width: 1101px) {
+  .missionContainer { margin: .25rem 1rem .25rem 1rem }
+  .missionContainer > button { width: 300px; }
+}
