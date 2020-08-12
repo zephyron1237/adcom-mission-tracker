@@ -46,6 +46,7 @@ function loadModeSettings() {
         
         if (keyValue[1] == "event") {
           setGameLocal("CurrentMode", "event");
+          console.log(getGameLocal("CurrentMode"));
         } else if (keyValue[1] == "main") {
           setGameLocal("CurrentMode", "main");
         } else if (parseInt(keyValue[1])) {
@@ -134,6 +135,9 @@ function loadModeSettings() {
   // Set up the icon for the "All Generators" button in the navbar
   let firstResourceId = getData().Resources[0].Id;
   $('#viewAllGeneratorsButton').attr('style', `background-image:url('${getImageDirectory()}/${firstResourceId}.png`);
+
+
+  console.log(getGameLocal("CurrentMode"));
 }
 
 // Returns the HTML for the body of the schedule popup
@@ -1667,15 +1671,15 @@ function removeGlobal(key) {
 }
 
 // The "gameLocal" methods are intended for game-specific settings (like whether you were tracking main or an event last)
-function getGameLocal(mode, key) {
+function getGameLocal(key) {
   return localStorage.getItem(`${GAME_SAVE_KEY_PREFIX}${key}`);
 }
 
-function setGameLocal(mode, key, value) {
+function setGameLocal(key, value) {
   localStorage.setItem(`${GAME_SAVE_KEY_PREFIX}${key}`, value);
 }
 
-function removeGameLocal(mode, key) {
+function removeGameLocal(key) {
   localStorage.removeItem(`${GAME_SAVE_KEY_PREFIX}${key}`);
 }
 
