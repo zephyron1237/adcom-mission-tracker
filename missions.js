@@ -45,11 +45,11 @@ function loadModeSettings() {
         // Parse ?rank=X
         
         if (keyValue[1] == "event") {
-          localStorage.setItem("CurrentMode", "event");
+          setGameLocal("CurrentMode", "event");
         } else if (keyValue[1] == "main") {
-          localStorage.setItem("CurrentMode", "main");
+          setGameLocal("CurrentMode", "main");
         } else if (parseInt(keyValue[1])) {
-          localStorage.setItem("CurrentMode", "main");
+          setGameLocal("CurrentMode", "main");
           setLocal("main", "CurrentRank", keyValue[1]);
         }
         
@@ -64,21 +64,21 @@ function loadModeSettings() {
         let eventCandidate = getCurrentEventInfo(eventTime - 1);
         if (eventCandidate.EndTimeMillis == eventTime) {
           eventScheduleInfo = eventCandidate;
-          localStorage.setItem("CurrentMode", "event");
+          setGameLocal("CurrentMode", "event");
         }
         
       } else if (keyValue[0] == "timeOverride") {
         // Parse ?timeOverride=
         
         now = parseInt(keyValue[1]);
-        localStorage.setItem("CurrentMode", "event");
+        setGameLocal("CurrentMode", "event");
         
       } else if (keyValue[0] == "eventOverride"
                   && keyValue[1] in DATA && keyValue[1] != "main") {
         // Parse ?eventOverride=X
         
         // This is a quick hack to allow switching to non-current events.
-        localStorage.setItem("CurrentMode", "event");
+        setGameLocal("CurrentMode", "event");
         DATA.event = DATA[keyValue[1]];
         eventScheduleInfo = {
           LteId: keyValue[1],
@@ -95,7 +95,7 @@ function loadModeSettings() {
   }
   
   // Get values from URL params > previous save > defaults.
-  currentMode = localStorage.getItem("CurrentMode") || currentMode;
+  currentMode = getGameLocal("CurrentMode") || currentMode;
   currentMainRank = parseInt(getLocal("main", "CurrentRank")) || currentMainRank;
   
   // Determine eventScheduleInfo and DATA.event based on the Schedule (if needed).
@@ -112,7 +112,7 @@ function loadModeSettings() {
   let eventIcon = `<img class="scheduleIcon" src="img/event/${eventScheduleInfo.ThemeId}/schedule.png">`;
   let eventName = THEME_ID_TITLE_OVERRIDES[eventScheduleInfo.ThemeId] || eventScheduleInfo.ThemeId;
   eventName = upperCaseFirstLetter(eventName);
-  let title = (currentMode == "main") ? "Motherland" : eventName;
+  let title = (currentMode == "main") ? THEME_ID_TITLE_OVERRIDES["main"] : eventName;
   
   // The top-left dropdown always shows the current event, regardless of overrides.
   let trueCurrentEvent = getCurrentEventInfo();
@@ -614,10 +614,10 @@ function initializePopups() {
 // Loads settings, and then save data, editing missionData in-place differently for main/events.
 function loadSaveData() {
   // Load configuration first
-  let iconConfig = localStorage.getItem("IconConfig") || "image";
+  let iconConfig = getGlobal("IconConfig") || "image";
   setIcons(iconConfig, false);
   
-  let styleConfig = localStorage.getItem("StyleConfig") || "light";
+  let styleConfig = getGlobal("StyleConfig") || "light";
   setStyle(styleConfig);
   
   setListStyle(isListActive(), false);
@@ -1274,7 +1274,7 @@ function describeReward(reward) {
       let script = getData().GachaScripts.find(s => s.GachaId == gacha.Id);
       if (!script) { return `Unknown gacha script id: ${gacha.Id}`; }      
             
-      let gold = script.Gold ? `${script.Gold} Gold` : null;
+      let gold = script.Gold ? `${script.Gold} ${resourceName('gold')}` : null;
       let science = script.Science ? `${script.Science}<span class="resourceIcon darkscience">&nbsp;</span>` : null;      
       let cards = script.Card.map(card => `<span class="text-nowrap">${cardValueCount(card)}${describeResearcher(getData().Researchers.find(r => r.Id == card.Id))}</span>`).join(', ') || null;
       
@@ -1348,9 +1348,9 @@ function getResearcherBasicDetails(researcher) {
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       resources = researcher.TargetIds[0].split(/, ?/).map(res => resourceName(res));
       if (resources.length == getData().Industries.length) {
-        return `All trades grant ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
+        return `All trades grant ${vals[0]}x/${vals[1]}x/${vals[2]}x/... ${resourceName('comrade')}`;
       } else {
-        return `Trading ${resources.join('/')} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... comrades`;
+        return `Trading ${resources.join('/')} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... ${resourceName('comrade')}`;
       }
       break;
       
@@ -1469,7 +1469,7 @@ function getImageDirectory(overrideDirectory = "") {
 function getMissionIcon(resourceId, missionConditionType, overrideIcon = "", overrideDirectory = "") {
   let imgDirectory = getImageDirectory(overrideDirectory);
   
-  let iconConfig = overrideIcon || localStorage.getItem("IconConfig");
+  let iconConfig = overrideIcon || getGlobal("IconConfig");
   if (iconConfig == "none") {
     return "";
   } else if (iconConfig == "emoji") {
@@ -1493,7 +1493,7 @@ function toggleCompleted() {
 
 // Run whenever the icon setting changes (OnClick) or is initialized.
 function setIcons(iconType, shouldRenderMissions = true) {
-  localStorage.setItem('IconConfig', iconType);
+  setGlobal('IconConfig', iconType);
   $('.config-icon').removeClass('active');
   $(`#config-icon-${iconType}`).addClass('active');
   
@@ -1509,7 +1509,7 @@ var StylesheetUrls = {
 
 // Run whenever the style setting changes (OnClick) or is initialized.
 function setStyle(styleType) {
-  localStorage.setItem('StyleConfig', styleType);
+  setGlobal('StyleConfig', styleType);
   $('.config-style').removeClass('active');
   $(`#config-style-${styleType}`).addClass('active');
   
@@ -1523,13 +1523,13 @@ function setStyle(styleType) {
 
 // Run OnClick for the list style option.
 function toggleListStyle() {
-  let currentListStyle = localStorage.getItem('ListStyleActiveConfig');
+  let currentListStyle = getGlobal('ListStyleActiveConfig');
   setListStyle(!(currentListStyle == "true"));
 }
 
 // Run whenever the list style option changes (OnClick) or is initialized.
 function setListStyle(isListActive, shouldRenderMissions = true) {
-  localStorage.setItem('ListStyleActiveConfig', isListActive);
+  setGlobal('ListStyleActiveConfig', isListActive);
   
   if (isListActive) {
     $('#config-style-list').addClass('active');
@@ -1543,7 +1543,7 @@ function setListStyle(isListActive, shouldRenderMissions = true) {
 }
 
 function isListActive() {
-  return (localStorage.getItem('ListStyleActiveConfig') == "true");
+  return (getGlobal('ListStyleActiveConfig') == "true");
 }
 
 // Prompts the user for a rank and attempts to advance their progress to that rank.
@@ -1640,6 +1640,7 @@ function selectNewRank() {
 
 
 // getLocal, setLocal and removeLocal is a layer of abstraction that creates a key name based on the mode and given key.
+// The "local" methods are intended for data specific to in instance of main or an event in a specific game.
 function getLocal(mode, key) {
   return localStorage.getItem(`${getModeKey(mode)}-${key}`);
 }
@@ -1652,12 +1653,38 @@ function removeLocal(mode, key) {
   localStorage.removeItem(`${getModeKey(mode)}-${key}`);
 }
 
-// returns "main" or "event-########" based on the mode and tracked event.
+// The "global" methods are intended for things that are shared amongst every mode and game, like settings.
+function getGlobal(key) {
+  return localStorage.getItem(key);
+}
+
+function setGlobal(key, value) {
+  localStorage.setItem(key, value);
+}
+
+function removeGlobal(key) {
+  localStorage.removeItem(key);
+}
+
+// The "gameLocal" methods are intended for game-specific settings (like whether you were tracking main or an event last)
+function getGameLocal(mode, key) {
+  return localStorage.getItem(`${GAME_SAVE_KEY_PREFIX}${key}`);
+}
+
+function setGameLocal(mode, key, value) {
+  localStorage.setItem(`${GAME_SAVE_KEY_PREFIX}${key}`, value);
+}
+
+function removeGameLocal(mode, key) {
+  localStorage.removeItem(`${GAME_SAVE_KEY_PREFIX}${key}`);
+}
+
+// returns "main" or "event-########" (with prefix) based on the mode and tracked event.
 function getModeKey(mode) {
   if (mode == "event") {
-    return `event-${eventScheduleInfo.EndTimeMillis}`;
+    return `${GAME_SAVE_KEY_PREFIX}event-${eventScheduleInfo.EndTimeMillis}`;
   } else {
-    return mode;
+    return `${GAME_SAVE_KEY_PREFIX}${mode}`;
   }
 }
 
@@ -1714,7 +1741,7 @@ function renderCalculator(mission) {
     html += `<hr /><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label></div>`;
     
     if (conditionType == "ResourceQuantity") {
-      html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configComradeLimited" onclick="clickComradeLimited('${condition.ConditionId}')"><label class="form-check-label" for="configComradeLimited">Limited by comrades only</label></div>`;
+      html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configComradeLimited" onclick="clickComradeLimited('${condition.ConditionId}')"><label class="form-check-label" for="configComradeLimited">Limited by ${resourceName('comrade')} only</label></div>`;
     }
     
     html += `<div class="form-inline"><label for="configMaxDays" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"> 
@@ -1811,8 +1838,8 @@ function getGeneratorsTab(mission, industryId) {
   html += "<hr />";
   
   let cpsDefaultValue = formValues.Trades.TotalComrades || "";
-  html += getResourceInput("comrades", "# of Comrades", `${imgDirectory}/comrade.png`, "# of Comrades");
-  html += getResourceInput("comradesPerSec", "Comrades/second", "img/shared/comrades_per_second.png", "Comrades Per Second", cpsDefaultValue);
+  html += getResourceInput("comrades", `# of ${resourceName('comrade')}`, `${imgDirectory}/comrade.png`, `# of ${resourceName('comrade')}`);
+  html += getResourceInput("comradesPerSec", `${resourceName('comrade')}/second`, "img/shared/comrades_per_second.png", `${resourceName('comrade')} Per Second`, cpsDefaultValue);
   
   return html;
 }

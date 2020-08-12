@@ -34,9 +34,13 @@ var SCHEDULE_CYCLES = {"LteBalanceData":[{"BalanceId":"ninja-bal-1","DurationHou
 // These are used for the event's title in the top-left nav menu.
 // Typically, the ThemeId is used directly, but some themes are poorly-named.
 var THEME_ID_TITLE_OVERRIDES = {
-  "attack": "oil",
-  "defense": "shield"
+  "main": "Motherland",
+  "attack": "Oil",
+  "defense": "Shield"
 };
+
+// So that AdCom can have "CurrentMode" and Ages can have "Ages-CurrentMode"
+var GAME_SAVE_KEY_PREFIX = "";
 
 
 // This gets filled in during mission.js's main(). After that, ENGLISH_MAP["active"] == "Active"
