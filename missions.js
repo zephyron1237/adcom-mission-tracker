@@ -2599,7 +2599,7 @@ function getTradesForCost(cost, tradeInfo) {
 
 function clickComradeLimited(generatorId) {
   let checked = $('#configComradeLimited').is(':checked');
-  $("#calc input[type='text'],input[type='number']").not(`#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
+  $("#generators input[type='text'],input[type='number']").not(`#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
 }
 
 // Called OnClick for "Calculate!"  Interprets input, runs calc/sim, and outputs result.
