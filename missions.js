@@ -2209,7 +2209,7 @@ function getPropagandaBoostCard(formValues) {
   let level = formValues.ResearcherLevels.PropagandaBoost || 0;
   
   let imgDirectory = getImageDirectory();
-  let backgroundImageUrl = (level == 0) ? "img/shared/propaganda_boost_off.png" : "img/shared/propaganda_boost_on.png";
+  let backgroundImageUrl = (level == 0) ? "img/shared/propaganda_boost_off.png" : `${imgDirectory}/propaganda_boost_on.png`;
   let targetIconUrl = `${imgDirectory}/multi-industry.png`;
   
   let levelText = (level == 0) ? "Inactive" : "Active";

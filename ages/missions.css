@@ -205,6 +205,7 @@ input:checked + .slider:before {
 
 .propagandaBoost {
   background-color: black;
+  background-size: contain;
 }
 
 .researcherIcon {
