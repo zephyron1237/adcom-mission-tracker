@@ -815,9 +815,21 @@ function renderMissions() {
       title = `Rank ${rank}<span class="float-right btn-group" role="group">${buttonsHtml}</span>`;
     } else {
       // A generic EVENT rank
+      // Create the event rank popup.  Start with Completion Reward, if possible
       let rankReward = eventScheduleInfo.Rewards[rank - 1];
       let popupHtml = rankReward ? `<strong>Completion Reward:</strong><br />${getRewardIcon(rankReward, true)} ${describeScheduleRankReward(rankReward)}` : "";
       
+      // On the special case of Rank 1, the popup shows the first scripted free capsule.
+      let firstFreeId = getData().GachaFreeCycle[0].ScriptId;
+      if (rank == 1 && firstFreeId) {
+        let firstFreeScripted = getData().GachaScripts.find(script => script.GachaId == firstFreeId);
+        let freeScience = `${firstFreeScripted.Science} <img class='rewardIcon' src='img/event/darkscience.png'> `;
+        let freeResearchers = firstFreeScripted.Card.map(card => `<span class='text-nowrap'>${card.Value}x <img class='rewardIcon' src='img/shared/card.png'> ${researcherName(card.Id)}</span>`);
+        let freeRewards = [freeScience, ...freeResearchers].join(', ');
+        popupHtml += `${popupHtml ? "<hr />" : ""}<strong>First Free Capsule:</strong><br />${freeRewards}`;
+      }
+      
+      // Finally, the popup show the researchers that get added that rank
       let rankResearchers = getData().Researchers.filter(r => r.PlayerRankUnlock == rank);
       if (rankResearchers.length > 0) {
         let rankResearcherDescriptions = rankResearchers.map(r => `<div class='resourceIcon cardIcon'>&nbsp;</div>${researcherName(r)}: <em>${getResearcherBasicDetails(r)}</em>`);
