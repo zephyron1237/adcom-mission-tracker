@@ -229,12 +229,12 @@ function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
   let endTimeMillis = getScheduleTimeMillis(oneOffEvent.EndTime);
   oneOffEndTimes[endTimeMillis] = oneOffEvent;
   
-  // SPECIAL CASE: If a one-off lasts for more than a week, mark all of its days as end times.
+  // SPECIAL CASE: If a one-off lasts for more than a week, mark all of its hours as end times.
   // (This will, e.g., make sure that a mini-event will see a one-off in its spot during Santa)
   if ((endTimeMillis - startTimeMillis) > 1000*60*60*24*7) {
     for (let fakeEndTime = new Date(endTimeMillis);
          fakeEndTime.getTime() > startTimeMillis;
-         fakeEndTime.setUTCDate(fakeEndTime.getUTCDate() - 1)) {
+         fakeEndTime.setUTCHours(fakeEndTime.getUTCHours() - 1)) {
            
            oneOffEndTimes[fakeEndTime.getTime()] = oneOffEvent;
     }
