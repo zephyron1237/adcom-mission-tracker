@@ -134,35 +134,7 @@ function loadModeSettings() {
   // Set up the icon for the "All Generators" button in the navbar
   let firstResourceId = getData().Resources[0].Id;
   $('#viewAllGeneratorsButton').attr('style', `background-image:url('${getImageDirectory()}/${firstResourceId}.png`);
-  
-  
-  initializeTempVoteNotice(now); // TODO: Remove after Nov 3
 }
-
-
-
-// TODO: Remove after Nov 3
-// Show users geolocated in the US a one-time alert about voting.
-function initializeTempVoteNotice(now = Date.now()) {
-  // Only display between October 20 and November 4
-  if (now < (new Date("2020-10-20")) || now > (new Date("2020-11-04"))) {
-    return;
-  }
-  
-  // Directly access local storage to show once across all trackers.
-  if (!localStorage.getItem("seen-vote2020-notice")) {
-    $.getJSON('https://freegeoip.app/json/')
-      .done(function(data) {
-        if (data.country_name == "United States") {
-          $('#alertVote2020').removeClass("collapse");
-        }
-       })
-      .always(function() {
-        localStorage.setItem("seen-vote2020-notice", "true");
-       });
-  }
-}
-
 
 
 // Returns the HTML for the body of the schedule popup
