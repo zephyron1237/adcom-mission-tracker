@@ -134,6 +134,11 @@ function loadModeSettings() {
   // Set up the icon for the "All Generators" button in the navbar
   let firstResourceId = getData().Resources[0].Id;
   $('#viewAllGeneratorsButton').attr('style', `background-image:url('${getImageDirectory()}/${firstResourceId}.png`);
+  
+  // Show a "datamined" warning for future ranks that aren't in the current version
+  if (DATAMINE_WARNING_MIN_RANK && currentMode == "main" && currentMainRank >= DATAMINE_WARNING_MIN_RANK) {
+    $('#alertUnconfirmed').removeClass('collapse')
+  }
 }
 
 

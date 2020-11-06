@@ -41,6 +41,9 @@ var THEME_ID_TITLE_OVERRIDES = {
   "defense": "Shield"
 };
 
+// If not undefined, will show a datamining warning starting at the given rank
+var DATAMINE_WARNING_MIN_RANK = 116;
+
 // So that AdCom can have "CurrentMode" and Ages can have "Ages-CurrentMode"
 var GAME_SAVE_KEY_PREFIX = "";
 
