@@ -1721,7 +1721,14 @@ function renderCalculator(mission) {
     // First figure out which industry to display and calculate
     let industryId = "";
     if (conditionType == "ResourceQuantity") {
-      industryId = getGenerator(condition.ConditionId).IndustryId;
+      let generator = getGenerator(condition.ConditionId);
+      if (generator) {
+        // A normal "Own Generator" mission
+        industryId = generator.IndustryId;
+      } else {
+        // A stupid "Own Resource" mission
+        industryId = getIndustryByResource(condition.ConditionId).Id;
+      }
     } else if (conditionType == "IndustryUnlocked") {
       // Choose the industry to the left of the one to unlock.
       let unlockableIndustryIndex = getData().Industries.findIndex(i => i.Id == condition.ConditionId);
