@@ -3052,14 +3052,16 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
       goals = [{ Resource: industry.UnlockCostResourceId.toLowerCase(), Qty: industry.UnlockCostResourceQty }];
       break;
     case "ResourceQuantity":
-      if (simData.Config.Autobuy) {
+      let simGenerator = simData.Generators.find(g => g.Id == condition.ConditionId);
+      if (simData.Config.Autobuy || !simGenerator) {
         // If Autobuy is enabled, we can assume reaching the condition is plausible
+        // If simGenerator is undefined, it's a stupid "Own Resource" mission.
         goals = [{ Resource: condition.ConditionId, Qty: condition.Threshold }];
       } else {
         // Instead of directly waiting until we get N generators, we figure out the cost difference
         // This is since we might not be able to reach the condition directly without autobuy.
         let gensNeeded = condition.Threshold - simData.Counts[condition.ConditionId];
-        for (let cost of simData.Generators.find(g => g.Id == condition.ConditionId).Cost) {
+        for (let cost of simGenerator.Cost) {
           if (cost.Resource == "comrade") {
             goals.push(({ Resource: "comradeProgress", Qty: cost.Qty * gensNeeded }));
             simData.Counts["comradeProgress"] = simData.Counts["comrade"];
