@@ -1293,7 +1293,8 @@ function describeReward(reward) {
       if (!script) { return `Unknown gacha script id: ${gacha.Id}`; }      
             
       let gold = script.Gold ? `${script.Gold} ${resourceName('gold')}` : null;
-      let science = script.Science ? `${script.Science}<span class="resourceIcon darkscience">&nbsp;</span>` : null;      
+      let scienceIcon = (currentMode == "main") ? "science" : "darkscience";
+      let science = script.Science ? `${script.Science}<span class="resourceIcon ${scienceIcon}">&nbsp;</span>` : null;      
       let cards = script.Card.map(card => `<span class="text-nowrap">${cardValueCount(card)}${describeResearcher(getData().Researchers.find(r => r.Id == card.Id))}</span>`).join(', ') || null;
       
       let rewards = [gold, science, cards].filter(x => x != null).join('. ');
