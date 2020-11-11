@@ -1246,33 +1246,34 @@ function describeMission(mission, overrideIcon = "") {
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
       textHtml =`Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
-    case "ResearchersUpgradedSinceSubscription":
-      iconHtml = getMissionIcon("upgrade", condition.ConditionType, overrideIcon, "img/shared");
+    case "ResearchersUpgradedSinceSubscription": {
+      let overrideDirectory = (currentMode == "event") ? "img/event" : "";
+      iconHtml = getMissionIcon("upgrade", condition.ConditionType, overrideIcon, overrideDirectory);
       textHtml = `Upgrade Cards (${condition.Threshold})`;
       break;
-    case "ResourceQuantity":
+    } case "ResourceQuantity": {
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
       textHtml = `Own ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold).replace(/ /g, '&nbsp;')})`;
       break;
-    case "IndustryUnlocked":
+    } case "IndustryUnlocked": {
       let resourceId = getResourceByIndustry(condition.ConditionId).Id;      
       iconHtml = getMissionIcon(resourceId, condition.ConditionType, overrideIcon);
       textHtml = `Unlock ${resourceName(resourceId)}`;
       break;
-    case "ResourcesEarnedSinceSubscription":
+    } case "ResourcesEarnedSinceSubscription": {
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
       textHtml = `Collect ${resourceName(condition.ConditionId)} (${bigNum(condition.Threshold).replace(/ /g, '&nbsp;')})`;
       break;
-    case "ResearcherCardsEarnedSinceSubscription":
+    } case "ResearcherCardsEarnedSinceSubscription": {
       iconHtml = getMissionIcon("card", condition.ConditionType, overrideIcon, "img/shared");
       textHtml = `Collect Cards (${condition.Threshold})`;
       break;
-    case "ResourcesSpentSinceSubscription":
+    } case "ResourcesSpentSinceSubscription": {
       let overrideDirectory = (currentMode == "event") ? "img/event" : "";  // Use /img/event/ of /img/event/theme/
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon, overrideDirectory);
       textHtml = `Spend ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
-    default:
+    } default:
       return `Unknown mission condition: ${condition.ConditionType}`;
   }
   
