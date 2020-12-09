@@ -21,7 +21,9 @@ function loadModeSettings() {
   // + (none)
   //   -  Opens motherland or the current event, whichever was used last.
   // + ?rank=X
-  //   -  X can be "event" (for current event) or a motherland rank (1-MAX_RANK)
+  //   -  X can be "event" (for current event), "main", or a motherland rank (1-MAX_RANK)
+  // + ?mode=X
+  //   -  X can be "event", "main", or "schedule" (intended to depricate rank=X for these values)
   // + ?event=X
   //   -  X is any event's EndTime, in milliseconds from epoch UTC.
   // + ?eventOverride=X
@@ -51,6 +53,18 @@ function loadModeSettings() {
         } else if (parseInt(keyValue[1])) {
           setGameLocal("CurrentMode", "main");
           setLocal("main", "CurrentRank", keyValue[1]);
+        }
+        
+      } else if (keyValue[0] == "mode") {
+        // Parse ?mode=X
+        
+        if (keyValue[1] == "event") {
+          setGameLocal("CurrentMode", "event");
+        } else if (keyValue[1] == "main") {
+          setGameLocal("CurrentMode", "main");
+        } else if (keyValue[1] == "schedule") {
+          // Open the schedule popup when the page loads
+          $(function() { $('#schedulePopup').modal(); })
         }
         
       } else if (keyValue[0] == "event") {
