@@ -500,13 +500,14 @@ function initializeEventMissionData() {
   
   let rank = 0;
   let missionsLeft = 0;
-  for (let missionIndex in getData().Missions) {
+  let missions = getMissions();
+  for (let missionIndex in missions) {
     if (missionsLeft == 0) {
       rank += 1;
       
       if (rank >= getData().Ranks.length) {
         // I'm not sure how the game presents this, but the stretch goals will be considered of one next rank
-        missionsLeft = getData().Missions.length - missionIndex + 2;
+        missionsLeft = missions.length - missionIndex + 2;
       } else {
         missionsLeft = parseInt(getData().Ranks[rank].Missions);
       }
@@ -523,7 +524,7 @@ function initializeEventMissionData() {
       }
     }
     
-    let mission = getData().Missions[missionIndex];
+    let mission = missions[missionIndex];
     mission.Rank = rank;
     mission.Index = parseInt(missionIndex);
     missionData[mission.Rank].Remaining.push(mission);
@@ -543,13 +544,14 @@ function initializeMainMissionData() {
   missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: 3, Remaining: []}, OtherRankMissionIds: []};
   
   // Assign indices for sorting
-  for (let mIndex = 0; mIndex < getData().Missions.length; mIndex++) {
-    getData().Missions[mIndex].Index = mIndex;
+  let missions = getMissions();
+  for (let mIndex = 0; mIndex < missions.length; mIndex++) {
+    missions[mIndex].Index = mIndex;
   }
   
   // Fill in ranks
   for (let rank of getData().Ranks) {
-    let rankMissions = getData().Missions.filter(m => m.Rank == rank.Rank);
+    let rankMissions = missions.filter(m => m.Rank == rank.Rank);
     missionData[rank.Rank] = {StartingCount: rankMissions.length, Remaining: rankMissions};
   }
   
@@ -569,7 +571,7 @@ function initializePopups() {
       return;
     }
     
-    let mission = getData().Missions.find(m => m.Id == missionId);
+    let mission = getMissions().find(m => m.Id == missionId);
     
     let modal = $(this);
     modal.find('.modal-title').html(describeMission(mission, "none"));
@@ -716,7 +718,7 @@ function loadMainSaveData() {
   }
   
   let completedIds = dataString.split(',');
-  let curRankMissions = new Set(getData().Missions.filter(m => m.Rank == currentMainRank).map(m => m.Id));
+  let curRankMissions = new Set(getMissions().filter(m => m.Rank == currentMainRank).map(m => m.Id));
   for (let completedId of completedIds) {
     if (curRankMissions.has(completedId)) {
       // This is in the rank we care about
@@ -919,7 +921,7 @@ function renderListStyleMissions() {
   for (let rank of ranksToShow) {
     missionHtml += `Rank ${rank.Rank}\n<ul>\n`;
     
-    let rankMissions = getData().Missions.filter(m => m.Rank == rank.Rank);
+    let rankMissions = getMissions().filter(m => m.Rank == rank.Rank);
     for (let mission of rankMissions) {
       missionHtml += `<li>${describeMission(mission)}</li>\n`;
     }
@@ -1000,7 +1002,24 @@ function renderMissionButton(mission, rank, missionEtas) {
     rewardImageClasses += " disabled";
   }
   
-  return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="infoButton ${rewardImageClasses} resourceIcon ml-1" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&nbsp;</a>`;
+  if ("AbTestConfig" in mission) {
+    let splitGroupId = mission.AbTestConfig.split("|");
+    let testName = splitGroupId[0];
+    let groupName = splitGroupId[1];
+    
+    let groupMap = getAvailableAbTestGroups();
+    let groupsForTest = groupMap[testName];
+    let groupIndex = groupsForTest.indexOf(groupName);
+    
+    let groupClass = `altGroup-${groupIndex}`;
+    let nextGroupIndex = (groupIndex + 1) % groupsForTest.length;
+    let nextGroupName = groupsForTest[nextGroupIndex];
+    let groupTitleText = `Switch from ${mission.AbTestConfig} to alternate mission group ${testName}|${nextGroupName}`;
+    
+    return `<span class="altEmptySpan"></span><button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="javascript:void(0);" class="infoButton resourceIcon altMissionButton ${groupClass} ml-1" onclick="switchToNextAbGroup('${mission.Id}')" title="${groupTitleText}">&nbsp;</a><a href="#" class="infoButton ${rewardImageClasses} resourceIcon ml-1" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&nbsp;</a>`;
+  } else {
+    return `<button id="button-${mission.Id}" class="btn ${buttonClass}" onclick="clickMission('${mission.Id}')" title="${buttonDescription}">${describeMission(mission)}</button><a href="#" class="infoButton ${rewardImageClasses} resourceIcon ml-1" data-toggle="modal" data-target="#infoPopup" data-mission="${mission.Id}" title="Click for mission info/calc">&nbsp;</a>`;
+  }
 }
 
 // Returns the css class(es) of the reward associated with a given mission
@@ -1131,15 +1150,15 @@ function clickMission(missionId) {
 }
 
 // Converts numbers to AdCom style. bigNum(1E21) => "1 CC", significantCharacters includes the decimal point
-function bigNum(x, minimumCutoff = 1e+6, significantCharacters = 100) {
+function bigNum(x, minimumCutoff = 1e+6, significantCharacters = 100, localeOverride = undefined) {
   if (x < minimumCutoff) {
-    return x.toLocaleString();
+    return x.toLocaleString(localeOverride);
   }
   
   let digits = Math.floor(Math.log10(x));
   let thousands = Math.floor(digits / 3);
   let mantissa = x / Math.pow(10, thousands * 3);
-  let numberString = mantissa.toLocaleString(undefined, {maximumFractionDigits: 2}).slice(0, significantCharacters + 1);
+  let numberString = mantissa.toLocaleString(localeOverride, {maximumFractionDigits: 2}).slice(0, significantCharacters + 1);
   return `${numberString} ${POWERS[thousands - 1]}`;
 }
 
@@ -1149,7 +1168,8 @@ function shortBigNum(x) {
 }
 
 // Converts AdCom style numbers to normal. fromBigNum("1 CC") => 1E21
-function fromBigNum(x) {
+// Can provide an optional localeOverride like "hu-HU" for testing
+function fromBigNum(x, localeOverride = undefined) {
   if (x == null) {
     return NaN;
   } else if (x.length == 0) {
@@ -1162,11 +1182,11 @@ function fromBigNum(x) {
   let split = [.../([\d\., ]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
   
   if (split.length == 1) {
-    return parseLocaleNumber(split[0]);
+    return parseLocaleNumber(split[0], localeOverride);
     
   } else if (split.length == 2) {    
     let powerIndex = POWERS.indexOf(split[1].toUpperCase());
-    let mantissa = parseLocaleNumber(split[0]);
+    let mantissa = parseLocaleNumber(split[0], localeOverride);
     if (powerIndex != -1 && !isNaN(mantissa)) {
       return mantissa * Math.pow(1000, powerIndex + 1);
     }
@@ -1176,10 +1196,9 @@ function fromBigNum(x) {
 }
 
 /* From https://stackoverflow.com/questions/12004808/does-javascript-take-local-decimal-separators-into-account/42213804#42213804 */
-function parseLocaleNumber(stringNumber) {
-  var decimalSeparator = (1.1).toLocaleString().replace(/1/g, '') || "."; // This is typically "." (default) or ","
-  
-  var thousandSeparator = (11111).toLocaleString().replace(/1/g, ''); // This is typically "," "." or " " (default based on decimal)
+function parseLocaleNumber(stringNumber, localeOverride = undefined) {
+  let decimalSeparator = (1.1).toLocaleString(localeOverride).replace(/1/g, '') || "."; // This is typically "." (default) or ","
+  let thousandSeparator = (11111).toLocaleString(localeOverride).replace(/1/g, ''); // This is typically "," "." or " " (default based on decimal)
   
   // If there is no thousand separator, use the opposite of the decimal seperator
   if (!thousandSeparator) {
@@ -1189,11 +1208,11 @@ function parseLocaleNumber(stringNumber) {
       thousandSeparator = ".";
     }
   }
-
-  return Number(stringNumber
-    .replace(new RegExp('\\' + thousandSeparator, 'g'), '')
-    .replace(new RegExp('\\' + decimalSeparator), '.')
-  );
+  
+  let reformattedNumber = stringNumber
+    .replace(new RegExp('\\' + thousandSeparator, 'g'), '') // remove all thousands separators
+    .replace(new RegExp('\\' + decimalSeparator), '.'); // switch the optional decimal point to "."
+  return Number(reformattedNumber);
 }
 
 var generatorsById = null;
@@ -1726,6 +1745,135 @@ function getData() {
   return DATA[currentMode];
 }
 
+/**** AB TEST STUFF ****/
+
+// For any Experiments that the user is not in a group for, assign a default group
+function initializeAbTestGroups() {
+  // Get the test name (left half) from each current group and throw them into a set.
+  let currentGroupIds = getCurrentAbTestGroups();
+  let currentTests = new Set(currentGroupIds.map(g => g.split("|")[0]));
+  
+  // Use that set to filter all known test names down to ones not yet assigned.
+  let allGroupMap = getAvailableAbTestGroups();
+  let unassignedTestNames = Object.keys(allGroupMap).filter(g => !currentTests.has(g));
+  
+  // Use the FIRST GROUP AS DEFAULT for each unassigned test.
+  for (let testName of unassignedTestNames) {
+    let defaultGroup = allGroupMap[testName][0];
+    currentGroupIds.push(`${testName}|${defaultGroup}`);
+  }
+  
+  setCurrentAbTestGroups(currentGroupIds);
+}
+
+// Returns a map from test to groups (e.g., {"MissionTest": ["A","B"], "OtherTest": ["A","B","C"]})
+function getAvailableAbTestGroups() {
+  let groupMap = {};
+  
+  let allGroups = getData().Missions.filter(m => "AbTestConfig" in m)
+                                       .map(m => m.AbTestConfig);
+  let uniqueGroups = [...new Set(allGroups)];
+  
+  // Fill up the map by adding each unique groupId found in missions
+  for (let groupId of uniqueGroups) {
+    let splitId = groupId.split("|");
+    let testName = splitId[0];
+    let groupName = splitId[1];
+    
+    if (!(testName in groupMap)) {
+      groupMap[testName] = [];
+    }
+    groupMap[testName].push(groupName);
+  }
+  
+  // Sort the array at the end to ensure the order is right.
+  // NOTE: This is a bit of a hack to avoid including the AbTestConfig.
+  // It assumes that group names will be alphabetically ordered like A/B/C
+  for (let groupArray of Object.values(groupMap)) {
+    groupArray.sort();
+  }
+  
+  return groupMap;
+}
+
+// Returns an array of the AB Test Groups the user is in
+function getCurrentAbTestGroups() {
+  let abTestGroups = getGameLocal("abTestGroups");
+  if (abTestGroups) {
+    return abTestGroups.split("||");
+  } else {
+    return [];
+  }
+}
+
+// Saves an array of AB Test Groups to be the user's current groups.
+function setCurrentAbTestGroups(groupArray) {
+  // First update the save data
+  let groupString = groupArray.join("||");
+  setGameLocal("abTestGroups", groupString);
+  
+  // Now we have to fix our missionData data structure.
+  let groupSet = new Set(groupArray);
+  let currentMissions = getMissions();
+  
+  for (let key in missionData) {
+    let rankGroup = missionData[key];
+    if (typeof rankGroup !== "object" || !("Remaining" in rankGroup)) {
+      continue;
+    }
+    
+    for (let missionIndex in rankGroup.Remaining) {
+      let mission = rankGroup.Remaining[missionIndex];
+      // Any mission that's not in our current groups should be replaced with an equivalent one.
+      if ("AbTestConfig" in mission && !groupSet.has(mission.AbTestConfig)) {
+        let replacement = currentMissions.find(m => m.Id == mission.Id);
+        rankGroup.Remaining[missionIndex] = replacement;
+      }
+    }
+  }
+}
+
+// Returns all of the missions for the current mode, minus ones you're not in the group for.
+function getMissions() {
+  let abTestGroups = new Set(getCurrentAbTestGroups());
+  let missions = getData().Missions.filter(m => !("AbTestConfig" in m) || abTestGroups.has(m.AbTestConfig));
+  return missions;
+}
+
+// For a given mission id, determine the associated AB Test and switch to the next group
+function switchToNextAbGroup(missionId) {
+  let mission = getMissions().find(m => m.Id == missionId);
+  if (!mission || !("AbTestConfig" in mission)) {
+    console.log(`Cannot switch group for mission id "${missionId}"`);
+    return false;
+  }
+  
+  let testIdSplit = mission.AbTestConfig.split("|");
+  let testName = testIdSplit[0];
+  let groupName = testIdSplit[1];
+  
+  let groupsForTest = getAvailableAbTestGroups()[testName];
+  let testGroupIndex = groupsForTest.indexOf(groupName);
+  if (testGroupIndex == -1) {
+    console.log(`Cannot switch group for mission id "${missionId}"`);
+    return false;
+  }
+  
+  // Switch to the next element in the array, looping around to 0 at the end.
+  let newGroupName = groupsForTest[(testGroupIndex + 1) % groupsForTest.length];
+  let newGroupId = `${testName}|${newGroupName}`;
+  
+  // Replace the old group id with the new one in its place.
+  let currentGroupIds = getCurrentAbTestGroups();
+  let oldGroupIndex = currentGroupIds.indexOf(mission.AbTestConfig);
+  currentGroupIds[oldGroupIndex] = newGroupId;
+  
+  setCurrentAbTestGroups(currentGroupIds);
+  renderMissions();
+  
+  return false; //  Return false to stop default '#' behavior on some browsers.
+}
+
 
 /******* CALCULATOR STUFF ******/
 
@@ -2023,7 +2171,7 @@ function getFirstMissionWithScriptedReward(researcher) {
     }
   }
   
-  return getData().Missions.find(m => gachasWithReward.has(m.Reward.RewardId));
+  return getMissions().find(m => gachasWithReward.has(m.Reward.RewardId));
 }
 
 // Returns html for the researchers sub-tab where you input researcher levels.
@@ -2766,7 +2914,7 @@ function getProductionSimDataFromForm() {
   let resourceId = getResourceByIndustry(industryId).Id;
   
   let missionId = $('#missionId').val();
-  let mission = getData().Missions.find(m => m.Id == missionId);
+  let mission = getMissions().find(m => m.Id == missionId);
   
   let formValues = getFormValuesObject();
   if (!formValues.Counts[resourceId]) {
