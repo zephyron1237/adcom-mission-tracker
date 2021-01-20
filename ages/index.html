@@ -1,9 +1,150 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script>
-  // Redirect from /ages/ to /time/, including any get parameters (e.g., ?rank=80)
-  document.location.href = 'https://zephyron1237.github.io/adcom-mission-tracker/time/' + document.location.search;
-</script>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142480721-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-142480721-1');
+  </script>
+
+  <title>Adventure Ages Mission Tracker</title>
+  <link id="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="missions.css" rel="stylesheet">
+  <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
 </head>
+<body id="body">
+  <nav class="navbar navbar-expand navbar-dark bg-dark">
+    <span class="dropdown">
+      <a id="mode-select-title" class="navbar-brand mb-0 h1 dropdown-toggle collapse" href="#" id="modeMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Ages</a>
+      <ul class="dropdown-menu" aria-labelledby="settingsDropdownMenuLink">
+        <a href="?mode=main" class="dropdown-item" id="mode-select-main" title="Switch to Motherland"><img class="scheduleIcon mx-1" src="img/main/schedule.png"> Ages</a>
+        <a href="?mode=event" class="dropdown-item" id="mode-select-event" title="Switch to Current Event"><img class="scheduleIcon" src="img/event/egypt/schedule.png"> Event</a>
+        <div class="dropdown-divider"></div>
+        <a href="#" class="dropdown-item" id="mode-select-schedule" data-toggle="modal" data-target="#schedulePopup" title="View Schedule"><img class="scheduleIcon" src="img/shared/calendar.png"> Schedule</a>
+      </ul>
+    </span>
+    <ul class="navbar-nav ml-auto">
+      <li class="nav-item">
+        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-generators-tab" title="View Generators"><div id="viewAllGeneratorsButton" class="resourceIcon">&nbsp;</div></a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-researchers-tab" title="View Researchers"><div class="resourceIcon cardIcon">&nbsp;</div></a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-trades-tab" title="View Trades"><div class="resourceIcon comradesPerSec">&nbsp;</div></a>
+      </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Settings">
+          &equiv;
+        </a>
+        <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="settingsDropdownMenuLink">
+          <h6 class="dropdown-header text-center">Icons</h6>
+          <button class="dropdown-item config-icon" id="config-icon-image" onclick="setIcons('image')">Images</button>
+          <button class="dropdown-item config-icon" id="config-icon-emoji" onclick="setIcons('emoji')">Emoji</button>
+          <button class="dropdown-item config-icon" id="config-icon-none" onclick="setIcons('none')">None</button>
+          <div class="dropdown-divider"></div>
+          <h6 class="dropdown-header text-center">Style</h6>
+          <button class="dropdown-item config-style" id="config-style-light" onclick="setStyle('light')">Light</button>
+          <button class="dropdown-item config-style" id="config-style-dark" onclick="setStyle('dark')">Dark</button>
+          <button class="dropdown-item" id="config-style-list" onclick="toggleListStyle()">List</button>
+          <div class="dropdown-divider"></div>
+          <h6 class="dropdown-header text-center">Progress</h6>
+          <button class="dropdown-item" onclick="advanceProgressTo()">Advance to...</button>
+          <button class="dropdown-item" onclick="resetProgress()">Reset</button>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  <div class="modal fade" id="infoPopup" tabindex="-1" role="dialog" aria-labelledby="infoTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="infoTitle">Mission</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <p><strong>Reward:</strong> <span id="infoReward"></span></p>
+            <p id="completionTimeContainer" class="collapse"><strong>Completed at:</strong> <span id="completionTime"></span></p>
+            <p id="lastEtaContainer" class="collapse"><strong>Last ETA:</strong> <span id="lastEta"></span></p>
+            <div class ="alert alert-warning" role="alert">
+              Calculator is in <strong>BETA</strong>. Be wary of results. <a href="#calcDetails" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="calcDetails" class="alert-link">(Details/Tips)</a>
+              <div class="collapse" id="calcDetails"><div><strong>Details:</strong> The calculator does a basic simulation, normalizing each generator's output rate and running until the goal is met or it reaches 24h.  Normalizing averages out things like crits and long run speeds, which introduces some error.  The calculator currently does not take airdrops into account.  Please let me know if you find any issues or have any suggestions.</div>
+                <div><strong>Tips:</strong><ul>
+                  <li>Enter numbers like <code id="numberExample">1.52 AA</code>.  Periods and commas are based on your browser's locale settings.</li>
+                  <li>When using the auto-buy option, the simulator will attempt to continuously buy the deepest generator, and will switch when you reach enough of one to unlock the next deepest.</li>
+                  <li>You can simulate running non-automated generators by setting a <strong>Custom Value</strong> for that generator's Common.  Setting the Speed to <code>1</code> means that you're constantly running the generator, <code>0.5</code> means that you're keeping it running half the time, etc.  You can set custom values for a researcher by clicking the # button that replaces &#x25BC; when at level 0.  Careful, abnormal values may cause abnormal behavior.</li>
+                </ul></div>
+              </div>
+            </div>
+            <p><strong>Calculator:</strong> <div id="calc"></div></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="allInfoPopup" tabindex="-1" role="dialog" aria-labelledby="allInfoTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="allInfoTitle">All Industries</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="allInfoPopupBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="schedulePopup" tabindex="-1" role="dialog" aria-labelledby="schedulePopupTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="schedulePopupTitle">Event Schedule</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="schedulePopupBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="alertNoSchedule" class="alert alert-warning collapse mx-2 my-2" role="alert">There is no additional schedule data.  Please contact /u/Zephyron1237 to update the schedule.</div>
+  <div id="alertUnconfirmed" class="alert alert-warning collapse mx-2 my-2" role="alert">This mission list has been datamined from a future version and may not be final.</div>
+  <div id="overrideWarning" class="alert alert-warning collapse mx-2 my-2" role="alert">You are in <strong>Event Override</strong> mode.  Event progress is reset when you start or stop using it.</div>
+  <div id="alertReset" class="alert alert-info alert-dismissable collapse mx-2 my-2" role="alert">
+    The mission list has changed since your last visit.
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div id="missions"></div>
+  <footer>
+    <p class="ml-2"><small class="text-muted"><a href='https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/'>Game Guide/FAQ</a> | Trackers &mdash; <a href='https://zephyron1237.github.io/adcom-capsule-tracker/'>Free Capsules</a> | <a href='https://zephyron1237.github.io/adcom-mission-tracker/'>Adventure Communist</a> | Adventure Ages<br />
+    Issues?  Suggestions?  Want to contribute?  Project on <a href='https://github.com/zephyron1237/adcom-mission-tracker'>GitHub</a>.  Version 8 "Future's Future"</small></p>
+  </footer>
+</body>
+<script
+  src="https://code.jquery.com/jquery-3.4.1.min.js"
+  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+  crossorigin="anonymous"></script>
+<script
+  src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+  integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+  crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="data.js"></script>
+<script src="../missions.js"></script>
 </html>
