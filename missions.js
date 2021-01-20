@@ -7,6 +7,7 @@ var eventScheduleInfo = null;  // The main schedule metadata associated with the
 function main() {
   loadModeSettings();
   initializeLocalization();
+  initializeAbTestGroups();
   initializeMissionData();
   initializePopups();
   loadSaveData();
