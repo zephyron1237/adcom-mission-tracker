@@ -1152,13 +1152,15 @@ function clickMission(missionId) {
 // Converts numbers to AdCom style. bigNum(1E21) => "1 CC", significantCharacters includes the decimal point
 function bigNum(x, minimumCutoff = 1e+6, significantCharacters = 100, localeOverride = undefined) {
   if (x < minimumCutoff) {
-    return x.toLocaleString(localeOverride);
+    // We also need to turn non-breaking spaces (char-160 == 0xA0) into normal spaces.
+    return x.toLocaleString(localeOverride).replace(/\xA0/g, " ");
   }
   
   let digits = Math.floor(Math.log10(x));
   let thousands = Math.floor(digits / 3);
   let mantissa = x / Math.pow(10, thousands * 3);
   let numberString = mantissa.toLocaleString(localeOverride, {maximumFractionDigits: 2}).slice(0, significantCharacters + 1);
+  numberString = numberString.replace(/\xA0/g, " ");
   return `${numberString} ${POWERS[thousands - 1]}`;
 }
 
@@ -1177,6 +1179,8 @@ function fromBigNum(x, localeOverride = undefined) {
   } else if (!/([\d\.,]+)/.test(x)) {
     return NaN;
   }
+  
+  x = x.replace(/\xA0/g, " "); // Turn non-breaking spaces (char-160 == 0xA0) into normal spaces.
 
   // Grab digits and the letters, and filter out anything missing.
   let split = [.../([\d\., ]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
@@ -1207,6 +1211,8 @@ function parseLocaleNumber(stringNumber, localeOverride = undefined) {
     } else {
       thousandSeparator = ".";
     }
+  } else if (thousandSeparator == String.fromCharCode(160)) {
+    thousandSeparator = " "; // Turn all non-breaking spaces into normal spaces
   }
   
   let reformattedNumber = stringNumber
