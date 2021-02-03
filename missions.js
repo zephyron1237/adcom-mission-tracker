@@ -856,7 +856,7 @@ function renderMissions() {
       let rankResearchers = getData().Researchers.filter(r => r.PlayerRankUnlock == rank);
       if (rankResearchers.length > 0) {
         let rankResearcherDescriptions = rankResearchers.map(r => `<div class='resourceIcon cardIcon'>&nbsp;</div>${researcherName(r)}: <em>${getResearcherBasicDetails(r)}</em>`);
-        let rankResearcherText = `<strong>New Researchers:</strong><br />${rankResearcherDescriptions.join("<br /><br />")}`;
+        let rankResearcherText = `<strong>New ${ENGLISH_MAP['gachapurchaseconfirmation.content.panel.go_researchers.txt_name']}:</strong><br />${rankResearcherDescriptions.join("<br /><br />")}`;
         popupHtml += `${popupHtml ? "<hr />" : ""}${rankResearcherText}`;
       }
       
@@ -1284,12 +1284,12 @@ function describeMission(mission, overrideIcon = "") {
   switch (condition.ConditionType) {
     case "TradesSinceSubscription":
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
-      textHtml =`Trade ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
+      textHtml =`${upperCaseFirstLetter(ENGLISH_MAP['conditionmodel.trade.singular'])} ${resourceName(condition.ConditionId)} (${condition.Threshold})`;
       break;
     case "ResearchersUpgradedSinceSubscription": {
       let overrideDirectory = (currentMode == "event") ? "img/event" : "";
       iconHtml = getMissionIcon("upgrade", condition.ConditionType, overrideIcon, overrideDirectory);
-      textHtml = `Upgrade Cards (${condition.Threshold})`;
+      textHtml = `${ENGLISH_MAP['mission.researchersupgradedsincesubscription.any.simplename']} (${condition.Threshold})`;
       break;
     } case "ResourceQuantity": {
       iconHtml = getMissionIcon(condition.ConditionId, condition.ConditionType, overrideIcon);
@@ -1408,9 +1408,10 @@ function getResearcherBasicDetails(researcher) {
               researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       resources = researcher.TargetIds[0].split(/, ?/).map(res => resourceName(res));
       if (resources.length == getData().Industries.length) {
-        return `All trades grant ${vals[0]}x/${vals[1]}x/${vals[2]}x/... ${resourceName('comrade')}`;
+        return `All ${ENGLISH_MAP['conditionmodel.trade.plural']} grant ${vals[0]}x/${vals[1]}x/${vals[2]}x/... ${resourceName('comrade')}`;
       } else {
-        return `Trading ${resources.join('/')} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... ${resourceName('comrade')}`;
+        let wordForTrading = ENGLISH_MAP['researcher.tradepayoutmultiplier.single'].split(' ')[0];
+        return `${wordForTrading} ${resources.join('/')} grants ${vals[0]}x/${vals[1]}x/${vals[2]}x/... ${resourceName('comrade')}`;
       }
       break;
       
@@ -1915,6 +1916,7 @@ function renderCalculator(mission) {
     
     let resource = getResourceByIndustry(industryId);
     let imgDirectory = getImageDirectory();
+    let wordForTrades = upperCaseFirstLetter(ENGLISH_MAP['conditionmodel.trade.plural']);
     
     // Display three tabs: one for generators, one for production researchers, one for trades. Then below, options and submit.
     let html = `
@@ -1923,10 +1925,10 @@ function renderCalculator(mission) {
           <a class="nav-link active" id="generators-tab" data-toggle="tab" href="#generators" role="tab" aria-controls="generators" aria-selected="true"><div class="resourceIcon" style="background-image: url('${imgDirectory}/${resource.Id}.png');">&nbsp;</div> Generators</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" id="researchers-tab" data-toggle="tab" href="#researchers" role="tab" aria-controls="researchers" aria-selected="false"><div class="resourceIcon cardIcon">&nbsp;</div> Researchers</a>
+          <a class="nav-link" id="researchers-tab" data-toggle="tab" href="#researchers" role="tab" aria-controls="researchers" aria-selected="false"><div class="resourceIcon cardIcon">&nbsp;</div> ${ENGLISH_MAP['gachapurchaseconfirmation.content.panel.go_researchers.txt_name']}</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" id="trades-tab" data-toggle="tab" href="#trades" role="tab" aria-controls="trades" aria-selected="false"><div class="resourceIcon comradesPerSec">&nbsp;</div> Trades</a>
+          <a class="nav-link" id="trades-tab" data-toggle="tab" href="#trades" role="tab" aria-controls="trades" aria-selected="false"><div class="resourceIcon comradesPerSec">&nbsp;</div> ${wordForTrades}</a>
         </li>
       </ul>
       <div class="tab-content">
@@ -1979,6 +1981,7 @@ function updateImportButton() {
 
 function getAllIndustryPopup() {
   let resourceId = getData().Resources[0].Id;
+  let wordForTrades = upperCaseFirstLetter(ENGLISH_MAP['conditionmodel.trade.plural']);
   
   // Display three tabs: one for generators, one for production researchers, one for trades. Then below, options and submit.
   return `
@@ -1987,10 +1990,10 @@ function getAllIndustryPopup() {
         <a class="nav-link" id="all-generators-tab" data-toggle="tab" href="#all-generators" role="tab" aria-controls="all-generators" aria-selected="false"><div class="resourceIcon" style="background-image: url('${getImageDirectory()}/${resourceId}.png');">&nbsp;</div> Generators</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" id="all-researchers-tab" data-toggle="tab" href="#all-researchers" role="tab" aria-controls="all-researchers" aria-selected="false"><div class="resourceIcon cardIcon">&nbsp;</div> Researchers</a>
+        <a class="nav-link" id="all-researchers-tab" data-toggle="tab" href="#all-researchers" role="tab" aria-controls="all-researchers" aria-selected="false"><div class="resourceIcon cardIcon">&nbsp;</div> ${ENGLISH_MAP['gachapurchaseconfirmation.content.panel.go_researchers.txt_name']}</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" id="all-trades-tab" data-toggle="tab" href="#all-trades" role="tab" aria-controls="all-trades" aria-selected="false"><div class="resourceIcon comradesPerSec">&nbsp;</div> Trades</a>
+        <a class="nav-link" id="all-trades-tab" data-toggle="tab" href="#all-trades" role="tab" aria-controls="all-trades" aria-selected="false"><div class="resourceIcon comradesPerSec">&nbsp;</div> ${wordForTrades}</a>
       </li>
     </ul>
     <div class="tab-content">
@@ -2597,7 +2600,7 @@ function getTradesTab() {
   for (let industryTrade of industryTrades) {
     let inputId = `${industryTrade.ResourceId}-trade-cost`;
     let inputName = resourceName(industryTrade.ResourceId);
-    let inputDescription = `Next trade cost (${inputName})`;
+    let inputDescription = `Next ${ENGLISH_MAP['conditionmodel.trade.singular']} cost (${inputName})`;
     let iconUrl = `${imgDirectory}/${industryTrade.ResourceId}.png`;
     let extraClasses = (industryTrade.IsInvalid) ? "is-invalid" : "";
     let extraProperties = `onchange="updateTradeTabTotals();"`;
