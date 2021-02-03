@@ -962,7 +962,9 @@ function describeScheduleRankReward(reward) {
       
     case "Researcher":
       let researcherRarity = ENGLISH_MAP[`researcher.rarity.${reward.RewardId}.name`];
-      return `${reward.Value} ${researcherRarity} researcher${(reward.Value > 1) ? "s" : ""}`;
+      let singularOrPlural = (reward.Value > 1) ? "plural" :"singular";
+      let wordForResearcher = ENGLISH_MAP[`conditionmodel.researcher.${singularOrPlural}`].toLowerCase();
+      return `${reward.Value} ${researcherRarity} ${wordForResearcher}`;
       break;
   }
 }
