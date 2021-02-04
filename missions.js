@@ -875,7 +875,7 @@ function renderMissions() {
       missionHtml += `<li class="my-1">Click this tab's toggle in the top-right &UpperRightArrow; to <strong>hide Completed</strong> missions.</li>`;
       missionHtml += `<li class="my-1">Click the capsule <span class="resourceIcon wood">&nbsp;</span> next to a mission to access its <strong>Calculator</strong>.</li>`;
       missionHtml += `<li class="my-1">If the capsule <span class="scriptedRewardInfo resourceIcon wood">&nbsp;</span> is circled, you can also view the <strong>pre-scripted rewards</strong>.</li>`;
-      missionHtml += `<li class="my-1">Got <strong>questions?</strong>  Check out the <a href="https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/">Game Guide/FAQ</a>, <a href="https://discord.gg/VPa4WTM">Discord</a>, or <a href="https://reddit.com/r/AdventureCommunist/">Reddit</a>.</li></ul>`;
+      missionHtml += `<li class="my-1">Got <strong>questions?</strong>  Check out the <a href="${SOCIAL_HELP_URLS['faq']}">Game Guide/FAQ</a>, <a href="${SOCIAL_HELP_URLS['discord']}">Discord</a>, or <a href="${SOCIAL_HELP_URLS['reddit']}">Reddit</a>.</li></ul>`;
     }
     
     if (currentMode == "main" && rank == currentMainRank && missionData[rank].Remaining.length == 0 && missionData.Current.Remaining.length == 0) {

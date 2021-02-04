@@ -26,6 +26,13 @@ var THEME_ID_TITLE_OVERRIDES = {
   "main": "Ages",
 };
 
+// For game-specific documentation and social channels
+var SOCIAL_HELP_URLS = {
+  "faq": "https://docs.google.com/document/d/1CVjPm2FAcCThtZyfwguFIj8ICpmOr8tLA_fANXOdtmU/",
+  "discord": "https://discord.gg/J3aJBx7z93",
+  "reddit": "https://reddit.com/r/AdventureAges/",
+}
+
 // If not undefined, will show a datamining warning starting at the given rank
 var DATAMINE_WARNING_MIN_RANK = undefined;
 

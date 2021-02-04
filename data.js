@@ -56,6 +56,13 @@ var THEME_ID_TITLE_OVERRIDES = {
   "defense": "Shield"
 };
 
+// For game-specific documentation and social channels
+var SOCIAL_HELP_URLS = {
+  "faq": "https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/",
+  "discord": "https://discord.gg/VPa4WTM",
+  "reddit": "https://reddit.com/r/AdventureCommunist/",
+}
+
 // If not undefined, will show a datamining warning starting at the given rank
 var DATAMINE_WARNING_MIN_RANK = undefined;
 
