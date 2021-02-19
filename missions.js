@@ -1942,14 +1942,18 @@ function renderCalculator(mission) {
         <div class="tab-pane fade" id="researchers" role="tabpanel" aria-labelledby="researchers-tab">${getResearchersTab(mission, industryId)}</div>
         <div class="tab-pane fade" id="trades" role="tabpanel" aria-labelledby="trades-tab">${getTradesTab()}</div>
       </div>`;
-    html += `<hr /><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label></div>`;
+    html += `<hr /><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy highest-tier generator</label>
+      <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Continuously buy max of the deepest available automated generator.">&#9432;</a></div>`;
+    html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configOffline" onclick="clickOffline()"><label class="form-check-label" for="configOffline">Offline</label>
+      <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="(Experimental) There appears to be a bug in the game's offline calculations where it runs the deepest generator for the entire duration, followed by the second-deepest, etc., instead of repeating the process continuously.  This can make long offline periods more effective than being online.">&#9432;</a></div>`;
     
     if (conditionType == "ResourceQuantity") {
-      html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configComradeLimited" onclick="clickComradeLimited('${condition.ConditionId}')"><label class="form-check-label" for="configComradeLimited">Limited by ${resourceName('comrade')} only</label></div>`;
+      html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configComradeLimited" onclick="clickComradeLimited('${condition.ConditionId}')"><label class="form-check-label" for="configComradeLimited">Limited by ${resourceName('comrade')} only</label>
+        <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Simplify and speed up calculation by assuming production is irrelevant.">&#9432;</a></div>`;
     }
     
-    html += `<div class="form-inline"><label for="configMaxDays" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"> 
-    <a class="btn btn-link infoButton" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Higher Max Days allows you to simulate further, but increases time when simulation doesn't succeed.">&#9432;</a></div>`;
+    html += `<div class="form-inline"><label for="configMaxDays" id="configMaxDaysLabel" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"> 
+      <a class="infoButton ml-2" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Higher Max Days allows you to simulate further, but increases time when simulation doesn't succeed.">&#9432;</a></div>`;
     
     html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
@@ -2803,6 +2807,16 @@ function clickComradeLimited(generatorId) {
   $("#generators input[type='text'],input[type='number']").not(`#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
 }
 
+function clickOffline() {
+  let checked = $('#configOffline').is(':checked');
+  $("#configAutobuy,#configComradeLimited,#configMaxDays").prop("disabled", checked);
+  if (checked) {
+    $("#configMaxDaysLabel").addClass("disabled");
+  } else {
+    $("#configMaxDaysLabel").removeClass("disabled");
+  }
+}
+
 // Called OnClick for "Calculate!"  Interprets input, runs calc/sim, and outputs result.
 function doProductionSim() {
   let simData = getProductionSimDataFromForm();
@@ -2819,7 +2833,9 @@ function doProductionSim() {
   $('#calcButton').addClass('disabled');
   
   let result;
-  if (simData.Config.ComradeLimited) {
+  if (simData.Config.Offline) {
+    result = calcOffline(simData);
+  } else if (simData.Config.ComradeLimited) {
     result = calcLimitedComrades(simData);
   } else {
     result = simulateProductionMission(simData);
@@ -2831,7 +2847,11 @@ function doProductionSim() {
   updateImportButton();
   
   if (result == -1) {
-    $('#result').text(`ETA: More than ${simData.Config.MaxDays} days. Increase max day limit.`);
+    if (simData.Config.Offline) {
+      $('#result').text(`Error: Offline calculation could not converge on an answer.`);
+    } else {
+      $('#result').text(`ETA: More than ${simData.Config.MaxDays} days. Increase max day limit.`);
+    }
   } else {
     $('#result').text(`ETA: ${getEta(result)}`);
   
@@ -2961,7 +2981,8 @@ function getProductionSimDataFromForm() {
   }
   
   simData.Config.Autobuy = $('#configAutobuy').is(':checked');
-  simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');  
+  simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');
+  simData.Config.Offline = $('#configOffline').is(':checked');
   
   simData.Config.MaxDays = getValueFromForm('#configMaxDays', 1, simData);
   formValues.Config.MaxDays = simData.Config.MaxDays;
@@ -3196,6 +3217,108 @@ function calcLimitedComrades(simData) {
   } else {
     return gensNeeded * comradeCost.Qty / comradeGenerator.QtyPerSec;
   }
+}
+
+// We don't need to do a full simulation for offline, but we do need to estimate a polynomial root
+function calcOffline(simData) {
+  // There are two possibilities for offline: it's either comrade-limited (for Own) or production-limited.
+  let comradeLimitedTime = 0;
+  if (simData.Mission.Condition.ConditionType == "ResourceQuantity") {
+    comradeLimitedTime = calcLimitedComrades(simData);
+  }
+  
+  let prodLimitedTime = calcOfflineProduction(simData);
+  
+  return Math.max(comradeLimitedTime, prodLimitedTime);
+}
+
+function calcOfflineProduction(simData) {
+  // There appears to be a bug in the game's offline calculations, where the deepest generator
+  //  is "run" for entire offline duration, followed by the second-deepest, etc., instead of
+  //  continuously running it.  This can make long offline sessions more effective than online.
+  
+  // I think the formula for the process creates a polynomial like:
+  // Potato(t) = Potato(0) + [Farmer(0) * FarmerOut]t + [Commune(0) * CommuneOut * FarmerOut]t^2
+  //                       + [Freight(0) * FreightOut * CommuneOut * FarmerOut]t^3 + ...
+  
+  // We will find coefficients, and apply Newton's method to:  Potato(t) - GoalPotato = 0
+  let resourceId = getResourceByIndustry(simData.IndustryId).Id;
+  let resourceGoal = getOfflineResourceGoal(simData);
+  
+  if ("resourceProgress" in simData.Counts) {
+    resourceGoal -= simData.Counts["resourceProgress"];
+  }
+  
+  // Create f(x) = Potato(t) - GoalPotato, aka poly[]
+  let poly = [simData.Counts[resourceId] - resourceGoal];
+  if (poly[0] >= 0) {
+    return 0;  // The user claims to have enough resources to meet their goal.
+  }
+  
+  // Skip the comrade generator (simData.Generators[0]), otherwise find each coefficient
+  for (let genIndex = 1; genIndex < simData.Generators.length; genIndex++) {
+    let generator = simData.Generators[genIndex];
+    let coefficient = simData.Counts[generator.Id];
+    
+    for (let lowerGenIndex = 1; lowerGenIndex <= genIndex; lowerGenIndex++) {
+      coefficient *= simData.Generators[lowerGenIndex].QtyPerSec;
+    }
+    
+    poly.push(coefficient);
+  }
+  
+  // Create f'(x), aka deriv[]
+  let deriv = []
+  for (polyIndex = 1; polyIndex < poly.length; polyIndex++) {
+    deriv.push(poly[polyIndex] * polyIndex);
+  }
+  
+  // Iterate x1 = x0 - f(x0) / f'(x0) until |x1 - x0| < 0.1
+  let x = 10000;
+  for (let chances = 1000; chances > 0; chances--) {
+    let oldX = x;
+    x = x - evaluatePolynomial(poly, x) / evaluatePolynomial(deriv, x);
+    
+    if (Math.abs(x - oldX) < 0.1) {
+      return x;
+    }
+  }
+  
+  // We failed to find a close enough result in 1000 chances.
+  return -1;
+}
+
+// Get an appropriate resource goal dependant on the mission type.
+function getOfflineResourceGoal(simData) {
+  let condition = simData.Mission.Condition;
+  let resourceId = getResourceByIndustry(simData.IndustryId).Id;
+  
+  if (condition.ConditionType == "ResourcesEarnedSinceSubscription") {
+    return condition.Threshold;
+    
+  } else if (condition.ConditionType == "ResourceQuantity") {
+    let generator = simData.Generators.find(g => g.Id == condition.ConditionId);
+    let resCost = generator.Cost.find(c => c.Resource == resourceId);
+    return resCost.Qty * condition.Threshold;
+    
+  } else if (condition.ConditionType == "IndustryUnlocked") {
+    let industry = getData().Industries.find(i => i.Id == condition.ConditionId);
+    return industry.UnlockCostResourceQty;
+    
+  } else {
+    console.error(`Unknown condition type: ${condition.ConditionType}`);
+  }
+}
+
+// Evaluates a polynomial at a value given the coefficients
+function evaluatePolynomial(poly, value) {
+  let result = 0;
+  
+  for (let power = 0; power < poly.length; power++) {
+    result += poly[power] * Math.pow(value, power);
+  }
+  
+  return result;
 }
 
 // The core "simulation."  Returns seconds until goal is met, or -1 if goal is not met in MaxDays.

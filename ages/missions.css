@@ -147,7 +147,6 @@ input:checked + .slider:before {
 
 .infoButton, .infoButton:hover, .infoButton:focus {
   text-decoration: none;
-  vertical-align: middle;
 }
 
 .infoButton:hover {
@@ -354,6 +353,14 @@ input:checked + .slider:before {
 
 .scheduleHeader.selected {
   background-color: #999;
+}
+
+.form-inline label.disabled {
+  color: #6c757d; /* taken from bootstrap light theme */
+}
+
+.dark .form-inline label.disabled {
+  color: #555; /* taken from bootstrap dark theme */
 }
 
 
