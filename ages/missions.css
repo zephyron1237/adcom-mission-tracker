@@ -363,6 +363,27 @@ input:checked + .slider:before {
   color: #555; /* taken from bootstrap dark theme */
 }
 
+button .active-checkbox {
+  min-width: 0.5rem;
+  min-height: 0.5rem;
+  position: relative;
+  bottom: 0.125rem;
+  border: 1px solid black;
+  display: inline-block;
+}
+
+button.active .active-checkbox {
+  background-color: black;
+}
+
+.dark button .active-checkbox {
+  border-color: white;
+}
+
+.dark button.active .active-checkbox {
+  background-color: white;
+}
+
 
 @media screen and (max-width: 400px) {
   .missionContainer { margin: .25rem .25rem .25rem .25rem }

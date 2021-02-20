@@ -632,6 +632,8 @@ function initializePopups() {
       $('[data-toggle="popover"]').popover();
     });
   });
+  
+  $('#helpPopupBody').html(getHelpHtml(true));
 }
 
 // Loads settings, and then save data, editing missionData in-place differently for main/events.
@@ -870,16 +872,7 @@ function renderMissions() {
     missionHtml += `<div class='card mx-2 mt-1'><h4 class="card-header">${title}</h4><div id="${rank}-body" class="card-body" ${bodyStyle}>`;
     
     if (rank == "Completed" && missionData.Completed.Remaining.length == 0) {
-      let firstResourceId = getData().Resources[0].Id;
-      let wordForResearchers = upperCaseFirstLetter(ENGLISH_MAP[`conditionmodel.researcher.plural`]);
-      
-      missionHtml += `<ul><li class="my-1">Click <strong>Current</strong> missions to move them to Completed.</li>`;
-      missionHtml += `<li class="my-1">Click <strong>Completed</strong> missions to move them back to Current.</li>`;
-      missionHtml += `<li class="my-1">Click this tab's toggle in the top-right &UpperRightArrow; to <strong>hide Completed</strong> missions.</li>`;
-      missionHtml += `<li class="my-1">Click the capsule <span class="resourceIcon wood">&nbsp;</span> next to a mission to access its <strong>Calculator</strong>.</li>`;
-      missionHtml += `<li class="my-1">If the capsule <span class="scriptedRewardInfo resourceIcon wood">&nbsp;</span> is circled, you can also view the <strong>pre-scripted rewards</strong>.</li>`;
-      missionHtml += `<li class="my-1">Click the <span class="resourceIcon" style="background-image:url('${getImageDirectory()}/${firstResourceId}.png')">&nbsp;</span> at the top to view all <strong>Resources/Generators</strong>, and <span class="resourceIcon cardIcon">&nbsp;</span> to view all <strong>${wordForResearchers}</strong>.</li>`;
-      missionHtml += `<li class="my-1">Got <strong>questions?</strong>  Check out the <a href="${SOCIAL_HELP_URLS['faq']}">Game Guide/FAQ</a>, <a href="${SOCIAL_HELP_URLS['discord']}">Discord</a>, or <a href="${SOCIAL_HELP_URLS['reddit']}">Reddit</a>.</li></ul>`;
+      missionHtml += getHelpHtml(false);
     }
     
     if (currentMode == "main" && rank == currentMainRank && missionData[rank].Remaining.length == 0 && missionData.Current.Remaining.length == 0) {
@@ -900,6 +893,23 @@ function renderMissions() {
   $(function () {
     $('[data-toggle="popover"]').popover();
   });
+}
+
+// This text appears in the help popup and before a user interacts with the Tracker (i.e., when Completed is empty and uncollpased)
+function getHelpHtml(isPopup) {
+  let firstResourceId = getData().Resources[0].Id;
+  let wordForResearchers = upperCaseFirstLetter(ENGLISH_MAP[`conditionmodel.researcher.plural`]);
+  let result = "";
+  
+  result += `<ul><li class="my-1">Click <strong>Current</strong> missions to move them to Completed.</li>`;
+  result += `<li class="my-1">Click <strong>Completed</strong> missions to move them back to Current.</li>`;
+  result += `<li class="my-1">Click ${isPopup? "the Completed tab's" : "this tab's"} toggle at the top-right &UpperRightArrow; to <strong>hide Completed</strong> missions.</li>`;
+  result += `<li class="my-1">Click the capsule <span class="resourceIcon wood">&nbsp;</span> next to a mission to access its <strong>Calculator</strong>.</li>`;
+  result += `<li class="my-1">If the capsule <span class="scriptedRewardInfo resourceIcon wood">&nbsp;</span> is circled, you can also view the <strong>pre-scripted rewards</strong>.</li>`;
+  result += `<li class="my-1">Click the <span class="resourceIcon" style="background-image:url('${getImageDirectory()}/${firstResourceId}.png')">&nbsp;</span> at the top to view all <strong>Resources/Generators</strong>, and <span class="resourceIcon cardIcon">&nbsp;</span> to view all <strong>${wordForResearchers}</strong>.</li>`;
+  result += `<li class="my-1">Got <strong>questions?</strong>  Check out the <a href="${SOCIAL_HELP_URLS['faq']}">Game Guide/FAQ</a>, <a href="${SOCIAL_HELP_URLS['discord']}">Discord</a>, or <a href="${SOCIAL_HELP_URLS['reddit']}">Reddit</a>.</li></ul>`;
+  
+  return result;
 }
 
 function renderListStyleMissions() {
@@ -1560,12 +1570,28 @@ function toggleCompleted() {
 
 // Run whenever the icon setting changes (OnClick) or is initialized.
 function setIcons(iconType, shouldRenderMissions = true) {
+  if (iconType != "none") {
+    iconType = "image";  // Force it to these two options
+  }
+  
   setGlobal('IconConfig', iconType);
-  $('.config-icon').removeClass('active');
-  $(`#config-icon-${iconType}`).addClass('active');
+  
+  $('#config-style-icons').removeClass('active');
+  if (iconType == "image") {
+    $('#config-style-icons').addClass('active');
+  }
   
   if (shouldRenderMissions) {
     renderMissions();
+  }
+}
+
+function toggleIconsStyle() {
+  let currentType = getGlobal('IconConfig');
+  if (currentType == "image") {
+    setIcons("none");
+  } else {
+    setIcons("image");
   }
 }
 
@@ -1577,8 +1603,11 @@ var StylesheetUrls = {
 // Run whenever the style setting changes (OnClick) or is initialized.
 function setStyle(styleType) {
   setGlobal('StyleConfig', styleType);
-  $('.config-style').removeClass('active');
-  $(`#config-style-${styleType}`).addClass('active');
+  
+  $('#config-style-dark').removeClass('active');
+  if (styleType == "dark") {
+    $('#config-style-dark').addClass('active');
+  }
   
   if (styleType in StylesheetUrls) {
     $('#stylesheet').attr('href', StylesheetUrls[styleType]);
@@ -1586,6 +1615,15 @@ function setStyle(styleType) {
     let styleIds = Object.keys(StylesheetUrls).join(" ");
     $('#body').removeClass(styleIds).addClass(styleType);
   }  
+}
+
+function toggleDarkStyle() {
+  let currentStyle = getGlobal('StyleConfig');
+  if (currentStyle == 'dark') {
+    setStyle('light');
+  } else {
+    setStyle('dark');
+  }
 }
 
 // Run OnClick for the list style option.
