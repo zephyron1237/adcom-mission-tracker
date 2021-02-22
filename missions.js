@@ -210,12 +210,12 @@ function getSchedulePopupEvent(eventInfo) {
 // Returns the current event info based on the time and the schedule's cycles
 // "now" is an argument to allow for easier testing, but defaults to the current time.
 function getCurrentEventInfo(now = Date.now()) {
-  return getSoonestEventInfos(1, now)[0];
+  return getSoonestEventInfos(1, 1, now)[0];
 }
 
-function getSoonestEventInfos(maxEventCount = 10, now = Date.now()) {
-  // The current algorithm is: Search events where EndTime > Now and find the one with the minimum EndTime.
-  // Currently keeps track of a single minimum, but could return the N lowest (for a schedule) using a priority queue.
+function getSoonestEventInfos(minEventCount = 10, maxEventCount = 15, now = Date.now()) {
+  // The current algorithm is: Search events where EndTime > Now and find the ones with the minimum EndTime.
+  // Use a priority queue to keep track of the "maxEventCount" soonest events
   let soonestEvents = new PriorityQueue(maxEventCount, value => value.EndTimeMillis);
   
   // oneOffEndTimes is a lookup table of one-offs by their EndTime (integer millis from Epoch).
@@ -242,7 +242,23 @@ function getSoonestEventInfos(maxEventCount = 10, now = Date.now()) {
     results.unshift(soonestEvents.pop());
   }
   
-  return results;
+  
+  // Finally, find the last new theme in the schedule, and pare it down
+  // to the min required to see all themes, or at least "minEventCount"
+  let foundThemes = new Set();
+  let lastNewIndex = 0;
+  
+  for (resultIndex in results) {
+    let theme = results[resultIndex].ThemeId;
+    if (!foundThemes.has(theme)) {
+      foundThemes.add(theme);
+      lastNewIndex = resultIndex;
+    }
+  }
+  
+  let resultsToKeep = Math.max(minEventCount, parseInt(lastNewIndex) + 1);
+  
+  return results.slice(0, resultsToKeep);
 }
 
 function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
