@@ -1,0 +1,62 @@
+/* This file is intended to be duplicated into the /ages/ directory.
+All of the relative paths should be the same, but the paths will be in /ages/ */
+
+.altMissionButton {
+  background-image: url("img/shared/switch_ab_test.png");
+}
+
+.plastic {
+  background-image: url("img/event/plastic.png");
+}
+
+.armored {
+  background-image: url("img/event/armored.png");
+}
+
+.wood {
+  background-image: url("img/main/capsule-wood.png");
+}
+
+.stone {
+  background-image: url("img/main/capsule-stone.png");
+}
+
+.darkscience {
+  background-image: url("img/event/darkscience.png");
+}
+
+.science {
+  background-image: url("img/main/scientist.png");
+}
+
+.comrades {
+  background-image: url("img/shared/comrade.png");
+}
+
+.comradesPerSec, .TradePayoutMultiplier {
+  background-image: url("img/shared/comrades_per_second.png");
+}
+
+.power, .GeneratorPayoutMultiplier {
+  background-image: url("img/shared/boost_power.png");
+}
+
+.discount, .GeneratorCostReduction {
+  background-image: url("img/shared/discount.png");
+}
+
+.critChance, .GeneratorCritChance {
+  background-image: url("img/shared/crit_chance.png");
+}
+
+.critPower, .GeneratorCritPowerMult {
+  background-image: url("img/shared/crit_power.png");
+}
+
+.speed, .GenManagerAndSpeedMult {
+  background-image: url("img/shared/speed.png");
+}
+
+.cardIcon {
+  background-image: url("img/shared/card.png");
+}
