@@ -1460,7 +1460,7 @@ function getResearcherBasicDetails(researcher) {
         if (resources.length == getData().Industries.length) {
           return `Multiplies output of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
         } else {
-          return `Multiplies output of every ${resources.join('/')}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+          return `Multiplies output of every ${resources.join('/')} generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
         }
       }
       break;
@@ -1475,7 +1475,7 @@ function getResearcherBasicDetails(researcher) {
         return `Increases crit chance of all generators by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
       } else {
         resources = resources.map(ind => industryName(ind)).join('/');
-        return `Increases crit chance of every ${resources}-industry generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
+        return `Increases crit chance of every ${resources} generator by ${vals[0]}/${vals[1]}/${vals[2]}/...`;
       }
       break;
       
@@ -1488,7 +1488,7 @@ function getResearcherBasicDetails(researcher) {
       if (resources.length == getData().Industries.length) {
         return `Lowers cost of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       } else {
-        return `Lowers cost of every ${resources.join('/')}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+        return `Lowers cost of every ${resources.join('/')} generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       }
       break;
     
@@ -1501,7 +1501,7 @@ function getResearcherBasicDetails(researcher) {
       if (resources.length == getData().Industries.length) {
         return `Multiplies crit bonus of all generators by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       } else {
-        return `Multiplies crit bonus of every ${resources.join('/')}-industry generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
+        return `Multiplies crit bonus of every ${resources.join('/')} generator by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       }
       break;
       
