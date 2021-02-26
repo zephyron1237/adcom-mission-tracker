@@ -3348,16 +3348,16 @@ function getOfflineResourceGoal(simData) {
   let resourceId = getResourceByIndustry(simData.IndustryId).Id;
   
   if (condition.ConditionType == "ResourcesEarnedSinceSubscription") {
-    return condition.Threshold;
+    return condition.Threshold - simData.Counts["resourceProgress"];
     
   } else if (condition.ConditionType == "ResourceQuantity") {
     let generator = simData.Generators.find(g => g.Id == condition.ConditionId);
     let resCost = generator.Cost.find(c => c.Resource == resourceId);
-    return resCost.Qty * condition.Threshold;
+    return resCost.Qty * (condition.Threshold - simData.Counts[generator.Id]);
     
   } else if (condition.ConditionType == "IndustryUnlocked") {
     let industry = getData().Industries.find(i => i.Id == condition.ConditionId);
-    return industry.UnlockCostResourceQty;
+    return industry.UnlockCostResourceQty - simData.Counts[industry.UnlockCostResourceId];
     
   } else {
     console.error(`Unknown condition type: ${condition.ConditionType}`);
@@ -3434,7 +3434,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
     default:
       console.error(`Error: Weird situation! Simulating unknown ConditionType=${condition.ConditionType}`);
   }
-    
+  
   // Now do the iteration
   let maxTime = simData.Config.MaxDays * 24 * 60 * 60; // convert max days to max seconds
   let time;
