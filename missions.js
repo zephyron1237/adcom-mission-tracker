@@ -3299,10 +3299,6 @@ function calcOfflineProduction(simData) {
   let resourceId = getResourceByIndustry(simData.IndustryId).Id;
   let resourceGoal = getOfflineResourceGoal(simData);
   
-  if ("resourceProgress" in simData.Counts) {
-    resourceGoal -= simData.Counts["resourceProgress"];
-  }
-  
   // Create f(x) = Potato(t) - GoalPotato, aka poly[]
   let poly = [simData.Counts[resourceId] - resourceGoal];
   if (poly[0] >= 0) {
@@ -3348,7 +3344,8 @@ function getOfflineResourceGoal(simData) {
   let resourceId = getResourceByIndustry(simData.IndustryId).Id;
   
   if (condition.ConditionType == "ResourcesEarnedSinceSubscription") {
-    return condition.Threshold - simData.Counts["resourceProgress"];
+    let resourceProgress = simData.Counts["resourceProgress"] || 0;
+    return condition.Threshold - resourceProgress;
     
   } else if (condition.ConditionType == "ResourceQuantity") {
     let generator = simData.Generators.find(g => g.Id == condition.ConditionId);
