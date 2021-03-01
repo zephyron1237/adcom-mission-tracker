@@ -1278,8 +1278,12 @@ function getResource(id) {
   return resourcesById[id];
 }
 
-function resourceName(resourceId) {
-  return ENGLISH_MAP[`resource.${resourceId}.plural`];
+function resourceName(resourceId, isPluralized = true) {
+  if (isPluralized) {
+    return ENGLISH_MAP[`resource.${resourceId}.plural`];
+  } else {
+    return ENGLISH_MAP[`resource.${resourceId}.singular`];
+  }
 }
 
 function industryName(industryId) {
@@ -2124,6 +2128,13 @@ function getAllGeneratorsTab() {
     let researchers = getResearchersByIndustry(industry.Id);
     let resource = getResourceByIndustry(industry.Id);
     let resourceNameString = resourceName(resource.Id);
+    
+    // Show the industry name if it isn't the resource.
+    let industryName = ENGLISH_MAP[industry.Id];
+    let singularResouceName = resourceName(resource.Id, false);
+    if (industryName.toLowerCase() != singularResouceName.toLowerCase()) {
+      resourceNameString += ` <em>(${industryName})</em>`;
+    }
     
     html += `<div class="font-weight-bold mb-2"><img class='resourceIcon mr-1' src='${imgDirectory}/${resource.Id}.png'>${resourceNameString}</div>`;
     
