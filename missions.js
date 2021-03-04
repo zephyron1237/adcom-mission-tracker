@@ -3341,7 +3341,11 @@ function calcOfflineProduction(simData) {
     x = x - evaluatePolynomial(poly, x) / evaluatePolynomial(deriv, x);
     
     if (Math.abs(x - oldX) < 0.1) {
-      return x;
+      if (x < 1) {
+        return 0; // This is too small, let's just call it instant.
+      } else {
+        return x;
+      }
     }
   }
   
@@ -3356,7 +3360,8 @@ function getOfflineResourceGoal(simData) {
   
   if (condition.ConditionType == "ResourcesEarnedSinceSubscription") {
     let resourceProgress = simData.Counts["resourceProgress"] || 0;
-    return condition.Threshold - resourceProgress;
+    let currentResource = simData.Counts[condition.ConditionId] || 0;
+    return condition.Threshold - resourceProgress + currentResource;
     
   } else if (condition.ConditionType == "ResourceQuantity") {
     let generator = simData.Generators.find(g => g.Id == condition.ConditionId);
