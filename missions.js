@@ -2869,7 +2869,7 @@ function getTradesForCost(cost, tradeInfo) {
 
 function clickComradeLimited(generatorId) {
   let checked = $('#configComradeLimited').is(':checked');
-  $("#generators input[type='text'],input[type='number']").not(`#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
+  $("#generators input[type='text'],input[type='number']").not(`#comrades,#comradesPerSec,#${generatorId}-count`).prop("disabled", checked);
 }
 
 function clickOffline() {
@@ -3279,9 +3279,12 @@ function calcLimitedComrades(simData) {
   let gensNeeded = condition.Threshold - simData.Counts[condition.ConditionId];
   if (gensNeeded <= 0) {
     return 0;
-  } else {
-    return gensNeeded * comradeCost.Qty / comradeGenerator.QtyPerSec;
   }
+  
+  let currentComrades = simData.Counts["comrade"] || 0;
+  let neededComrades = gensNeeded * comradeCost.Qty - currentComrades;
+  
+  return Math.max(neededComrades / comradeGenerator.QtyPerSec, 0);
 }
 
 // We don't need to do a full simulation for offline, but we do need to estimate a polynomial root
