@@ -30,7 +30,7 @@ var THEME_ID_TITLE_OVERRIDES = {
 // For game-specific documentation and social channels
 var SOCIAL_HELP_URLS = {
   "faq": "https://docs.google.com/document/d/1CVjPm2FAcCThtZyfwguFIj8ICpmOr8tLA_fANXOdtmU/",
-  "discord": "https://discord.gg/aEKYCkwC2C",  // The Ages discord is questionable, so using the AdCom.
+  "discord": "https://discord.gg/XCnZKvBdVf",
   "reddit": "https://reddit.com/r/AdventureAges/",
 }
 
