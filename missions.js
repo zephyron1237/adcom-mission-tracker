@@ -1823,15 +1823,31 @@ function getData() {
 function initializeAbTestGroups() {
   // Get the test name (left half) from each current group and throw them into a set.
   let currentGroupIds = getCurrentAbTestGroups();
-  let currentTests = new Set(currentGroupIds.map(g => g.split("|")[0]));
+  let availableGroupMap = getAvailableAbTestGroups();
+  let currentTests = new Set();
+  let indicesToRemove = new Set();
+  
+  for (let currentGroupIdIndex in currentGroupIds) {
+    let currentGroupId = currentGroupIds[currentGroupIdIndex];
+    let currentTest = currentGroupId.split("|")[0];
+    
+    if (currentTest in availableGroupMap) {
+      currentTests.add(currentTest);
+    } else {
+      // This is a saved Ab Test Group, but no longer available
+      indicesToRemove.add(parseInt(currentGroupIdIndex));
+    }
+  }
+  
+  // Remove depricated ab test groups.
+  currentGroupIds = currentGroupIds.filter((groupId, index) => !indicesToRemove.has(index));
   
   // Use that set to filter all known test names down to ones not yet assigned.
-  let allGroupMap = getAvailableAbTestGroups();
-  let unassignedTestNames = Object.keys(allGroupMap).filter(g => !currentTests.has(g));
+  let unassignedTestNames = Object.keys(availableGroupMap).filter(g => !currentTests.has(g));
   
   // Use the FIRST GROUP AS DEFAULT for each unassigned test.
   for (let testName of unassignedTestNames) {
-    let defaultGroup = allGroupMap[testName][0];
+    let defaultGroup = availableGroupMap[testName][0];
     currentGroupIds.push(`${testName}|${defaultGroup}`);
   }
   
