@@ -118,6 +118,13 @@ function loadModeSettings() {
     eventScheduleInfo = getCurrentEventInfo(now);
   }
   
+  // Initialize fake (blank) events, used as stubs when datamined info is unavailable
+  if (DATA[eventScheduleInfo.BalanceId]["fake"]) {
+    DATA.event = {"Generators": [], "Industries": [], "Missions": [], "Researchers": [], "Resources": [{"Id":"potato"}]};
+    $('#alertFakeEvent').removeClass("collapse");
+  }
+  
+  // Otherwise, point DATA.event to the current event.  This is for legacy reasons.
   if (!("event" in DATA)) {
     DATA.event = DATA[eventScheduleInfo.BalanceId];
   }
@@ -549,9 +556,12 @@ function initializeEventMissionData() {
     missionsLeft -= 1;
   }
   
-  for (let i = 0; i < 3; i++) {
-    // TODO: Refactor if a first rank has 2 or less missions
-    missionData.Current.Remaining.push(missionData[1].Remaining.shift());
+  // If missions exist, move three from Rank 1 to Current.
+  if (missionData[1] !== undefined) {
+    for (let i = 0; i < 3; i++) {
+      // TODO: Refactor if a first rank has 2 or less missions
+      missionData.Current.Remaining.push(missionData[1].Remaining.shift());
+    }
   }
 }
 
