@@ -64,6 +64,14 @@ SCHEDULE_CYCLES.LteSchedule[2].LteBalanceIds = [
   "cowboy-bal-2",
 ];
 
+SCHEDULE_CYCLES.LteSchedule[2].LteRewardIds = [
+  "reward3",
+  "reward4",
+  "reward5",
+  "reward1",
+  "reward2",
+];
+
 /*******************/
 
 
