@@ -158,8 +158,9 @@ function loadModeSettings() {
   $('#viewAllGeneratorsButton').attr('style', `background-image:url('${getImageDirectory()}/${firstResourceId}.png`);
   
   // Show a "datamined" warning for future ranks that aren't in the current version
-  if (DATAMINE_WARNING_MIN_RANK && currentMode == "main" && currentMainRank >= DATAMINE_WARNING_MIN_RANK) {
-    $('#alertUnconfirmed').removeClass('collapse')
+  if ((DATAMINE_WARNING_MIN_RANK && currentMode == "main" && currentMainRank >= DATAMINE_WARNING_MIN_RANK) ||
+      (DATAMINE_WARNING_THEME_ID && currentMode == "event" && eventScheduleInfo.ThemeId == DATAMINE_WARNING_THEME_ID)) {
+    $('#alertUnconfirmed').removeClass('collapse');
   }
 }
 
@@ -1996,7 +1997,7 @@ function renderCalculator(mission) {
       let unlockableIndustryIndex = getData().Industries.findIndex(i => i.Id == condition.ConditionId);
       industryId = getData().Industries[unlockableIndustryIndex - 1].Id;
     } else if (conditionType == "ResourcesEarnedSinceSubscription") {
-      if (condition.ConditionId.toLowerCase() == "scientist") {
+      if (["scientist", "darkscience"].includes(condition.ConditionId.toLowerCase())) {
         // We currently don't support a calculator collecting science
         return "Mission type currently unsupported.  Check back next event!";
       }
