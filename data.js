@@ -69,7 +69,7 @@ var SOCIAL_HELP_URLS = {
 
 // If not undefined, will show a datamining warning at the top of the Tracker
 var DATAMINE_WARNING_MIN_RANK = undefined; // For motherland
-var DATAMINE_WARNING_THEME_ID = "stone"; // For events
+var DATAMINE_WARNING_THEME_ID = undefined; // For events
 
 // So that AdCom can have "CurrentMode" and Ages can have "Ages-CurrentMode"
 var GAME_SAVE_KEY_PREFIX = "";
