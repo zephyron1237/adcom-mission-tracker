@@ -79,8 +79,7 @@ var GAME_SAVE_KEY_PREFIX = "";
 var ENGLISH_MAP = {};
 
 // String.raw`` is multiline and avoids issues with quotes and backslashes, but will interpret ${}'s.
-// 173078cd5543e16b6eec5f93c5a67a9e
-// Edited with fake-caveman data (lte.caveman.name)
+// fc7d07ff0d94d08de6cfe00267ead3fc
 var ENGLISH_LOCALIZATION_STRING = String.raw`
 {0} produces {1}={0} produces {1}
 activate=activate
@@ -888,7 +887,7 @@ mission.resourcequantity.baker.simplename=Own Bakers
 mission.resourcequantity.bakeshop.name=Bolster Bakeshops!
 mission.resourcequantity.bakeshop.simplename=Own Bakeshops
 mission.resourcequantity.ballistic.name=Straight Shot
-mission.resourcequantity.ballistic.simplename=Own Spear Throwers
+mission.resourcequantity.ballistic.simplename=Own Fighters
 mission.resourcequantity.barge.name=Barge Right In!
 mission.resourcequantity.barge.simplename=Own Barges
 mission.resourcequantity.barrack.name=Barrack And Roll!
@@ -1266,7 +1265,7 @@ mission.resourcesearnedsincesubscription.cookie.simplename=Collect Cookies
 mission.resourcesearnedsincesubscription.crate.name=Assemble Crates!
 mission.resourcesearnedsincesubscription.crate.simplename=Collect Crates
 mission.resourcesearnedsincesubscription.darkscience.name=Stone Age Experiment
-mission.resourcesearnedsincesubscription.darkscience.simplename=Spend Dark Science
+mission.resourcesearnedsincesubscription.darkscience.simplename=Collect Dark Science
 mission.resourcesearnedsincesubscription.drumstick.name=Wing Night!
 mission.resourcesearnedsincesubscription.drumstick.simplename=Collect Drumsticks
 mission.resourcesearnedsincesubscription.fire.name=Fire at Will
@@ -1513,6 +1512,8 @@ notification.lte.space.emoji.pre=🚀🌙
 notification.lte.spooky.emoji.post=🦇🎃
 notification.lte.spooky.emoji.pre=🎃🦇
 notification.lte.start.body=The {1} {0} {2} event has started!
+notification.lte.stone.emoji.post=🦖🔥
+notification.lte.stone.emoji.pre=🔥🦖
 notification.lte.winter.emoji.post=⛷️❄️
 notification.lte.winter.emoji.pre=❄️⛷️
 off=off
@@ -2419,9 +2420,9 @@ resource.bakeshop.plural=Bakeshops
 resource.bakeshop.shortdesc=Open shop and deliver sweet Communism.
 resource.bakeshop.singular=Bakeshop
 resource.ballistic.longdesc=They're also great at making dino-sized shish kabobs.
-resource.ballistic.plural=Spear Throwers
+resource.ballistic.plural=Fighters
 resource.ballistic.shortdesc=Never skips arm day.
-resource.ballistic.singular=Spear Thrower
+resource.ballistic.singular=Fighters
 resource.bandage.plural=Bandages
 resource.bandage.singular=Bandage
 resource.barge.action=Build
