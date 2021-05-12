@@ -49,7 +49,7 @@ var GAME_SAVE_KEY_PREFIX = "Ages-";
 var ENGLISH_MAP = {};
 
 // String.raw`` is multiline and avoids issues with quotes and backslashes, but will interpret ${}'s.
-// cfea1779c0eec9a6c548bbe768533658
+// 2145b2213b4c35ba8b594c7604d40cd9
 var ENGLISH_LOCALIZATION_STRING = String.raw`
 {0} produces {1}={0} produces {1}
 activate=activate
@@ -260,7 +260,7 @@ FTUE_SAY.LTE_Intro.LTE_Intro-A=Play <style=GreenColorTutorial>Limited Time Event
 FTUE_SAY.LTE_Welcome.LTE_Welcome-A=LTE_Welcome-A
 FTUE_SAY.LTE_Welcome.LTE_Welcome-A.egypt=Welcome to the Egypt Extravaganza event, Agent! It's up to you to lead ancient Egypt into rebuilding their civilization before it is lost in time!
 FTUE_SAY.LTE_Welcome.LTE_Welcome-A.japan=Welcome to the Japan in Jeopardy Event! Ensure this civilization's rich culture and contributions are not lost in time!
-FTUE_SAY.LTE_Welcome.LTE_Welcome-A.mexico=Welcome to the Aztec Under Attack event Agent! It’s up to you to lead ancient Mexico into rebuilding their civilization before it is lost in time!
+FTUE_SAY.LTE_Welcome.LTE_Welcome-A.mexico=Welcome to the Aztec AdVenture event, Agent! It’s up to you to help correct the timeline before the ancient civilization is lost in time!
 FTUE_SAY.LTE_Welcome.LTE_Welcome-A.scandinavia=Welcome to the Scandinavia Scramble Event, Agent! Ensure this civilization's fascinating culture and contributions are not lost to time!
 FTUE_SAY.LTE_Welcome.LTE_Welcome-B=Complete missions to earn capsules and heroes used exclusively within this event.
 FTUE_SAY.LTE_Welcome.LTE_Welcome-C=Level Up heroes with the unique event resource EXP.
@@ -479,8 +479,8 @@ lte.egypt.name=Egypt Extravaganza
 lte.japan.desc=Agent! Your help is required in Feudal Japan. Travel back and ensure this civilization's rich culture and contributions are not lost in time!
 lte.japan.name=Japan in Jeopardy
 lte.launch=Launch Event
-lte.mexico.desc=Something is afoot with the timeline continuum and the Aztec civilization is at risk of being lost for good. Your mission is to rebuild this spiritual and creative culture.
-lte.mexico.name=Aztec Under Attack
+lte.mexico.desc=Journey back in time and experience the rich culture of the Aztecs in central Mexico. Be careful not to step on any butterflies!
+lte.mexico.name=Aztec AdVenture!
 lte.reward.gacha={0} {1} Capsule
 lte.reward.researcher=<size=-6>x</size>{0} {1} Heroes
 lte.reward.resource={0} {1}
