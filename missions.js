@@ -1980,7 +1980,7 @@ function switchToNextAbGroup(missionId) {
 function renderCalculator(mission) {
   let condition = mission.Condition;
   let conditionType = condition.ConditionType;
-  if (["ResourceQuantity", "IndustryUnlocked", "ResourcesEarnedSinceSubscription"].includes(conditionType)) {
+  if (["ResourceQuantity", "IndustryUnlocked", "ResourcesEarnedSinceSubscription", "TradesSinceSubscription"].includes(conditionType)) {
     // First figure out which industry to display and calculate
     let industryId = "";
     if (conditionType == "ResourceQuantity") {
@@ -2003,6 +2003,9 @@ function renderCalculator(mission) {
       }
       
       industryId = getIndustryByResource(condition.ConditionId).Id;
+    } else if (conditionType == "TradesSinceSubscription") {
+      industryId = getIndustryByResource(condition.ConditionId).Id;
+
     }
     
     let resource = getResourceByIndustry(industryId);
@@ -3445,6 +3448,9 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   switch(condition.ConditionType) {
     case "ResourcesEarnedSinceSubscription":
       goals = [{ Resource: "resourceProgress", Qty: condition.Threshold }];
+      break;
+    case "TradesSinceSubscription":
+      goals = [{ Resource: condition.ConditionId, Qty: 5 * Math.pow(10, condition.Threshold * 3) }];
       break;
     case "IndustryUnlocked":
       let industry = getData().Industries.find(i => i.Id == condition.ConditionId);
