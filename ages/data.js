@@ -1,4 +1,4 @@
-// I recommend viewing this file with word wrap turned off, since each config is on its own line.
+﻿// I recommend viewing this file with word wrap turned off, since each config is on its own line.
 // If you need any help finding info you're looking for, I'm always happy to help. u/zephyron1237 and Zephyron#2300
 
 // This is the configuration data for ADVENTURE AGES
