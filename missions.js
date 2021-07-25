@@ -332,7 +332,7 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
   
   let cycleEndTime = new Date(getScheduleTimeMillis(cycle.EndTime));
   
-  while (curEndTime < cycleEndTime && eventsFound < soonestEvents.maxSize) {
+  while (curEndTime <= cycleEndTime && eventsFound < soonestEvents.maxSize) {
     // Move forward one week at a time until it's not replaced with a one-off.
     while (curEndTime.getTime() in oneOffEndTimes) {
       curEndTime.setUTCDate(curEndTime.getUTCDate() + 7);
