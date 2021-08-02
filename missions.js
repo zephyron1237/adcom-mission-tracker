@@ -274,9 +274,9 @@ function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
   let endTimeMillis = getScheduleTimeMillis(oneOffEvent.EndTime);
   oneOffEndTimes[endTimeMillis] = oneOffEvent;
   
-  // SPECIAL CASE: If a one-off lasts for more than a week, mark all of its hours as end times.
+  // SPECIAL CASE: If a one-off lasts for more than 5 days, mark all of its hours as end times.
   // (This will, e.g., make sure that a mini-event will see a one-off in its spot during Santa)
-  if ((endTimeMillis - startTimeMillis) > 1000*60*60*24*7) {
+  if ((endTimeMillis - startTimeMillis) >= 1000*60*60*24*5) {
     for (let fakeEndTime = new Date(endTimeMillis);
          fakeEndTime.getTime() > startTimeMillis;
          fakeEndTime.setUTCHours(fakeEndTime.getUTCHours() - 1)) {
@@ -981,8 +981,10 @@ function getEventCurrentRankTitle() {
     // Generate titles based on Completed count
     eventRankTitles = [];
     for (let rank = 1; rank <= getData().Ranks.length; rank++) {
-      for (let i = 0; i < missionData[rank].StartingCount; i++) {
-        eventRankTitles.push(`${rank} (${i}/${missionData[rank].StartingCount})`);
+      if (rank in missionData) {
+        for (let i = 0; i < missionData[rank].StartingCount; i++) {
+          eventRankTitles.push(`${rank} (${i}/${missionData[rank].StartingCount})`);
+        }
       }
     }
   }
