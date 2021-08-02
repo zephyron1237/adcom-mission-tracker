@@ -119,7 +119,7 @@ function loadModeSettings() {
   }
   
   // Initialize fake (blank) events, used as stubs when datamined info is unavailable
-  if (DATA[eventScheduleInfo.BalanceId]["fake"]) {
+  if (DATA[eventScheduleInfo.BalanceId]["fake"] && currentMode == "event") {
     DATA.event = {"Generators": [], "Industries": [], "Missions": [], "Researchers": [], "Resources": [{"Id":"potato"}]};
     $('#alertFakeEvent').removeClass("collapse");
   }
