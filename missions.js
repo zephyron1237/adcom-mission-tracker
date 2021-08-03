@@ -237,10 +237,10 @@ function getSoonestEventInfos(minEventCount = 10, maxEventCount = 15, now = Date
   
   // Before iterating through the cycles, limit them to ones that aren't over.
   let currentCycles = SCHEDULE_CYCLES.LteSchedule.filter(cycle => now < getScheduleTimeMillis(cycle.EndTime));
-  let hoursPerBalanceType = getHoursPerBalanceType();
+  let hoursPerBalanceId = getHoursPerBalanceId();
   
   for (let cycle of currentCycles) {
-    updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceType);
+    updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceId);
   }
   
   // When we pop from the priority queue, they'll go from latest->soonest.
@@ -301,7 +301,7 @@ function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
   }
 }
 
-function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceType) {
+function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceId) {
   // Iterate through the cycle until we find the first event where now < EndTime, compare with soonestEvent
   // (For a schedule of N, you could add the first N such events to the priority queue.)
   
@@ -310,7 +310,6 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
   // Get the first StartTime of the event (Increase days from StartTime until we hit StartDayOfTheWeek)
   let goalDayOfWeek = DAYS.indexOf(cycle.StartDayOfTheWeek);
   let firstStartTime = new Date(getScheduleTimeMillis(cycle.StartTime));
-  let durationHours = hoursPerBalanceType[cycle.BalanceType];
   
   if (goalDayOfWeek == -1) {
     console.error(`ERROR: Cannot understand day of week: ${cycle.StartDayOfTheWeek}`);
@@ -328,6 +327,7 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
   let curCycleIndex = 0;
   let eventsFound = 0;
   let curEndTime = new Date(firstStartTime);
+  let durationHours = hoursPerBalanceId[cycle.LteBalanceIds[0]];
   curEndTime.setUTCHours(curEndTime.getUTCHours() + durationHours);
   
   let cycleEndTime = new Date(getScheduleTimeMillis(cycle.EndTime));
@@ -338,12 +338,15 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
       curEndTime.setUTCDate(curEndTime.getUTCDate() + 7);
     }
     
+    let balanceId = cycle.LteBalanceIds[curCycleIndex % cycle.LteBalanceIds.length];
+    durationHours = hoursPerBalanceId[balanceId];
+    let nextBalanceId = cycle.LteBalanceIds[(curCycleIndex + 1) % cycle.LteBalanceIds.length];
+    let nextDurationHours = hoursPerBalanceId[nextBalanceId];
+    
     if (now < curEndTime) {
       eventsFound += 1;
       
-      let balanceId = cycle.LteBalanceIds[curCycleIndex % cycle.LteBalanceIds.length];
       let rewardId = cycle.LteRewardIds[curCycleIndex % cycle.LteRewardIds.length];
-      
       let themeId = SCHEDULE_CYCLES.LteBalanceData.find(bal => bal.BalanceId == balanceId).ThemeId;
       let curStartTime = new Date(curEndTime);
       curStartTime.setUTCHours(curStartTime.getUTCHours() - durationHours);
@@ -358,7 +361,10 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
       });
     }
     
+    let hourDifference = nextDurationHours - durationHours;
     curEndTime.setUTCDate(curEndTime.getUTCDate() + 7)
+    curEndTime.setUTCHours(curEndTime.getUTCHours() + hourDifference);
+    
     curCycleIndex += 1;
   }
 }
@@ -374,18 +380,12 @@ function getScheduleTimeMillis(hhDateString) {
   return date.getTime();
 }
 
-// Returns a dictionary like {Lte: 100, LteMidWeek: 32}
-function getHoursPerBalanceType() {
-  // Uses the first balance id for each unique BalanceType.
-  // This is a little bit of a hack, but is probably robust enough.
+// Returns a dictionary like {"crusade-bal-1": 100, ..., "power-bal-20": 3}
+function getHoursPerBalanceId() {
   let hoursPerBalanceType = {};
   
-  for (let cycle of SCHEDULE_CYCLES.LteSchedule) {
-    if (!(cycle.BalanceType in hoursPerBalanceType)) {
-      let firstId = cycle.LteBalanceIds[0];
-      let firstBalance = SCHEDULE_CYCLES.LteBalanceData.find(lte => lte.BalanceId == firstId);
-      hoursPerBalanceType[cycle.BalanceType] = firstBalance.DurationHours;
-    }
+  for (let balance of SCHEDULE_CYCLES.LteBalanceData) {
+    hoursPerBalanceType[balance.BalanceId] = balance.DurationHours;
   }
   
   return hoursPerBalanceType;
