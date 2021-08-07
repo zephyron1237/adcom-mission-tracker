@@ -1222,14 +1222,14 @@ function fromBigNum(x, localeOverride = undefined) {
     return NaN;
   } else if (x.length == 0) {
     return "";
-  } else if (!/([\d\.,]+)/.test(x)) {
+  } else if (!/(-?[\d\.,]+)/.test(x)) {
     return NaN;
   }
   
   x = x.replace(/\xA0/g, " "); // Turn non-breaking spaces (char-160 == 0xA0) into normal spaces.
 
   // Grab digits and the letters, and filter out anything missing.
-  let split = [.../([\d\., ]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
+  let split = [.../(-?[\d\., ]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
   
   if (split.length == 1) {
     return parseLocaleNumber(split[0], localeOverride);
