@@ -3402,7 +3402,7 @@ function getOfflineResourceGoal(simData) {
     
   } else if (condition.ConditionType == "IndustryUnlocked") {
     let industry = getData().Industries.find(i => i.Id == condition.ConditionId);
-    return industry.UnlockCostResourceQty - simData.Counts[industry.UnlockCostResourceId];
+    return industry.UnlockCostResourceQty - simData.Counts[industry.UnlockCostResourceId.toLowerCase()];
     
   } else {
     console.error(`Unknown condition type: ${condition.ConditionType}`);
