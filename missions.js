@@ -119,7 +119,7 @@ function loadModeSettings() {
   }
   
   // Initialize fake (blank) events, used as stubs when datamined info is unavailable
-  if (DATA[eventScheduleInfo.BalanceId]["fake"]) {
+  if (DATA[eventScheduleInfo.BalanceId]["fake"] && currentMode == "event") {
     DATA.event = {"Generators": [], "Industries": [], "Missions": [], "Researchers": [], "Resources": [{"Id":"potato"}]};
     $('#alertFakeEvent').removeClass("collapse");
   }
@@ -237,10 +237,10 @@ function getSoonestEventInfos(minEventCount = 10, maxEventCount = 15, now = Date
   
   // Before iterating through the cycles, limit them to ones that aren't over.
   let currentCycles = SCHEDULE_CYCLES.LteSchedule.filter(cycle => now < getScheduleTimeMillis(cycle.EndTime));
-  let hoursPerBalanceType = getHoursPerBalanceType();
+  let hoursPerBalanceId = getHoursPerBalanceId();
   
   for (let cycle of currentCycles) {
-    updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceType);
+    updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceId);
   }
   
   // When we pop from the priority queue, they'll go from latest->soonest.
@@ -274,9 +274,9 @@ function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
   let endTimeMillis = getScheduleTimeMillis(oneOffEvent.EndTime);
   oneOffEndTimes[endTimeMillis] = oneOffEvent;
   
-  // SPECIAL CASE: If a one-off lasts for more than a week, mark all of its hours as end times.
+  // SPECIAL CASE: If a one-off lasts for more than 5 days, mark all of its hours as end times.
   // (This will, e.g., make sure that a mini-event will see a one-off in its spot during Santa)
-  if ((endTimeMillis - startTimeMillis) > 1000*60*60*24*7) {
+  if ((endTimeMillis - startTimeMillis) >= 1000*60*60*24*5) {
     for (let fakeEndTime = new Date(endTimeMillis);
          fakeEndTime.getTime() > startTimeMillis;
          fakeEndTime.setUTCHours(fakeEndTime.getUTCHours() - 1)) {
@@ -301,7 +301,7 @@ function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
   }
 }
 
-function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceType) {
+function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceId) {
   // Iterate through the cycle until we find the first event where now < EndTime, compare with soonestEvent
   // (For a schedule of N, you could add the first N such events to the priority queue.)
   
@@ -310,7 +310,6 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
   // Get the first StartTime of the event (Increase days from StartTime until we hit StartDayOfTheWeek)
   let goalDayOfWeek = DAYS.indexOf(cycle.StartDayOfTheWeek);
   let firstStartTime = new Date(getScheduleTimeMillis(cycle.StartTime));
-  let durationHours = hoursPerBalanceType[cycle.BalanceType];
   
   if (goalDayOfWeek == -1) {
     console.error(`ERROR: Cannot understand day of week: ${cycle.StartDayOfTheWeek}`);
@@ -328,22 +327,26 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
   let curCycleIndex = 0;
   let eventsFound = 0;
   let curEndTime = new Date(firstStartTime);
+  let durationHours = hoursPerBalanceId[cycle.LteBalanceIds[0]];
   curEndTime.setUTCHours(curEndTime.getUTCHours() + durationHours);
   
   let cycleEndTime = new Date(getScheduleTimeMillis(cycle.EndTime));
   
-  while (curEndTime < cycleEndTime && eventsFound < soonestEvents.maxSize) {
+  while (curEndTime <= cycleEndTime && eventsFound < soonestEvents.maxSize) {
     // Move forward one week at a time until it's not replaced with a one-off.
     while (curEndTime.getTime() in oneOffEndTimes) {
       curEndTime.setUTCDate(curEndTime.getUTCDate() + 7);
     }
     
+    let balanceId = cycle.LteBalanceIds[curCycleIndex % cycle.LteBalanceIds.length];
+    durationHours = hoursPerBalanceId[balanceId];
+    let nextBalanceId = cycle.LteBalanceIds[(curCycleIndex + 1) % cycle.LteBalanceIds.length];
+    let nextDurationHours = hoursPerBalanceId[nextBalanceId];
+    
     if (now < curEndTime) {
       eventsFound += 1;
       
-      let balanceId = cycle.LteBalanceIds[curCycleIndex % cycle.LteBalanceIds.length];
       let rewardId = cycle.LteRewardIds[curCycleIndex % cycle.LteRewardIds.length];
-      
       let themeId = SCHEDULE_CYCLES.LteBalanceData.find(bal => bal.BalanceId == balanceId).ThemeId;
       let curStartTime = new Date(curEndTime);
       curStartTime.setUTCHours(curStartTime.getUTCHours() - durationHours);
@@ -358,7 +361,10 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
       });
     }
     
+    let hourDifference = nextDurationHours - durationHours;
     curEndTime.setUTCDate(curEndTime.getUTCDate() + 7)
+    curEndTime.setUTCHours(curEndTime.getUTCHours() + hourDifference);
+    
     curCycleIndex += 1;
   }
 }
@@ -374,18 +380,12 @@ function getScheduleTimeMillis(hhDateString) {
   return date.getTime();
 }
 
-// Returns a dictionary like {Lte: 100, LteMidWeek: 32}
-function getHoursPerBalanceType() {
-  // Uses the first balance id for each unique BalanceType.
-  // This is a little bit of a hack, but is probably robust enough.
+// Returns a dictionary like {"crusade-bal-1": 100, ..., "power-bal-20": 3}
+function getHoursPerBalanceId() {
   let hoursPerBalanceType = {};
   
-  for (let cycle of SCHEDULE_CYCLES.LteSchedule) {
-    if (!(cycle.BalanceType in hoursPerBalanceType)) {
-      let firstId = cycle.LteBalanceIds[0];
-      let firstBalance = SCHEDULE_CYCLES.LteBalanceData.find(lte => lte.BalanceId == firstId);
-      hoursPerBalanceType[cycle.BalanceType] = firstBalance.DurationHours;
-    }
+  for (let balance of SCHEDULE_CYCLES.LteBalanceData) {
+    hoursPerBalanceType[balance.BalanceId] = balance.DurationHours;
   }
   
   return hoursPerBalanceType;
@@ -981,8 +981,10 @@ function getEventCurrentRankTitle() {
     // Generate titles based on Completed count
     eventRankTitles = [];
     for (let rank = 1; rank <= getData().Ranks.length; rank++) {
-      for (let i = 0; i < missionData[rank].StartingCount; i++) {
-        eventRankTitles.push(`${rank} (${i}/${missionData[rank].StartingCount})`);
+      if (rank in missionData) {
+        for (let i = 0; i < missionData[rank].StartingCount; i++) {
+          eventRankTitles.push(`${rank} (${i}/${missionData[rank].StartingCount})`);
+        }
       }
     }
   }
@@ -1220,14 +1222,14 @@ function fromBigNum(x, localeOverride = undefined) {
     return NaN;
   } else if (x.length == 0) {
     return "";
-  } else if (!/([\d\.,]+)/.test(x)) {
+  } else if (!/(-?[\d\.,]+)/.test(x)) {
     return NaN;
   }
   
   x = x.replace(/\xA0/g, " "); // Turn non-breaking spaces (char-160 == 0xA0) into normal spaces.
 
   // Grab digits and the letters, and filter out anything missing.
-  let split = [.../([\d\., ]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
+  let split = [.../(-?[\d\., ]+)? *(\w+)?/g.exec(x)].filter((y,i) => y != undefined && i>0);
   
   if (split.length == 1) {
     return parseLocaleNumber(split[0], localeOverride);
@@ -2033,7 +2035,7 @@ function renderCalculator(mission) {
     html += `<hr /><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configAutobuy"><label class="form-check-label" for="configAutobuy">Auto-buy deepest generator</label>
       <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Continuously buy max of the deepest available automated generator.">&#9432;</a></div>`;
     html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configOffline" onclick="clickOffline()"><label class="form-check-label" for="configOffline">Offline</label>
-      <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="There appears to be a bug in the game's offline calculations where it runs the deepest generator for the entire duration, followed by the second-deepest, etc., instead of repeating the process continuously.  This can make long offline periods optimal, but you cannot check in.">&#9432;</a></div>`;
+      <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="There appears to be an undocumented huge difference in the game's offline calculations, where it runs the deepest generator for the entire duration, followed by the second-deepest, etc., instead of repeating the process continuously.  This can make long offline periods optimal, but you cannot check in.">&#9432;</a></div>`;
     
     if (conditionType == "ResourceQuantity") {
       html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="" id="configComradeLimited" onclick="clickComradeLimited('${condition.ConditionId}')"><label class="form-check-label" for="configComradeLimited">Limited by ${resourceName('comrade')} only</label>
@@ -2050,7 +2052,7 @@ function renderCalculator(mission) {
     
     return html;
   } else {
-    return "Mission type currently unsupported.  Check back next event!";
+    return "Mission type currently unsupported.";
   }
 }
 
