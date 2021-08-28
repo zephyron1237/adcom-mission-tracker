@@ -1171,20 +1171,31 @@ function clickMission(missionId) {
     renderMissions();
   } else if (-1 != (foundIndex = missionData.Completed.Remaining.findIndex(m => m.Id == missionId))) {
     // Clicked a Completed mission, undo it to Current
-    // But first, kick out the newest (highest-index) mission.
+    
+    let completedMission = missionData.Completed.Remaining[foundIndex];
+    let addToRank = "Current";
+  
+    // But first, kick out the newest (highest-index) mission of Current, if reasonable.
     if (missionData.Current.Remaining.length == missionData.Current.StartingCount) {
       let newestMission = missionData.Current.Remaining.reduce((prev, cur) => (prev.Index > cur.Index) ? prev : cur);
-      let newestIndex = missionData.Current.Remaining.indexOf(newestMission);
-      missionData.Current.Remaining.splice(newestIndex, 1);
-      missionData[newestMission.Rank].Remaining.unshift(newestMission);
-      missionData[newestMission.Rank].Remaining.sort((a, b) => a.Index - b.Index);
+      
+      if (completedMission.Index > newestMission.Index) {
+        // If the completed mission is after all three Current, skip Current and add directly to rank.
+        addToRank = completedMission.Rank;
+        
+      } else {
+        // Otherwise, actually kick out the newest Current mission.
+        let newestIndex = missionData.Current.Remaining.indexOf(newestMission);
+        missionData.Current.Remaining.splice(newestIndex, 1);
+        missionData[newestMission.Rank].Remaining.unshift(newestMission);
+        missionData[newestMission.Rank].Remaining.sort((a, b) => a.Index - b.Index);
+      }
     }
     
     // Ok, now back to undoing it to Current
-    let completedMission = missionData.Completed.Remaining[foundIndex];
     missionData.Completed.Remaining.splice(foundIndex, 1);
-    missionData.Current.Remaining.push(completedMission);
-    missionData.Current.Remaining.sort((a, b) => a.Index - b.Index);
+    missionData[addToRank].Remaining.push(completedMission);
+    missionData[addToRank].Remaining.sort((a, b) => a.Index - b.Index);
     
     if (missionId in missionCompletionTimes) {
       delete missionCompletionTimes[missionId];
