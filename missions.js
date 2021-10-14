@@ -3,6 +3,7 @@ var missionCompletionTimes = {}; // Maps missionId's to when you completed them.
 var currentMode = "main"; 
 var currentMainRank = 1;
 var eventScheduleInfo = null;  // The main schedule metadata associated with the current LteEvent
+var ENGLISH_MAP = {}; // This gets filled in during mission.js's main(). After that, ENGLISH_MAP["active"] == "Active"
 
 function main() {
   loadModeSettings();
