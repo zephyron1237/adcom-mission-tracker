@@ -222,7 +222,7 @@ function getCurrentEventInfo(now = Date.now()) {
   return getSoonestEventInfos(1, 1, now)[0];
 }
 
-function getSoonestEventInfos(minEventCount = 10, maxEventCount = 15, now = Date.now()) {
+function getSoonestEventInfos(minEventCount = 10, maxEventCount = 20, now = Date.now()) {
   // The current algorithm is: Search events where EndTime > Now and find the ones with the minimum EndTime.
   // Use a priority queue to keep track of the "maxEventCount" soonest events
   let soonestEvents = new PriorityQueue(maxEventCount, value => value.EndTimeMillis);
