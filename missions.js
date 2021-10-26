@@ -227,13 +227,13 @@ function getSoonestEventInfos(minEventCount = 10, maxEventCount = 20, now = Date
   // Use a priority queue to keep track of the "maxEventCount" soonest events
   let soonestEvents = new PriorityQueue(maxEventCount, value => value.EndTimeMillis);
   
-  // oneOffEndTimes is a lookup table of one-offs by their EndTime (integer millis from Epoch).
+  // oneOffHours is a Set of each hour (as millis from Epoch) contained in all one-offs.
   // This is used when going through cycles to quickly determine if a one-off interrupts
-  let oneOffEndTimes = {};
+  let oneOffHours = new Set();
   
   // Iterate through all the one-offs first before doing the cycles
   for (let oneOffEvent of SCHEDULE_CYCLES.LteOneOff) {
-    updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes);
+    updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffHours);
   }
   
   // Before iterating through the cycles, limit them to ones that aren't over.
@@ -241,7 +241,7 @@ function getSoonestEventInfos(minEventCount = 10, maxEventCount = 20, now = Date
   let hoursPerBalanceId = getHoursPerBalanceId();
   
   for (let cycle of currentCycles) {
-    updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceId);
+    updateSoonestCycle(cycle, now, soonestEvents, oneOffHours, hoursPerBalanceId);
   }
   
   // When we pop from the priority queue, they'll go from latest->soonest.
@@ -270,20 +270,16 @@ function getSoonestEventInfos(minEventCount = 10, maxEventCount = 20, now = Date
   return results.slice(0, resultsToKeep);
 }
 
-function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
+function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffHours) {
   let startTimeMillis = getScheduleTimeMillis(oneOffEvent.StartTime);
   let endTimeMillis = getScheduleTimeMillis(oneOffEvent.EndTime);
-  oneOffEndTimes[endTimeMillis] = oneOffEvent;
+  oneOffHours.add(endTimeMillis);
   
-  // SPECIAL CASE: If a one-off lasts for more than 5 days, mark all of its hours as end times.
-  // (This will, e.g., make sure that a mini-event will see a one-off in its spot during Santa)
-  if ((endTimeMillis - startTimeMillis) >= 1000*60*60*24*5) {
-    for (let fakeEndTime = new Date(endTimeMillis);
-         fakeEndTime.getTime() > startTimeMillis;
-         fakeEndTime.setUTCHours(fakeEndTime.getUTCHours() - 1)) {
-           
-           oneOffEndTimes[fakeEndTime.getTime()] = oneOffEvent;
-    }
+  for (let fakeEndTime = new Date(endTimeMillis);
+       fakeEndTime.getTime() > startTimeMillis;
+       fakeEndTime.setUTCHours(fakeEndTime.getUTCHours() - 1)) {
+         
+         oneOffHours.add(fakeEndTime.getTime());
   }
   
   if (now < endTimeMillis) {
@@ -302,7 +298,7 @@ function updateSoonestOneOff(oneOffEvent, now, soonestEvents, oneOffEndTimes) {
   }
 }
 
-function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerBalanceId) {
+function updateSoonestCycle(cycle, now, soonestEvents, oneOffHours, hoursPerBalanceId) {
   // Iterate through the cycle until we find the first event where now < EndTime, compare with soonestEvent
   // (For a schedule of N, you could add the first N such events to the priority queue.)
   
@@ -330,12 +326,13 @@ function updateSoonestCycle(cycle, now, soonestEvents, oneOffEndTimes, hoursPerB
   let curEndTime = new Date(firstStartTime);
   let durationHours = hoursPerBalanceId[cycle.LteBalanceIds[0]];
   curEndTime.setUTCHours(curEndTime.getUTCHours() + durationHours);
+  let durationMillis = durationHours * 3600000;
   
   let cycleEndTime = new Date(getScheduleTimeMillis(cycle.EndTime));
   
   while (curEndTime <= cycleEndTime && eventsFound < soonestEvents.maxSize) {
     // Move forward one week at a time until it's not replaced with a one-off.
-    while (curEndTime.getTime() in oneOffEndTimes) {
+    while (oneOffHours.has(curEndTime.getTime()) || oneOffHours.has(curEndTime.getTime() - durationMillis)) {
       curEndTime.setUTCDate(curEndTime.getUTCDate() + 7);
     }
     
