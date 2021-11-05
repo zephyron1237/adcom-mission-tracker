@@ -6,6 +6,8 @@ var POWERS = ['K', 'M', 'B', 'T', 'AA', 'BB', 'CC', 'DD', 'EE', 'FF', 'GG', 'HH'
 // Typically, the ThemeId is used directly, but some themes are poorly-named.
 var THEME_ID_TITLE_OVERRIDES = {
   "main": "Ages",
+  "fusioninnovation": "Innovation",
+  "fusioninfrastructure": "Infrastructure",
 };
 
 // For game-specific documentation and social channels
