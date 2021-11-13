@@ -249,13 +249,26 @@ input:checked + .slider:before {
   bottom: 2.5em;
 }
 
-.researcherLevelButton {
+.researcherLevelButton, .tradeLevelButton {
   width: 1em;
   border: 1px outset;
 }
 
-.researcherLevelButton:hover {
+.researcherLevelButton:hover, .tradeLevelButton:hover {
   cursor: pointer;
+}
+
+/*
+  DRS 2021-11-12
+  Custom styling for trade level buttons.
+*/
+.tradeLevelButton {
+  position: absolute;
+  height: 50%;
+}
+
+.tradeLevelButton:nth-child(2) {
+  top: 50%;
 }
 
 .missionContainer {
