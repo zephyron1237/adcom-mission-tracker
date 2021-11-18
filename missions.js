@@ -569,7 +569,8 @@ function initializeEventMissionData() {
 function initializeMainMissionData() {
   missionCompletionTimes = {};
   
-  let activeMissionCount = getData().Ranks[currentMainRank].ActiveMissionCount;
+  // Rank "N" data is stored in Ranks[N - 1]
+  let activeMissionCount = getData().Ranks[currentMainRank - 1].ActiveMissionCount;
   missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: activeMissionCount, Remaining: []}, OtherRankMissionIds: []};
   
   // Assign indices for sorting
