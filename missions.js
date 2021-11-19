@@ -2214,12 +2214,26 @@ function updateGeneratorsTab() {
 function getResourceInput(tagId, description, imageUrl, imageTitle, defaultValue = "", extraInputClasses = "", extraInputProperties = "", popoverTitle = "", popoverHtml = "") {
   let preSpanHtml = "";
   let postSpanHtml = "";
+  let tradeDeltaButtons = "";
   
   if (popoverHtml) {
     preSpanHtml = `<a id="${tagId}-popover-link" class="infoButton" tabindex="-1" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-title="${popoverTitle}" data-content="${popoverHtml}" data-html="true" title="${imageTitle}">`;
     postSpanHtml = `</a>`;
   }
-  
+
+  // Trade up/down button implementation. Trade name is queried based on positional value in tagId.
+  if (tagId.indexOf("trade") !== -1) {
+    let tradeName = tagId.substr(0, tagId.indexOf("-"));
+    tradeDeltaButtons = `<div id="${tradeName}-buttons" class="tradeLevelButtonGroup">
+      <div id="${tradeName}-up-button" class="tradeLevelButton float-left text-success">
+        <a onclick="tradeLevelDelta('${tradeName}', 1)" role="button" title="Increase ${resourceName(tradeName, false)} trade">&#x25B2;</a>
+      </div>
+      <div id="${tradeName}-down-button" class="tradeLevelButton float-right text-danger">
+        <a onclick="tradeLevelDelta('${tradeName}', -1)" role="button" title="Decrease ${resourceName(tradeName, false)} trade">&#x25BC;</a>
+      </div>
+    </div>`;
+  }
+
   return `<div class="input-group my-1" >
             <div class="input-group-prepend" title="${imageTitle}">
               ${preSpanHtml}
@@ -2227,6 +2241,7 @@ function getResourceInput(tagId, description, imageUrl, imageTitle, defaultValue
               ${postSpanHtml}
             </div>
             <input type="text" class="form-control ${extraInputClasses}" id="${tagId}" value="${defaultValue}" placeholder="${description}" ${extraInputProperties}>
+            ${tradeDeltaButtons}
           </div>`;
 }
 
@@ -2767,6 +2782,25 @@ function getTradesTab() {
     </div>`;
     
   return html;
+}
+
+// Adjusts the trade level based on the DOM input.
+function tradeLevelDelta(tradeId, delta) {
+  let inputToBigNum = fromBigNum($(`#${tradeId}-trade-cost`).val());
+  let tradeInfo = getData().Trades.find(t => t.Resource == tradeId);
+  
+  let originalTradeCount = getTradesForCost(inputToBigNum, tradeInfo);
+  let newTradeCount = originalTradeCount + delta;
+  // I hope this doesn't result in any floating-point issues ...
+  let newWriteValue = tradeInfo['CostMultiplier'] * Math.pow(tradeInfo['CostExponent'], newTradeCount);
+  console.log(newWriteValue)
+
+  if (newTradeCount < 0 || newWriteValue === Infinity || isNaN(newWriteValue)) {
+    return null;
+  } else {
+    $(`#${tradeId}-trade-cost`).val(bigNum(newWriteValue));
+    updateTradeTabTotals();
+  }
 }
 
 // Called when an input for next trade cost changes, or if a researcher is given, when its level changes

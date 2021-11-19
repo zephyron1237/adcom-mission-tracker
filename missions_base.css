@@ -250,12 +250,30 @@ input:checked + .slider:before {
 }
 
 .researcherLevelButton {
-  width: 1em;
   border: 1px outset;
+  border-radius: 3px;
 }
 
-.researcherLevelButton:hover {
+.researcherLevelButton, .tradeLevelButton {
+  width: 1em;
+}
+
+.researcherLevelButton:hover, .tradeLevelButton:hover {
   cursor: pointer;
+}
+
+/*
+  Custom styling for trade level buttons.
+*/
+.tradeLevelButton {
+  position: absolute;
+  height: 50%;
+  margin-left: 2px;
+  line-height: 20px;
+}
+
+.tradeLevelButton:nth-child(2) {
+  top: 50%;
 }
 
 .missionContainer {
