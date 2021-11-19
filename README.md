@@ -14,9 +14,11 @@ Switch between Motherland (main) and Event by clicking on the title's dropdown. 
 
 ## Thanks
 
-AdCom Wiki (Icons at launch).  Alyce (Santa/Winter icons).  Julian (Emoji selection, development assistance).  Manifold0 (Some dark mode styling).  Phil109 (Crusade icons, development assistance).  Phoebe (Crusade/Ninja/Comrade icons).  The_Random_Guy (Balance data at launch).  Vdisco (Propaganda boost animations).
+Asset Contributions: AdCom Wiki (Icons at launch).  Alyce (Santa/Winter icons).  Julian (Emoji selection, development assistance).  Phil109 (Crusade icons, development assistance).  Phoebe (Crusade/Ninja/Comrade icons).  The_Random_Guy (Balance data at launch).  Vdisco (Propaganda boost animations).
 
-Special thanks to those that have submitted issues and written pull requests!
+Code Contributions: EdricChan (Bugfix, suggestions).  Enigma (Up/down trade buttons).  Manifold0 (Some dark mode styling).  Skylark (Improved input parsing).  The-Snide-Sniper (Bugfix, suggestions),
+
+Special thanks to anybody else that has submitted issues or written pull requests!
 
 Json data and most images are copyright Hyper Hippo Productions Ltd.
 
