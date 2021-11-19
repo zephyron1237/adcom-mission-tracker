@@ -2218,16 +2218,15 @@ function getResourceInput(tagId, description, imageUrl, imageTitle, defaultValue
     postSpanHtml = `</a>`;
   }
 
-  // DRS 2021-11-12
-  // Extending this method by adding in up/down buttons for trade. Look up the trade name based on positional value in tagId.
+  // Trade up/down button implementation. Trade name is queried based on positional value in tagId.
   if (tagId.indexOf("trade") !== -1) {
     let tradeName = tagId.substr(0, tagId.indexOf("-"));
     tradeDeltaButtons = `<div id="${tradeName}-buttons" class="tradeLevelButtonGroup">
       <div id="${tradeName}-up-button" class="tradeLevelButton float-left text-success">
-        <a onclick="tradeLevelDelta('${tradeName}', 1)" role="button" title="Increase ${tradeName} trade">&#x25B2;</a>
+        <a onclick="tradeLevelDelta('${tradeName}', 1)" role="button" title="Increase ${resourceName(tradeName, false)} trade">&#x25B2;</a>
       </div>
       <div id="${tradeName}-down-button" class="tradeLevelButton float-right text-danger">
-        <a onclick="tradeLevelDelta('${tradeName}', -1)" role="button" title="Decrease ${tradeName} trade">&#x25BC;</a>
+        <a onclick="tradeLevelDelta('${tradeName}', -1)" role="button" title="Decrease ${resourceName(tradeName, false)} trade">&#x25BC;</a>
       </div>
     </div>`;
   }
@@ -2782,7 +2781,6 @@ function getTradesTab() {
   return html;
 }
 
-// DRS 2021-11-12
 // Adjusts the trade level based on the DOM input.
 function tradeLevelDelta(tradeId, delta) {
   let inputToBigNum = fromBigNum($(`#${tradeId}-trade-cost`).val());

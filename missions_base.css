@@ -249,9 +249,13 @@ input:checked + .slider:before {
   bottom: 2.5em;
 }
 
+.researcherLevelButton {
+  border: 1px outset;
+  border-radius: 3px;
+}
+
 .researcherLevelButton, .tradeLevelButton {
   width: 1em;
-  border: 1px outset;
 }
 
 .researcherLevelButton:hover, .tradeLevelButton:hover {
@@ -259,12 +263,13 @@ input:checked + .slider:before {
 }
 
 /*
-  DRS 2021-11-12
   Custom styling for trade level buttons.
 */
 .tradeLevelButton {
   position: absolute;
   height: 50%;
+  margin-left: 2px;
+  line-height: 20px;
 }
 
 .tradeLevelButton:nth-child(2) {
