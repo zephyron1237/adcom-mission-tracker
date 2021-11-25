@@ -2798,7 +2798,7 @@ function tradeLevelDelta(tradeId, delta) {
   if (newTradeCount < 0 || newWriteValue === Infinity || isNaN(newWriteValue)) {
     return null;
   } else {
-    $(`#${tradeId}-trade-cost`).val(bigNum(newWriteValue));
+    $(`.modal.show #${tradeId}-trade-cost`).val(bigNum(newWriteValue));
     updateTradeTabTotals();
   }
 }
