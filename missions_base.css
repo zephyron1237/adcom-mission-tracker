@@ -390,3 +390,7 @@ button.active .active-checkbox {
   .missionContainer > button { width: 300px; }
   .missionContainer > .altEmptySpan + button { width: calc(300px - 1.7rem); }
 }
+
+@media screen and (max-width: 520px) {
+  .keyboardShortcutHolder { overflow-x: scroll; }
+}

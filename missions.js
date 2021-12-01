@@ -14,6 +14,9 @@ function main() {
   loadSaveData();
   initializeIntervalFunctions();
   renderMissions();
+  $('body').on('keyup', function(event) {
+    inputKeyboardHandler(event);
+  });
 }
 
 // Determines whether the page is in Main or Event mode, based on the url and save state.
@@ -659,6 +662,7 @@ function initializePopups() {
   });
   
   $('#helpPopupBody').html(getHelpHtml(true));
+  $('#keyboardPopupBody').html(getKeyboardMacroHtml());
 }
 
 // Loads settings, and then save data, editing missionData in-place differently for main/events.
@@ -934,6 +938,72 @@ function getHelpHtml(isPopup) {
   result += `<li class="my-1">Click the <span class="resourceIcon" style="background-image:url('${getImageDirectory()}/${firstResourceId}.png')">&nbsp;</span> at the top to view all <strong>Resources/Generators</strong>, and <span class="resourceIcon cardIcon">&nbsp;</span> to view all <strong>${wordForResearchers}</strong>.</li>`;
   result += `<li class="my-1">Got <strong>questions?</strong>  Check out the <a href="${SOCIAL_HELP_URLS['faq']}">Game Guide/FAQ</a>, <a href="${SOCIAL_HELP_URLS['discord']}">Discord</a>, or <a href="${SOCIAL_HELP_URLS['reddit']}">Reddit</a>.</li></ul>`;
   
+  return result;
+}
+
+function getKeyboardMacroHtml() {
+  
+  result = `<p>The tracker supports a number of keyboard shortcuts.</p>
+<ul>
+  <li class="my-1"><kbd>Esc</kbd> Close visible modal box</li>
+  <li class="my-1"><kbd>Enter</kbd> Run calculation</li>
+  <li class="my-1"><kbd>Ctrl+Enter</kbd> Import previous counts</li>
+  <li class="my-1"><kbd>Ctrl+Shift+Enter</kbd> Import previous counts AND run calculation</li>
+  <li class="my-1"><kbd>Alt+<em>x</em></kbd>/<kbd>Option+<em>x</em></kbd> Focus on <em>x</em>th generator/${resourceName('comrade').toLowerCase()} trade if available<br>(0 => 10, minus key => 11, equals key => 12)</li>
+  <li class="my-1"><kbd>Alt+R</kbd>/<kbd>Option+R</kbd> Focus on resource quantity</li>
+  <li class="my-1"><kbd>Alt+P</kbd>/<kbd>Option+P</kbd> Focus on resource progress</li>
+  <li class="my-1"><kbd>Alt+C</kbd>/<kbd>Option+C</kbd> Focus on number of ${resourceName('comrade', true).toLowerCase()}</li>
+  <li class="my-1"><kbd>Alt+S</kbd>/<kbd>Option+S</kbd> Focus on ${resourceName('comrade', true).toLowerCase()} per second</li>
+</ul>
+<p>You can also adjust the value of an input box by referring to the table below. Holding <kbd>Up Arrow</kbd> and the appropriate key will result in additive or multiplicative behavior. Conversely, holding <kbd>Down Arrow</kbd> and the appropriate key will result in subtractive or divisive behavior. The column without a modifier key indicates that no modifier is required.</p>
+<div class="keyboardShortcutHolder">
+  <table class="table">
+    <thead>
+      <th></th>
+      <th>&#177;Alt/Option</th>
+      <th>&#177;</th>
+      <th>&#177;Shift</th>
+      <th>&#177;Ctrl</th>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Generator count</td>
+        <td>&#177;Third digit</td>
+        <td>&#177;Second digit</td>
+        <td>&#177;First digit</td>
+        <td>&#215;/&#247; ${bigNum(1e3)}</td>
+      </tr>
+      <tr>
+        <td>Resource count</td>
+        <td>&#177;Third digit</td>
+        <td>&#177;Second digit</td>
+        <td>&#177;First digit</td>
+        <td>&#215;/&#247; ${bigNum(1e3)}</td>
+      </tr>
+      <tr>
+        <td>${resourceName('comrade', false)} trades</td>
+        <td>N/A</td>
+        <td>&#177;1</td>
+        <td>&#177;5</td>
+        <td>&#177;25</td>
+      </tr>
+      <tr>
+        <td>${resourceName('comrade', false)} count</td>
+        <td>&#177;1</td>
+        <td>&#177;${bigNum(1e3)}</td>
+        <td>&#177;${bigNum(1e6)}</td>
+        <td>&#177;${bigNum(1e9)}</td>
+      </tr>
+      <tr>
+        <td>${resourceName('comrade', true)} per second</td>
+        <td>&#177;1</td>
+        <td>&#177;${bigNum(1e2)}</td>
+        <td>&#177;${bigNum(1e4)}</td>
+        <td>&#177;${bigNum(1e6)}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>`
   return result;
 }
 
@@ -2048,8 +2118,7 @@ function renderCalculator(mission) {
         <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Simplify and speed up calculation by assuming production is irrelevant.">&#9432;</a></div>`;
     }
     
-    html += `<div class="form-inline"><label for="configMaxDays" id="configMaxDaysLabel" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"> 
-      <a class="infoButton ml-2" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Higher Max Days allows you to simulate further, but increases time when simulation doesn't succeed.">&#9432;</a></div>`;
+    html += `<div class="form-inline"><label for="configMaxDays" id="configMaxDaysLabel" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"><a class="infoButton ml-2" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Higher Max Days allows you to simulate further, but increases time when simulation doesn't succeed. The simulation will automatically stop after ten seconds if it has not yet finished (consider upgrading some researchers at this point.)">&#9432;</a></div>`;
     
     html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
@@ -2783,14 +2852,13 @@ function getTradesTab() {
 
 // Adjusts the trade level based on the DOM input.
 function tradeLevelDelta(tradeId, delta) {
-  let inputToBigNum = fromBigNum($(`#${tradeId}-trade-cost`).val());
+  let inputToBigNum = fromBigNum($(`#${tradeId}-trade-cost`).val()) || Number($(inputId).val());
   let tradeInfo = getData().Trades.find(t => t.Resource == tradeId);
   
   let originalTradeCount = getTradesForCost(inputToBigNum, tradeInfo);
   let newTradeCount = originalTradeCount + delta;
   // I hope this doesn't result in any floating-point issues ...
   let newWriteValue = tradeInfo['CostMultiplier'] * Math.pow(tradeInfo['CostExponent'], newTradeCount);
-  console.log(newWriteValue)
 
   if (newTradeCount < 0 || newWriteValue === Infinity || isNaN(newWriteValue)) {
     return null;
@@ -2878,7 +2946,7 @@ function getIndustryTradeBreakdown(formValues) {
 
 // Called when the inputs for next trade cost are changed
 function updateTradesForResource(resourceId, costString, formValues) {
-  let cost = fromBigNum(costString);
+  let cost = fromBigNum(costString) || Number(costString);
   
   let tradeInfo = getData().Trades.find(t => t.Resource == resourceId);
   let comradesPerTrade = getTotalTradeValueForResource(resourceId, formValues, tradeInfo);
@@ -2985,10 +3053,12 @@ function doProductionSim() {
   
   if (result == -1) {
     if (simData.Config.Offline) {
-      $('#result').text(`Error: Offline calculation could not converge on an answer.`);
+      $('#result').text(`Offline calculation did not succeed. This may be due to invalid parameters.`);
     } else {
-      $('#result').text(`ETA: More than ${simData.Config.MaxDays} days. Increase max day limit.`);
+      $('#result').text(`Simulation did not complete in ${simData.Config.MaxDays} day(s). Try to increase the simulation time.`);
     }
+  } else if (result < -1) {
+    $('#result').text(`Simulation automatically terminated after 10 seconds (${getEta(-result)} had been simulated.)`);
   } else {
     $('#result').text(`ETA: ${getEta(result)}`);
   
@@ -3019,13 +3089,20 @@ function getEta(timeSeconds) {
     eta = `${hours}h ${minutes}m ${seconds}s`;
   } else if (minutes > 0) {
     eta = `${minutes}m ${seconds}s`;
-  } else if (seconds > 0.5) {
+  } else if (seconds > 0) {
     eta = `${seconds}s`;
-  } else if (timeSeconds <= 0) {
-    eta = 'Instant';
+  } else if (timeSeconds > 0.5) {
+    eta = '1s';
+  } else if (timeSeconds > 1e-3) {
+    eta = `${Math.floor(timeSeconds*1e3)} ms`;
+  } else if (timeSeconds > 1e-6) {
+    eta = `${Math.floor(timeSeconds*1e6)} ${String.fromCharCode(181)}s`;
+  } else if (timeSeconds > 1e-9) {
+    eta = `${Math.floor(timeSeconds*1e9)} ns`;
   } else {
-    eta = `1/${Math.round(1/timeSeconds)} s`;
+    eta = 'Instant';
   }
+  console.log(timeSeconds)
   
   // Strip any leading 0's off
   return eta.replace(/^0*/, '');
@@ -3242,7 +3319,7 @@ function getDerivedResearcherValues(generator, researchers, formValues) {
 
 // Gets a value from the form (with error checking) and optionally stores that value in simData.Counts and formValues.Counts[resourceId]
 function getValueFromForm(inputId, defaultValue, simData, formValues = null, resourceId = null, inputKey = null) {
-  let value = fromBigNum($(inputId).val());
+  let value = fromBigNum($(inputId).val()) || Number($(inputId).val());
   let result = value || defaultValue;
 
   if (isNaN(value)) {
@@ -3368,8 +3445,12 @@ function calcOffline(simData) {
   }
   
   let prodLimitedTime = calcOfflineProduction(simData);
-  
-  return Math.max(comradeLimitedTime, prodLimitedTime);
+
+  if (Math.min(comradeLimitedTime, prodLimitedTime) < 0) {
+    return -1; // one objective will mathematically never complete
+  } else {
+    return Math.max(comradeLimitedTime, prodLimitedTime);
+  }
 }
 
 function calcOfflineProduction(simData) {
@@ -3414,10 +3495,10 @@ function calcOfflineProduction(simData) {
   for (let chances = 1000; chances > 0; chances--) {
     let oldX = x;
     x = x - evaluatePolynomial(poly, x) / evaluatePolynomial(deriv, x);
-    
+
     if (Math.abs(x - oldX) < 0.1) {
-      if (x < 1) {
-        return 0; // This is too small, let's just call it instant.
+      if (Math.abs(x) === Infinity || isNaN(x) || x < 0) {
+        return -1; // An error occurred or the mission will mathematically never complete (such as negative)
       } else {
         return x;
       }
@@ -3468,6 +3549,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   // First, handle autobuy, if enabled.
   let autobuyGenerator = null;
   let nextAutobuyGenerator = null;
+  let genesisTime = new Date();
   
   // search backwards through the generators for the first one with Qty > 0
   if (simData.Config.Autobuy) {
@@ -3527,6 +3609,11 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   let maxTime = simData.Config.MaxDays * 24 * 60 * 60; // convert max days to max seconds
   let time;
   for (time = 0; time < maxTime && !metGoals(simData, goals); time += deltaTime) {
+    // Cancel simulation after 10 seconds (we don't want to crash the page.)
+    if (new Date() - genesisTime > 10000) {
+      return -time;
+    }
+
     // Run each generator, starting from comrades and lowest-tier first.
     for (let genIndex in simData.Generators) {
       let generator = simData.Generators[genIndex];
@@ -3569,7 +3656,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   if (time >= maxTime) {
     return -1;
   } else {
-    return time;
+    return time - 1; // subtract 1 second from this value (insta-complete missions are now accurately marked as instant)
   }
 }
 
@@ -3587,6 +3674,204 @@ function metGoals(simData, goals) {
 function getBuyCount(simData, generator) {
   let buyCounts = generator.Cost.map(cost => Math.floor(simData.Counts[cost.Resource] / cost.Qty));
   return Math.min(...buyCounts);  
+}
+
+// Handles modifier keystrokes on input boxes
+function inputKeyboardHandler(event, isNowActive) {
+  if (event.target.tagName.toLowerCase() === 'input') {
+    // select keystrokes on input fields
+    if (event.originalEvent) {
+      let keyboardEvent = event.originalEvent
+      /*
+        Delta Order of Magnitude (DOOM)
+
+        Specifies by what extremity a value should be changed (e.g. Control+Up Arrow should be much greater than Alt+Up Arrow.)
+        If this value is left as 0, no change should occur.
+        Modifier key rules follow DevTools order.
+        -4  CTRL+DN
+        -3  SHIFT+DN
+        -2  DN
+        -1  ALT+DN
+         0  N/A, probably a different keyboard shortcut or no-op
+         1  ALT+UP
+         2  UP
+         3  SHIFT+UP
+         4  CTRL+UP
+      */
+      let deltaOrderOfMagnitude = 0;
+
+      switch (keyboardEvent.key) {
+        case "Down":
+        case "ArrowDown":
+          // SUBTRACT from an input value
+          deltaOrderOfMagnitude--;
+          break;
+        case "Up":
+        case "ArrowUp":
+          // ADD to an input value
+          deltaOrderOfMagnitude++;
+          break;
+        case "Enter":
+          // Calculate/Import Counts
+          if (event.target.matches('#calc *')) {
+            // only do submission if it's an input box for a mission
+            if (keyboardEvent.ctrlKey && !keyboardEvent.shiftKey) {
+              // CTRL+ENTER: Import Counts
+              importCounts()
+            } else if (keyboardEvent.ctrlKey && keyboardEvent.shiftKey) {
+              // CTRL+SHIFT+ENTER: Import Counts and Calculate
+              importCounts()
+              doProductionSim()
+            } else {
+              // ENTER: Calculate
+              doProductionSim()
+            }
+          }
+      }
+
+      if (keyboardEvent.ctrlKey) {
+        deltaOrderOfMagnitude *= 4;
+      } else if (keyboardEvent.shiftKey) {
+        deltaOrderOfMagnitude *= 3;
+      } else if (keyboardEvent.altKey) {
+        deltaOrderOfMagnitude *= 1;
+      } else {
+        deltaOrderOfMagnitude *= 2;
+      }
+
+      if (deltaOrderOfMagnitude !== 0) {
+        keystrokeInputLogic(event.target, deltaOrderOfMagnitude)
+      }
+    }
+  }
+  // at this point, keyboard shortcuts do not require focus on an input box
+  if (event.originalEvent && event.originalEvent.altKey) {
+    let keyboardEvent = event.originalEvent
+    for (i of $(".tab-pane")) {
+      if (i.offsetParent !== null) {
+        switch (keyboardEvent.key) {
+          case "1":
+          case "2":
+          case "3":
+          case "4":
+          case "5":
+          case "6":
+          case "7":
+          case "8":
+          case "9":
+          case "0":
+          case "-":
+          case "=":
+            // search for active input panes
+            let key = keyboardEvent.key
+            let intId;
+            if (key === '-') {
+              intId = 10
+            } else if (key === '=') {
+              intId = 11
+            } else {
+              if (parseInt(key) <= 0) {
+                // roll over key 0 to index 9 (assuming numrow)
+                intId = 9
+              } else {
+                intId = parseInt(key) - 1
+              }
+            }
+
+            try {
+              let element = $(`#${i.id} .form-control`)[intId]
+              if (element.matches('[id$="count"]') || element.matches('[id$="trade-cost"]')) {
+                // only concerned about generators/trade costs at this point
+                element.focus()
+              }
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+          case 'r':
+            // resource quantity
+            try {
+              $(`#${i.id} #resources`).focus()
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+          case 'p':
+            // resource progress
+            try {
+              $(`#${i.id} #resourceProgress`).focus()
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+          case 'c':
+            // total comrades
+            try {
+              $(`#${i.id} #comrades`).focus()
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+          case 's':
+            // cps
+            try {
+              $(`#${i.id} #comradesPerSec`).focus()
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+        }
+      }
+    }
+  }
+}
+
+// Performs task-specific logic for keystrokes
+function keystrokeInputLogic(dom, doom) {
+  /*
+    Unique Input Box Phenotypes
+
+    +-  add to or subtract from this amount
+    x/  multiply to or divide from this amount
+    eN  10^n
+    xN  n
+
+    Type                  DOM Selector                  +- 1    +- 2    +- 3    +- 4
+    Generator count       [id$="count"]                 3DP     2DP     1DP     x/e3
+    Resource count        #resources, #resourceProgress 3DP     2DP     1DP     x/e3
+    Comrade trades        [id$="trade-cost"]            N/A     +-x1    +-x5    +-x25
+    Comrade count         #comrades                     +-e0    +-e3    +-e6    +-e9
+    Comrades per second   #comradesPerSec               +-e0    +-e2    +-e4    +-e6
+  */
+
+  // determine raw input value
+  let rawValue = fromBigNum(dom.value) || Number(dom.value)
+
+  if (dom.matches('[id$="count"]') || dom.matches('#resources') || dom.matches('#resourceProgress')) {
+    // Generator/resource count
+    let newValue;
+    if (Math.abs(doom) < 4) {
+      newValue = rawValue + Math.pow(10, Math.floor(Math.log10(rawValue)) - (3-Math.abs(doom))) * (Math.abs(doom)/doom)
+    } else {
+      newValue = rawValue * Math.pow(10, (Math.abs(doom)-1) * (Math.abs(doom)/doom))
+    }
+    dom.value = (bigNum(newValue) === 'NaN undefined' ? dom.value : bigNum(newValue))
+  } else if (dom.matches('[id$="trade-cost"]')) {
+    // Comrade trades
+    tradeLevelDelta(dom.id.substr(0, dom.id.indexOf('-')), (Math.abs(doom) > 1 ? Math.pow(5, Math.abs(doom)-2) * (Math.abs(doom)/doom): 0))
+  } else if (dom.matches('#comrades') || dom.matches('#comradesPerSec')) {
+    // Comrade count/comrades per second
+    let coefficient = (dom.matches('#comrades') ? 3 : 2)
+    let newValue = rawValue + Math.pow(10, (coefficient * (Math.abs(doom) - 1))) * (Math.abs(doom)/doom);
+    dom.value = newValue;
+  } else {
+    console.warn(`Invalid input selector ${dom}; please report this!`)
+  }
 }
 
 main();
