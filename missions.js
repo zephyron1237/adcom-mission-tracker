@@ -522,7 +522,9 @@ function initializeMissionData() {
 // e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, ..., Completed: {...}, Current: {...}}
 function initializeEventMissionData() {
   missionCompletionTimes = {};
-  missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: 3, Remaining: []}};
+  
+  let activeMissionCount = getData().Ranks[1].ActiveMissionCount;
+  missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: activeMissionCount, Remaining: []}};
   
   let rank = 0;
   let missionsLeft = 0;
@@ -560,8 +562,7 @@ function initializeEventMissionData() {
   
   // If missions exist, move three from Rank 1 to Current.
   if (missionData[1] !== undefined) {
-    for (let i = 0; i < 3; i++) {
-      // TODO: Refactor if a first rank has 2 or less missions
+    for (let i = 0; i < activeMissionCount; i++) {
       missionData.Current.Remaining.push(missionData[1].Remaining.shift());
     }
   }
@@ -570,7 +571,10 @@ function initializeEventMissionData() {
 // e.g., {1: {StartingCount: 3, Remaining: [...]}, 2: {...}, ..., Completed: {...}, Current: {...}, OtherRankMissionIds: [...]}
 function initializeMainMissionData() {
   missionCompletionTimes = {};
-  missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: 3, Remaining: []}, OtherRankMissionIds: []};
+  
+  // Rank "N" data is stored in Ranks[N - 1]
+  let activeMissionCount = getData().Ranks[currentMainRank - 1].ActiveMissionCount;
+  missionData = {Completed: {StartingCount: 0, Remaining: []}, Current: {StartingCount: activeMissionCount, Remaining: []}, OtherRankMissionIds: []};
   
   // Assign indices for sorting
   let missions = getMissions();
@@ -584,8 +588,7 @@ function initializeMainMissionData() {
     missionData[rank.Rank] = {StartingCount: rankMissions.length, Remaining: rankMissions};
   }
   
-  for (let i = 0; i < 3; i++) {
-    // TODO: Refactor if a first rank has 2 or less missions
+  for (let i = 0; i < activeMissionCount; i++) {
     missionData.Current.Remaining.push(missionData[currentMainRank].Remaining.shift());
   }
 }
@@ -2943,7 +2946,7 @@ function tradeLevelDelta(tradeId, delta) {
   if (newTradeCount < 0 || newWriteValue === Infinity || isNaN(newWriteValue)) {
     return null;
   } else {
-    $(`#${tradeId}-trade-cost`).val(bigNum(newWriteValue));
+    $(`.modal.show #${tradeId}-trade-cost`).val(bigNum(newWriteValue));
     updateTradeTabTotals();
   }
 }
