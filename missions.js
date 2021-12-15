@@ -670,7 +670,7 @@ function initializePopups() {
   $('#keyboardPopupBody').html(getKeyboardMacroHtml());
 
   $('#rankAdvanceConfirm').click(function() {
-    advanceProgressTo()
+    advanceProgressTo();
   });
 }
 
@@ -1018,7 +1018,7 @@ function getKeyboardMacroHtml() {
     </tbody>
   </table>
 </div>
-<p>Safeguards in the keyboard handler methods are implemented to prevent access to any negative or infinite values.</p>`
+<p>Safeguards in the keyboard handler methods are implemented to prevent access to any negative or infinite values.</p>`;
   return result;
 }
 
@@ -1027,11 +1027,11 @@ function getRankAdvanceHtml() {
   let iconUrl;
 
   if (currentMode === 'main') {
-    currentText = 'Please enter the rank to navigate to.'
-    iconUrl = `${getImageDirectory()}/schedule.png`
+    currentText = 'Please enter the rank to navigate to.';
+    iconUrl = `${getImageDirectory()}/schedule.png`;
   } else {
-    currentText = 'Please enter the rank to navigate to.<br>All previous missions will be marked as complete.'
-    iconUrl = `img/event/${eventScheduleInfo.ThemeId}/schedule.png`
+    currentText = 'Please enter the rank to navigate to.<br>All previous missions will be marked as complete.';
+    iconUrl = `img/event/${eventScheduleInfo.ThemeId}/schedule.png`;
   }
 
   return `<div id="rank-${currentMode}-holder">
@@ -1049,7 +1049,7 @@ function getRankAdvanceHtml() {
       <button type="submit" class="btn btn-danger" data-dismiss="modal" aria-label="Cancel">Cancel</button>
     </div>
   </div>
-</div>`
+</div>`;
 }
 
 function getDataManagementHtml() {
@@ -1085,7 +1085,7 @@ function getDataManagementHtml() {
       <button type="submit" class="btn btn-success" data-dismiss="modal" aria-label="Close">Close</button>
     </div>
   </div>
-</div>`
+</div>`;
 }
 
 function renderListStyleMissions() {
@@ -1853,14 +1853,14 @@ function advanceProgressTo() {
 
     if (inputRank < 1 || inputRank > getData().Ranks.length || !inputRank) {
       $("#rankAdvanceAlert").addClass("text-danger");
-      $("#rankAdvanceAlert").text("Invalid rank.")
+      $("#rankAdvanceAlert").text("Invalid rank.");
 
       setTimeout(function() {
-        $("#rankAdvanceAlert").text("")
-      }, 1500)
+        $("#rankAdvanceAlert").text("");
+      }, 1500);
     } else {
       $("#rankAdvanceAlert").addClass("text-success");
-      $("#rankAdvanceAlert").text("Please wait ...")
+      $("#rankAdvanceAlert").text("Please wait ...");
       let splitUrl = window.location.href.split('?');
       window.location.assign(`${splitUrl[0]}?rank=${inputRank}`);
     }
@@ -1869,13 +1869,14 @@ function advanceProgressTo() {
 
     if (inputRank < 1 || inputRank > getData().Ranks.length || !inputRank) {
       $("#rankAdvanceAlert").addClass("text-danger");
-      $("#rankAdvanceAlert").text("Invalid rank.")
+      $("#rankAdvanceAlert").text("Invalid rank.");
 
       setTimeout(function() {
-        $("#rankAdvanceAlert").text("")
-      }, 1000)
+        $("#rankAdvanceAlert").text("");
+      }, 1000);
     } else {
-      $("#rankAdvanceConfirm + *").click()
+      $("#rankAdvanceConfirm + *").click();
+      
       // Go through every mission in every rank and move all with Rank < rank to Completed.
       // Start with current, then just the numbered ranks.
       let clearRanks = ["Current", ...Object.keys(missionData).filter(r => r <= inputRank)];
@@ -1920,9 +1921,9 @@ function advanceProgressTo() {
 
 function focusRankSelectPrompt() {
   setTimeout(function() {
-    $("#rank-main").focus()
-    $("#rank-event").focus()
-  }, 500)
+    $("#rank-main").focus();
+    $("#rank-event").focus();
+  }, 500);
 }
 
 function resetProgress() {
@@ -1936,7 +1937,7 @@ function resetProgress() {
 
 function resetAllProgress(){
   localStorage.clear();
-  window.location.reload()
+  window.location.reload();
 }
 
 // getLocal, setLocal and removeLocal is a layer of abstraction that creates a key name based on the mode and given key.
@@ -3763,7 +3764,7 @@ function inputKeyboardHandler(event, isNowActive) {
   if (event.target.tagName.toLowerCase() === 'input') {
     // select keystrokes on input fields
     if (event.originalEvent) {
-      let keyboardEvent = event.originalEvent
+      let keyboardEvent = event.originalEvent;
       /*
         Delta Order of Magnitude (DOOM)
 
@@ -3799,14 +3800,14 @@ function inputKeyboardHandler(event, isNowActive) {
             // only do submission if it's an input box for a mission
             if (keyboardEvent.ctrlKey && !keyboardEvent.shiftKey) {
               // CTRL+ENTER: Import Counts
-              importCounts()
+              importCounts();
             } else if (keyboardEvent.ctrlKey && keyboardEvent.shiftKey) {
               // CTRL+SHIFT+ENTER: Import Counts and Calculate
-              importCounts()
-              doProductionSim()
+              importCounts();
+              doProductionSim();
             } else {
               // ENTER: Calculate
-              doProductionSim()
+              doProductionSim();
             }
           }
       }
@@ -3824,13 +3825,14 @@ function inputKeyboardHandler(event, isNowActive) {
       }
 
       if (deltaOrderOfMagnitude !== 0) {
-        keystrokeInputLogic(event.target, deltaOrderOfMagnitude)
+        keystrokeInputLogic(event.target, deltaOrderOfMagnitude);
       }
     }
   }
-  // at this point, keyboard shortcuts do not require focus on an input box
+  
+  // At this point, keyboard shortcuts do not require focus on an input box
   if (event.originalEvent && event.originalEvent.altKey) {
-    let keyboardEvent = event.originalEvent
+    let keyboardEvent = event.originalEvent;
     for (i of $(".tab-pane")) {
       if (i.offsetParent !== null) {
         switch (keyboardEvent.key) {
@@ -3847,26 +3849,26 @@ function inputKeyboardHandler(event, isNowActive) {
           case "-":
           case "=":
             // search for active input panes
-            let key = keyboardEvent.key
+            let key = keyboardEvent.key;
             let intId;
             if (key === '-') {
-              intId = 10
+              intId = 10;
             } else if (key === '=') {
-              intId = 11
+              intId = 11;
             } else {
               if (parseInt(key) <= 0) {
                 // roll over key 0 to index 9 (assuming numrow)
-                intId = 9
+                intId = 9;
               } else {
-                intId = parseInt(key) - 1
+                intId = parseInt(key) - 1;
               }
             }
 
             try {
-              let element = $(`#${i.id} .form-control`)[intId]
+              let element = $(`#${i.id} .form-control`)[intId];
               if (element.matches('[id$="count"]') || element.matches('[id$="trade-cost"]')) {
                 // only concerned about generators/trade costs at this point
-                element.focus()
+                element.focus();
               }
             } catch (e) {
               // out of bounds
@@ -3876,7 +3878,7 @@ function inputKeyboardHandler(event, isNowActive) {
           case 'r':
             // resource quantity
             try {
-              $(`#${i.id} #resources`).focus()
+              $(`#${i.id} #resources`).focus();
             } catch (e) {
               // out of bounds
             }
@@ -3885,7 +3887,7 @@ function inputKeyboardHandler(event, isNowActive) {
           case 'p':
             // resource progress
             try {
-              $(`#${i.id} #resourceProgress`).focus()
+              $(`#${i.id} #resourceProgress`).focus();
             } catch (e) {
               // out of bounds
             }
@@ -3894,7 +3896,7 @@ function inputKeyboardHandler(event, isNowActive) {
           case 'c':
             // total comrades
             try {
-              $(`#${i.id} #comrades`).focus()
+              $(`#${i.id} #comrades`).focus();
             } catch (e) {
               // out of bounds
             }
@@ -3903,7 +3905,7 @@ function inputKeyboardHandler(event, isNowActive) {
           case 's':
             // cps
             try {
-              $(`#${i.id} #comradesPerSec`).focus()
+              $(`#${i.id} #comradesPerSec`).focus();
             } catch (e) {
               // out of bounds
             }
@@ -3930,14 +3932,14 @@ function keystrokeInputLogic(dom, doom) {
   */
 
   // determine raw input value
-  let rawValue = fromBigNum(dom.value) || Number(dom.value)
+  let rawValue = fromBigNum(dom.value) || Number(dom.value);
 
   if (dom.matches('[id$="count"]') || dom.matches('#resources') || dom.matches('#resourceProgress')) {
     // Generator/resource count
     if (rawValue === 0 && doom > 0) {
       // set to 1 and return
-      dom.value = 1
-      return
+      dom.value = 1;
+      return;
     } 
     let thousandPower = Math.floor(Math.log(rawValue) / Math.log(1000));
     let modPower = (thousandPower * 3) + Math.abs(doom) - 2;
@@ -3946,44 +3948,44 @@ function keystrokeInputLogic(dom, doom) {
 
     if (Math.abs(doom) < 5) {
       // change position based on delta order of magnitude
-      newValue = rawValue + Math.pow(10, modPower) * (doom / Math.abs(doom))
-      newThousandPower = Math.floor(Math.log(newValue) / Math.log(1000))
+      newValue = rawValue + Math.pow(10, modPower) * (doom / Math.abs(doom));
+      newThousandPower = Math.floor(Math.log(newValue) / Math.log(1000));
     } else {
       let powerDelta;
       switch (Math.abs(doom)) {
         case 5:
-          powerDelta = 3
-          break
+          powerDelta = 3;
+          break;
         case 6:
-          powerDelta = 30
-          break
+          powerDelta = 30;
+          break;
         case 7:
-          powerDelta = 78
-          break
+          powerDelta = 78;
+          break;
         default:
-          return
+          return;
       }
       // increase/decrease by letters
-      newValue = rawValue * Math.pow(10, powerDelta  * (Math.abs(doom)/doom))
-      newThousandPower = thousandPower
+      newValue = rawValue * Math.pow(10, powerDelta  * (Math.abs(doom)/doom));
+      newThousandPower = thousandPower;
     }
-    dom.value = ((bigNum(newValue) === 'NaN undefined' || newValue < 1 || newThousandPower !== thousandPower) ? dom.value : bigNum(newValue))
+    dom.value = ((bigNum(newValue) === 'NaN undefined' || newValue < 1 || newThousandPower !== thousandPower) ? dom.value : bigNum(newValue));
   } else if (dom.matches('[id$="trade-cost"]')) {
     // Comrade trades
-    tradeLevelDelta(dom.id.substr(0, dom.id.indexOf('-')), (Math.abs(doom) > 1 ? Math.pow(5, Math.abs(doom)-2) * (Math.abs(doom)/doom): 0))
+    tradeLevelDelta(dom.id.substr(0, dom.id.indexOf('-')), (Math.abs(doom) > 1 ? Math.pow(5, Math.abs(doom)-2) * (Math.abs(doom)/doom): 0));
   } else if (dom.matches('#comrades') || dom.matches('#comradesPerSec')) {
     // Comrade count/comrades per second
     if (rawValue === 0 && doom > 0) {
       // set to 1 and return
-      dom.value = 1
-      return
+      dom.value = 1;
+      return;
     } else if (doom <= 5 && doom >= -5) {
-      let coefficient = (dom.matches('#comrades') ? 3 : 2)
+      let coefficient = (dom.matches('#comrades') ? 3 : 2);
       let newValue = rawValue + Math.pow(10, (coefficient * (Math.abs(doom) - 1))) * (Math.abs(doom)/doom);
       dom.value = (bigNum(newValue) === 'NaN undefined' || newValue < 0) ? 0 : bigNum(newValue);
     }
   } else {
-    console.warn(`Invalid input selector ${dom}; please report this!`)
+    console.warn(`Invalid input selector ${dom}; please report this!`);
   }
 }
 
