@@ -11,12 +11,10 @@ function main() {
   initializeAbTestGroups();
   initializeMissionData();
   initializePopups();
+  initializeInputHandlers();
   loadSaveData();
   initializeIntervalFunctions();
   renderMissions();
-  $('body').on('keyup', function(event) {
-    inputKeyboardHandler(event);
-  });
 }
 
 // Determines whether the page is in Main or Event mode, based on the url and save state.
@@ -674,6 +672,12 @@ function initializePopups() {
   });
 }
 
+function initializeInputHandlers() {
+  $('body').on('keyup', function(event) {
+    inputKeyboardHandler(event);
+  });
+}
+
 // Loads settings, and then save data, editing missionData in-place differently for main/events.
 function loadSaveData() {
   // Load configuration first
@@ -1056,7 +1060,7 @@ function getDataManagementHtml() {
   let currentModeTitle;
   
   if (currentMode === 'main') {
-    currentModeTitle = (currentMode == "main") ? THEME_ID_TITLE_OVERRIDES["main"] : eventName; // different names for Ages/AdCom
+    currentModeTitle = THEME_ID_TITLE_OVERRIDES["main"]; // different names for Ages/AdCom
   } else {
     currentModeTitle = `${upperCaseFirstLetter(THEME_ID_TITLE_OVERRIDES[eventScheduleInfo.ThemeId] || eventScheduleInfo.ThemeId)} event`;
   }
@@ -1073,7 +1077,7 @@ function getDataManagementHtml() {
   </div>
   <div>
     <div class="data-management-key">
-      <p><strong>All</strong> data</p>
+      <p><strong>All data</strong> (including other Trackers)</p>
     </div>
     <div class="data-management-buttons">
       <button type="submit" class="btn btn-danger" data-dismiss="modal" aria-label="Reset all data" onclick="resetAllProgress()">Reset</button>
