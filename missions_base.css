@@ -366,6 +366,40 @@ button.active .active-checkbox {
   background-color: white;
 }
 
+.keyboardShortcutHolder {
+  overflow-x: scroll;
+}
+
+.rank-advance-alert, .data-management-key {
+  float: left;
+}
+
+.rank-advance-alert p {
+  height: 22px;
+  line-height: 44px;
+}
+
+.data-management-key p {
+  line-height: 33px;
+}
+
+.rank-advance-buttons, .data-management-buttons {
+  float: right;
+}
+
+.rank-advance-buttons button {
+  width: 75px;
+}
+
+.data-management-buttons button {
+  width: 125px;
+}
+
+#data-management-holder div {
+  display: flow-root;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
 
 @media screen and (max-width: 600px) {
   .missionContainer { margin: .25rem .25rem .25rem .25rem }

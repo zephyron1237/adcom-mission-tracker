@@ -50,10 +50,12 @@
           <button class="dropdown-item" id="config-style-icons" onclick="toggleIconsStyle()"><span class="active-checkbox"></span> Icons</button>
           <div class="dropdown-divider"></div>
           <h6 class="dropdown-header text-center">Progress</h6>
-          <button class="dropdown-item" onclick="advanceProgressTo()">Advance to...</button>
-          <button class="dropdown-item" onclick="resetProgress()">Reset</button>
+          <button class="dropdown-item" data-toggle="modal" data-target="#rankPopup" onclick='focusRankSelectPrompt()'>Advance To Rank</button>
+          <button class="dropdown-item" data-toggle="modal" data-target="#dataPopup">Reset Data</button>
           <div class="dropdown-divider"></div>
-          <button class="dropdown-item" data-toggle="modal" data-target="#helpPopup">Help</button>
+          <h6 class="dropdown-header text-center">Help</h6>
+          <button class="dropdown-item" data-toggle="modal" data-target="#helpPopup">General Help</button>
+          <button class="dropdown-item" data-toggle="modal" data-target="#keyboardPopup">Keyboard Shortcuts</button>
         </ul>
       </li>
     </ul>
@@ -119,6 +121,36 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="rankPopup" tabindex="-1" role="dialog" aria-labelledby="rankPopupTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="helpPopupTitle">Select Rank</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="rankPopupBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="dataPopup" tabindex="-1" role="dialog" aria-labelledby="dataPopupTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="helpPopupTitle">Reset Data</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="dataPopupBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="modal fade" id="helpPopup" tabindex="-1" role="dialog" aria-labelledby="helpPopupTitle" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
@@ -130,6 +162,21 @@
         </div>
         <div class="modal-body">
           <div id="helpPopupBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="keyboardPopup" tabindex="-1" role="dialog" aria-labelledby="keyboardPopupTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="keyboardPopupTitle">Keyboard Shortcuts</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="keyboardPopupBody"></div>
         </div>
       </div>
     </div>

@@ -14,6 +14,9 @@ function main() {
   loadSaveData();
   initializeIntervalFunctions();
   renderMissions();
+  $('body').on('keyup', function(event) {
+    inputKeyboardHandler(event);
+  });
 }
 
 // Determines whether the page is in Main or Event mode, based on the url and save state.
@@ -661,7 +664,14 @@ function initializePopups() {
     });
   });
   
+  $('#rankPopupBody').html(getRankAdvanceHtml());
+  $('#dataPopupBody').html(getDataManagementHtml());
   $('#helpPopupBody').html(getHelpHtml(true));
+  $('#keyboardPopupBody').html(getKeyboardMacroHtml());
+
+  $('#rankAdvanceConfirm').click(function() {
+    advanceProgressTo()
+  });
 }
 
 // Loads settings, and then save data, editing missionData in-place differently for main/events.
@@ -858,8 +868,8 @@ function renderMissions() {
       if (currentMainRank > 1) {
         buttonsHtml += `<a href="?rank=${currentMainRank - 1}" type="button" class="btn btn-outline-secondary" title="Go back to Rank ${currentMainRank - 1}">&larr;</button>`;
       }
-      
-      buttonsHtml += `<a type="button" class="btn btn-outline-secondary" onclick="selectNewRank()" title="Jump to specific Rank">#</a>`;
+
+      buttonsHtml += `<a type="button" class="btn btn-outline-secondary" data-toggle="modal" data-target="#rankPopup" title="Jump to a specific rank" onclick="focusRankSelectPrompt()">#</a>`;
       
       if (currentMainRank < DATA.main.Ranks.length) {
         buttonsHtml += `<a href="?rank=${currentMainRank + 1}" type="button" class="btn btn-outline-secondary" title="Go forward to Rank ${currentMainRank + 1}">&rarr;</a>`;
@@ -938,6 +948,144 @@ function getHelpHtml(isPopup) {
   result += `<li class="my-1">Got <strong>questions?</strong>  Check out the <a href="${SOCIAL_HELP_URLS['faq']}">Game Guide/FAQ</a>, <a href="${SOCIAL_HELP_URLS['discord']}">Discord</a>, or <a href="${SOCIAL_HELP_URLS['reddit']}">Reddit</a>.</li></ul>`;
   
   return result;
+}
+
+function getKeyboardMacroHtml() {
+  result = `<p>The tracker supports a number of keyboard shortcuts.</p>
+<ul>
+  <li class="my-1"><kbd>Esc</kbd> Close visible modal box</li>
+  <li class="my-1"><kbd>Enter</kbd> Run calculation</li>
+  <li class="my-1"><kbd>Ctrl+Enter</kbd> Import previous counts</li>
+  <li class="my-1"><kbd>Ctrl+Shift+Enter</kbd> Import previous counts AND run calculation</li>
+  <li class="my-1"><kbd>Alt+<em>x</em></kbd>/<kbd>Option+<em>x</em></kbd> Focus on <em>x</em>th generator/${resourceName('comrade').toLowerCase()} trade if available<br>(0 => 10, minus key => 11, equals key => 12)</li>
+  <li class="my-1"><kbd>Alt+R</kbd>/<kbd>Option+R</kbd> Focus on resource quantity</li>
+  <li class="my-1"><kbd>Alt+P</kbd>/<kbd>Option+P</kbd> Focus on resource progress</li>
+  <li class="my-1"><kbd>Alt+C</kbd>/<kbd>Option+C</kbd> Focus on number of ${resourceName('comrade', true).toLowerCase()}</li>
+  <li class="my-1"><kbd>Alt+S</kbd>/<kbd>Option+S</kbd> Focus on ${resourceName('comrade', true).toLowerCase()} per second</li>
+</ul>
+<p>You can also adjust the value of an input box by referring to the table below. Holding <kbd>Up Arrow</kbd> and the appropriate key(s) will result in additive or multiplicative behavior. Conversely, holding <kbd>Down Arrow</kbd> and the appropriate key will result in subtractive or divisive behavior. The column without a modifier key indicates that no modifier is required.</p>
+<div class="keyboardShortcutHolder">
+  <table class="table">
+    <thead>
+      <th></th>
+      <th>&#177;Alt/Option</th>
+      <th>&#177;</th>
+      <th>&#177;Shift</th>
+      <th>&#177;Ctrl</th>
+      <th>&#177;Ctrl+Shift</th>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Generator count</td>
+        <td>&#177;Tenths place</td>
+        <td>&#177;Ones place</td>
+        <td>&#177;Tens place</td>
+        <td>&#177;Hundreds place</td>
+        <td>&#177;One letter</td>
+      </tr>
+      <tr>
+        <td>Resource count</td>
+        <td>&#177;Tenths place</td>
+        <td>&#177;Ones place</td>
+        <td>&#177;Tens place</td>
+        <td>&#177;Hundreds place</td>
+        <td>&#177;One letter</td>
+      </tr>
+      <tr>
+        <td>${resourceName('comrade', false)} trades</td>
+        <td>N/A</td>
+        <td>&#177;1</td>
+        <td>&#177;5</td>
+        <td>&#177;25</td>
+        <td>&#177;125</td>
+      </tr>
+      <tr>
+        <td>${resourceName('comrade', false)} count</td>
+        <td>&#177;1</td>
+        <td>&#177;${bigNum(1e3)}</td>
+        <td>&#177;${bigNum(1e6)}</td>
+        <td>&#177;${bigNum(1e9)}</td>
+        <td>&#177;${bigNum(1e12)}</td>
+      </tr>
+      <tr>
+        <td>${resourceName('comrade', true)} per second</td>
+        <td>&#177;1</td>
+        <td>&#177;${bigNum(1e2)}</td>
+        <td>&#177;${bigNum(1e4)}</td>
+        <td>&#177;${bigNum(1e6)}</td>
+        <td>&#177;${bigNum(1e8)}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p>Safeguards in the keyboard handler methods are implemented to prevent access to any negative or infinite values.</p>`
+  return result;
+}
+
+function getRankAdvanceHtml() {
+  let currentText;
+  let iconUrl;
+
+  if (currentMode === 'main') {
+    currentText = 'Please enter the rank to navigate to.'
+    iconUrl = `${getImageDirectory()}/schedule.png`
+  } else {
+    currentText = 'Please enter the rank to navigate to.<br>All previous missions will be marked as complete.'
+    iconUrl = `img/event/${eventScheduleInfo.ThemeId}/schedule.png`
+  }
+
+  return `<div id="rank-${currentMode}-holder">
+  <p>${currentText}</p>
+  <div class="input-group my-1">
+    <div class="input-group-prepend"><span class="input-group-text inputIcon" style="background-image: url('${iconUrl}');">&nbsp;</span></div>
+    <input type="number" class="form-control" id="rank-${currentMode}" value="" min="1" max="${getData().Ranks.length}" placeholder="Range: [1, ${getData().Ranks.length}]">
+  </div>
+  <div>
+    <div class="rank-advance-alert">
+      <p id="rankAdvanceAlert"></p>
+    </div>
+    <div class="rank-advance-buttons">
+      <button type="submit" class="btn btn-success" id="rankAdvanceConfirm" aria-label="OK">OK</button>
+      <button type="submit" class="btn btn-danger" data-dismiss="modal" aria-label="Cancel">Cancel</button>
+    </div>
+  </div>
+</div>`
+}
+
+function getDataManagementHtml() {
+  let currentModeTitle;
+  
+  if (currentMode === 'main') {
+    currentModeTitle = (currentMode == "main") ? THEME_ID_TITLE_OVERRIDES["main"] : eventName; // different names for Ages/AdCom
+  } else {
+    currentModeTitle = `${upperCaseFirstLetter(THEME_ID_TITLE_OVERRIDES[eventScheduleInfo.ThemeId] || eventScheduleInfo.ThemeId)} event`;
+  }
+
+  return `<div id="data-management-holder">
+  <p>Please exercise caution in this menu. Once you choose to delete data, it cannot be restored.</p>
+  <div>
+    <div class="data-management-key">
+      <p>${currentModeTitle} data</p>
+    </div>
+    <div class="data-management-buttons">
+      <button type="submit" class="btn btn-danger" data-dismiss="modal" aria-label="Reset ${currentModeTitle} data" onclick="resetProgress()">Reset</button>
+    </div>
+  </div>
+  <div>
+    <div class="data-management-key">
+      <p><strong>All</strong> data</p>
+    </div>
+    <div class="data-management-buttons">
+      <button type="submit" class="btn btn-danger" data-dismiss="modal" aria-label="Reset all data" onclick="resetAllProgress()">Reset</button>
+    </div>
+  </div>
+  <div>
+    <div class="data-management-key"></div>
+    <div class="data-management-buttons">
+      <button type="submit" class="btn btn-success" data-dismiss="modal" aria-label="Close">Close</button>
+    </div>
+  </div>
+</div>`
 }
 
 function renderListStyleMissions() {
@@ -1700,94 +1848,96 @@ function isListActive() {
 // For main, this is identical to the "#" button and just switches your current rank setting.
 // For events, it auto-completes all missions prior to the rank.
 function advanceProgressTo() {
-  /* Maybe do a post-1990 solution to this? */
-  if (currentMode == "main") {
-    selectNewRank();
-    return;
-  }
-  
-  // Little more complicated for Events...
-  let inputRank = prompt("Complete all missions BEFORE which rank?");
-  if (inputRank == null || inputRank == "") {
-    return;
-  }
-  
-  let rank = parseInt(inputRank);
-  if (!rank || rank <= 1 || rank > getData().Ranks.length) {
-    alert(`Invalid rank: "${inputRank}".`);
-    return;
-  }
-  
-  // Go through every mission in every rank and move all with Rank < rank to Completed.
-  // Start with current, then just the numbered ranks.
-  let clearRanks = ["Current", ...Object.keys(missionData).filter(r => r <= rank)];
-  for (let clearRank of clearRanks) {  
-    let rankData = missionData[clearRank].Remaining;
+  if (currentMode === "main") {
+    let inputRank = parseInt($("#rank-main").val());
 
-    for (let clearIndex = 0; clearIndex < rankData.length; clearIndex++) {
-      let mission = rankData[clearIndex];
-      
-      if (mission.Rank < rank) {
-        rankData.splice(clearIndex, 1);
-        missionData.Completed.Remaining.push(mission);
-        clearIndex -= 1;
+    if (inputRank < 1 || inputRank > getData().Ranks.length || !inputRank) {
+      $("#rankAdvanceAlert").addClass("text-danger");
+      $("#rankAdvanceAlert").text("Invalid rank.")
+
+      setTimeout(function() {
+        $("#rankAdvanceAlert").text("")
+      }, 1500)
+    } else {
+      $("#rankAdvanceAlert").addClass("text-success");
+      $("#rankAdvanceAlert").text("Please wait ...")
+      let splitUrl = window.location.href.split('?');
+      window.location.assign(`${splitUrl[0]}?rank=${inputRank}`);
+    }
+  } else {
+    let inputRank = parseInt($("#rank-event").val());
+
+    if (inputRank < 1 || inputRank > getData().Ranks.length || !inputRank) {
+      $("#rankAdvanceAlert").addClass("text-danger");
+      $("#rankAdvanceAlert").text("Invalid rank.")
+
+      setTimeout(function() {
+        $("#rankAdvanceAlert").text("")
+      }, 1000)
+    } else {
+      $("#rankAdvanceConfirm + *").click()
+      // Go through every mission in every rank and move all with Rank < rank to Completed.
+      // Start with current, then just the numbered ranks.
+      let clearRanks = ["Current", ...Object.keys(missionData).filter(r => r <= inputRank)];
+      for (let clearRank of clearRanks) {  
+        let rankData = missionData[clearRank].Remaining;
+    
+        for (let clearIndex = 0; clearIndex < rankData.length; clearIndex++) {
+          let mission = rankData[clearIndex];
+          
+          if (mission.Rank < inputRank) {
+            rankData.splice(clearIndex, 1);
+            missionData.Completed.Remaining.push(mission);
+            clearIndex -= 1;
+          }
+        }
       }
+      
+      // Now fill in Current
+      for (let fillRank = inputRank;
+            fillRank < getData().Ranks.length &&
+              missionData.Current.Remaining.length < missionData.Current.StartingCount;
+            fillRank++) {
+        
+          let rankData = missionData[fillRank].Remaining;
+          for (let fillIndex = 0;
+                fillIndex < rankData.length &&
+                  missionData.Current.Remaining.length < missionData.Current.StartingCount;
+                fillIndex++) {
+            
+            let mission = rankData[fillIndex];
+            rankData.splice(fillIndex, 1);
+            missionData.Current.Remaining.push(mission);
+            fillIndex -= 1;
+          }
+      }
+  
+      updateSaveData();
+      renderMissions();
     }
   }
-  
-  // Now fill in Current
-  for (let fillRank = rank;
-        fillRank < getData().Ranks.length &&
-          missionData.Current.Remaining.length < missionData.Current.StartingCount;
-        fillRank++) {
-    
-      let rankData = missionData[fillRank].Remaining;
-      for (let fillIndex = 0;
-            fillIndex < rankData.length &&
-              missionData.Current.Remaining.length < missionData.Current.StartingCount;
-            fillIndex++) {
-        
-        let mission = rankData[fillIndex];
-        rankData.splice(fillIndex, 1);
-        missionData.Current.Remaining.push(mission);
-        fillIndex -= 1;
-      }
-  }
-  
-  updateSaveData();
-  renderMissions();
+}
+
+function focusRankSelectPrompt() {
+  setTimeout(function() {
+    $("#rank-main").focus()
+    $("#rank-event").focus()
+  }, 500)
 }
 
 function resetProgress() {
-  /* Maybe do a post-1990 solution to this? */
-  if (confirm("Are you sure you want to RESET your mission progress?")) {
-    removeLocal(currentMode, "Completed");
-    removeLocal(currentMode, "FormValues");
-    removeLocal(currentMode, "CompletionTimes");
-    removeLocal(currentMode, getMissionEtasKey());
-    initializeMissionData();
-    renderMissions();
-  }
+  removeLocal(currentMode, "Completed");
+  removeLocal(currentMode, "FormValues");
+  removeLocal(currentMode, "CompletionTimes");
+  removeLocal(currentMode, getMissionEtasKey());
+  initializeMissionData();
+  renderMissions();
 }
 
-// Used by the "#" button and advanceProgressTo to redirect you to a main rank's page if appropriate.
-function selectNewRank() {
-  /* TODO: Post-1990 solution blah blah */
-  let inputRank = prompt("Jump to which rank?");
-  if (inputRank == null || inputRank == "") {
-    return;
-  }
-  
-  let rank = parseInt(inputRank);
-  if (!rank || rank < 1 || rank > getData().Ranks.length) {
-    alert(`Invalid rank: "${inputRank}".`);
-    return;
-  }
-  
-  let splitUrl = window.location.href.split('?');
-  window.location.assign(`${splitUrl[0]}?rank=${rank}`);
+function resetAllProgress(){
+  localStorage.clear();
+  window.location.reload()
 }
-
 
 // getLocal, setLocal and removeLocal is a layer of abstraction that creates a key name based on the mode and given key.
 // The "local" methods are intended for data specific to in instance of main or an event in a specific game.
@@ -2051,8 +2201,7 @@ function renderCalculator(mission) {
         <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Simplify and speed up calculation by assuming production is irrelevant.">&#9432;</a></div>`;
     }
     
-    html += `<div class="form-inline"><label for="configMaxDays" id="configMaxDaysLabel" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"> 
-      <a class="infoButton ml-2" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Higher Max Days allows you to simulate further, but increases time when simulation doesn't succeed.">&#9432;</a></div>`;
+    html += `<div class="form-inline"><label for="configMaxDays" id="configMaxDaysLabel" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"><a class="infoButton ml-2" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Higher Max Days allows you to simulate further, but increases time when simulation doesn't succeed. The simulation will automatically stop after ten seconds if it has not yet finished (consider upgrading some researchers at this point.)">&#9432;</a></div>`;
     
     html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
@@ -2786,14 +2935,13 @@ function getTradesTab() {
 
 // Adjusts the trade level based on the DOM input.
 function tradeLevelDelta(tradeId, delta) {
-  let inputToBigNum = fromBigNum($(`#${tradeId}-trade-cost`).val());
+  let inputToBigNum = fromBigNum($(`#${tradeId}-trade-cost`).val()) || Number($(`#${tradeId}-trade-cost`).val());
   let tradeInfo = getData().Trades.find(t => t.Resource == tradeId);
   
   let originalTradeCount = getTradesForCost(inputToBigNum, tradeInfo);
   let newTradeCount = originalTradeCount + delta;
   // I hope this doesn't result in any floating-point issues ...
   let newWriteValue = tradeInfo['CostMultiplier'] * Math.pow(tradeInfo['CostExponent'], newTradeCount);
-  console.log(newWriteValue)
 
   if (newTradeCount < 0 || newWriteValue === Infinity || isNaN(newWriteValue)) {
     return null;
@@ -2881,7 +3029,7 @@ function getIndustryTradeBreakdown(formValues) {
 
 // Called when the inputs for next trade cost are changed
 function updateTradesForResource(resourceId, costString, formValues) {
-  let cost = fromBigNum(costString);
+  let cost = fromBigNum(costString) || Number(costString);
   
   let tradeInfo = getData().Trades.find(t => t.Resource == resourceId);
   let comradesPerTrade = getTotalTradeValueForResource(resourceId, formValues, tradeInfo);
@@ -2988,10 +3136,12 @@ function doProductionSim() {
   
   if (result == -1) {
     if (simData.Config.Offline) {
-      $('#result').text(`Error: Offline calculation could not converge on an answer.`);
+      $('#result').text(`Offline calculation did not succeed. This may be due to invalid parameters.`);
     } else {
-      $('#result').text(`ETA: More than ${simData.Config.MaxDays} days. Increase max day limit.`);
+      $('#result').text(`Simulation did not complete in ${simData.Config.MaxDays} day(s). Try to increase the simulation time.`);
     }
+  } else if (result < -1) {
+    $('#result').text(`Simulation automatically terminated after 10 seconds (${getEta(-result)} had been simulated.)`);
   } else {
     $('#result').text(`ETA: ${getEta(result)}`);
   
@@ -3022,12 +3172,18 @@ function getEta(timeSeconds) {
     eta = `${hours}h ${minutes}m ${seconds}s`;
   } else if (minutes > 0) {
     eta = `${minutes}m ${seconds}s`;
-  } else if (seconds > 0.5) {
+  } else if (seconds > 0) {
     eta = `${seconds}s`;
-  } else if (timeSeconds <= 0) {
-    eta = 'Instant';
+  } else if (timeSeconds > 0.5) {
+    eta = '1s';
+  } else if (timeSeconds > 1e-3) {
+    eta = `${Math.floor(timeSeconds*1e3)} ms`;
+  } else if (timeSeconds > 1e-6) {
+    eta = `${Math.floor(timeSeconds*1e6)} ${String.fromCharCode(181)}s`;
+  } else if (timeSeconds > 1e-9) {
+    eta = `${Math.floor(timeSeconds*1e9)} ns`;
   } else {
-    eta = `1/${Math.round(1/timeSeconds)} s`;
+    eta = 'Instant';
   }
   
   // Strip any leading 0's off
@@ -3245,7 +3401,7 @@ function getDerivedResearcherValues(generator, researchers, formValues) {
 
 // Gets a value from the form (with error checking) and optionally stores that value in simData.Counts and formValues.Counts[resourceId]
 function getValueFromForm(inputId, defaultValue, simData, formValues = null, resourceId = null, inputKey = null) {
-  let value = fromBigNum($(inputId).val());
+  let value = fromBigNum($(inputId).val()) || Number($(inputId).val());
   let result = value || defaultValue;
 
   if (isNaN(value)) {
@@ -3371,8 +3527,12 @@ function calcOffline(simData) {
   }
   
   let prodLimitedTime = calcOfflineProduction(simData);
-  
-  return Math.max(comradeLimitedTime, prodLimitedTime);
+
+  if (Math.min(comradeLimitedTime, prodLimitedTime) < 0) {
+    return -1; // one objective will mathematically never complete
+  } else {
+    return Math.max(comradeLimitedTime, prodLimitedTime);
+  }
 }
 
 function calcOfflineProduction(simData) {
@@ -3417,10 +3577,10 @@ function calcOfflineProduction(simData) {
   for (let chances = 1000; chances > 0; chances--) {
     let oldX = x;
     x = x - evaluatePolynomial(poly, x) / evaluatePolynomial(deriv, x);
-    
+
     if (Math.abs(x - oldX) < 0.1) {
-      if (x < 1) {
-        return 0; // This is too small, let's just call it instant.
+      if (Math.abs(x) === Infinity || isNaN(x) || x < 0) {
+        return -1; // An error occurred or the mission will mathematically never complete (such as negative)
       } else {
         return x;
       }
@@ -3471,6 +3631,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   // First, handle autobuy, if enabled.
   let autobuyGenerator = null;
   let nextAutobuyGenerator = null;
+  let genesisTime = new Date();
   
   // search backwards through the generators for the first one with Qty > 0
   if (simData.Config.Autobuy) {
@@ -3530,6 +3691,11 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   let maxTime = simData.Config.MaxDays * 24 * 60 * 60; // convert max days to max seconds
   let time;
   for (time = 0; time < maxTime && !metGoals(simData, goals); time += deltaTime) {
+    // Cancel simulation after 10 seconds (we don't want to crash the page.)
+    if (new Date() - genesisTime > 10000) {
+      return -time;
+    }
+
     // Run each generator, starting from comrades and lowest-tier first.
     for (let genIndex in simData.Generators) {
       let generator = simData.Generators[genIndex];
@@ -3572,7 +3738,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   if (time >= maxTime) {
     return -1;
   } else {
-    return time;
+    return time - 1; // subtract 1 second from this value (insta-complete missions are now accurately marked as instant)
   }
 }
 
@@ -3590,6 +3756,235 @@ function metGoals(simData, goals) {
 function getBuyCount(simData, generator) {
   let buyCounts = generator.Cost.map(cost => Math.floor(simData.Counts[cost.Resource] / cost.Qty));
   return Math.min(...buyCounts);  
+}
+
+// Handles modifier keystrokes on input boxes
+function inputKeyboardHandler(event, isNowActive) {
+  if (event.target.tagName.toLowerCase() === 'input') {
+    // select keystrokes on input fields
+    if (event.originalEvent) {
+      let keyboardEvent = event.originalEvent
+      /*
+        Delta Order of Magnitude (DOOM)
+
+        Specifies by what extremity a value should be changed (e.g. Control+Up Arrow should be much greater than Alt+Up Arrow.)
+        If this value is left as 0, no change should occur.
+        Modifier key rules follow DevTools order.
+        -4  CTRL+Down
+        -3  SHIFT+Down
+        -2  ALT+Down
+        -1  Down
+         0  N/A, probably a different keyboard shortcut or no-op
+         1  Up
+         2  ALT+Up
+         3  SHIFT+Up
+         4  CTRL+Up
+      */
+      let deltaOrderOfMagnitude = 0;
+
+      switch (keyboardEvent.key) {
+        case "Down":
+        case "ArrowDown":
+          // SUBTRACT from an input value
+          deltaOrderOfMagnitude--;
+          break;
+        case "Up":
+        case "ArrowUp":
+          // ADD to an input value
+          deltaOrderOfMagnitude++;
+          break;
+        case "Enter":
+          // Calculate/Import Counts
+          if (event.target.matches('#calc *')) {
+            // only do submission if it's an input box for a mission
+            if (keyboardEvent.ctrlKey && !keyboardEvent.shiftKey) {
+              // CTRL+ENTER: Import Counts
+              importCounts()
+            } else if (keyboardEvent.ctrlKey && keyboardEvent.shiftKey) {
+              // CTRL+SHIFT+ENTER: Import Counts and Calculate
+              importCounts()
+              doProductionSim()
+            } else {
+              // ENTER: Calculate
+              doProductionSim()
+            }
+          }
+      }
+      
+      if (keyboardEvent.ctrlKey && keyboardEvent.shiftKey) {
+        deltaOrderOfMagnitude *= 5;
+      } else if (keyboardEvent.ctrlKey) {
+        deltaOrderOfMagnitude *= 4;
+      } else if (keyboardEvent.shiftKey) {
+        deltaOrderOfMagnitude *= 3;
+      } else if (keyboardEvent.altKey) {
+        deltaOrderOfMagnitude *= 1;
+      } else {
+        deltaOrderOfMagnitude *= 2;
+      }
+
+      if (deltaOrderOfMagnitude !== 0) {
+        keystrokeInputLogic(event.target, deltaOrderOfMagnitude)
+      }
+    }
+  }
+  // at this point, keyboard shortcuts do not require focus on an input box
+  if (event.originalEvent && event.originalEvent.altKey) {
+    let keyboardEvent = event.originalEvent
+    for (i of $(".tab-pane")) {
+      if (i.offsetParent !== null) {
+        switch (keyboardEvent.key) {
+          case "1":
+          case "2":
+          case "3":
+          case "4":
+          case "5":
+          case "6":
+          case "7":
+          case "8":
+          case "9":
+          case "0":
+          case "-":
+          case "=":
+            // search for active input panes
+            let key = keyboardEvent.key
+            let intId;
+            if (key === '-') {
+              intId = 10
+            } else if (key === '=') {
+              intId = 11
+            } else {
+              if (parseInt(key) <= 0) {
+                // roll over key 0 to index 9 (assuming numrow)
+                intId = 9
+              } else {
+                intId = parseInt(key) - 1
+              }
+            }
+
+            try {
+              let element = $(`#${i.id} .form-control`)[intId]
+              if (element.matches('[id$="count"]') || element.matches('[id$="trade-cost"]')) {
+                // only concerned about generators/trade costs at this point
+                element.focus()
+              }
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+          case 'r':
+            // resource quantity
+            try {
+              $(`#${i.id} #resources`).focus()
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+          case 'p':
+            // resource progress
+            try {
+              $(`#${i.id} #resourceProgress`).focus()
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+          case 'c':
+            // total comrades
+            try {
+              $(`#${i.id} #comrades`).focus()
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+          case 's':
+            // cps
+            try {
+              $(`#${i.id} #comradesPerSec`).focus()
+            } catch (e) {
+              // out of bounds
+            }
+
+            break;
+        }
+      }
+    }
+  }
+}
+
+// Performs task-specific logic for keystrokes
+function keystrokeInputLogic(dom, doom) {
+  /*
+    Unique Input Box Phenotypes
+    See "Keyboard Shortcuts" in page for documentation
+
+    Type                  DOM Selector
+    Generator count       [id$="count"]
+    Resource count        #resources, #resourceProgress
+    Comrade trades        [id$="trade-cost"]
+    Comrade count         #comrades
+    Comrades per second   #comradesPerSec
+  */
+
+  // determine raw input value
+  let rawValue = fromBigNum(dom.value) || Number(dom.value)
+
+  if (dom.matches('[id$="count"]') || dom.matches('#resources') || dom.matches('#resourceProgress')) {
+    // Generator/resource count
+    if (rawValue === 0 && doom > 0) {
+      // set to 1 and return
+      dom.value = 1
+      return
+    } 
+    let thousandPower = Math.floor(Math.log(rawValue) / Math.log(1000));
+    let modPower = (thousandPower * 3) + Math.abs(doom) - 2;
+    let newValue;
+    let newThousandPower;
+
+    if (Math.abs(doom) < 5) {
+      // change position based on delta order of magnitude
+      newValue = rawValue + Math.pow(10, modPower) * (doom / Math.abs(doom))
+      newThousandPower = Math.floor(Math.log(newValue) / Math.log(1000))
+    } else {
+      let powerDelta;
+      switch (Math.abs(doom)) {
+        case 5:
+          powerDelta = 3
+          break
+        case 6:
+          powerDelta = 30
+          break
+        case 7:
+          powerDelta = 78
+          break
+        default:
+          return
+      }
+      // increase/decrease by letters
+      newValue = rawValue * Math.pow(10, powerDelta  * (Math.abs(doom)/doom))
+      newThousandPower = thousandPower
+    }
+    dom.value = ((bigNum(newValue) === 'NaN undefined' || newValue < 1 || newThousandPower !== thousandPower) ? dom.value : bigNum(newValue))
+  } else if (dom.matches('[id$="trade-cost"]')) {
+    // Comrade trades
+    tradeLevelDelta(dom.id.substr(0, dom.id.indexOf('-')), (Math.abs(doom) > 1 ? Math.pow(5, Math.abs(doom)-2) * (Math.abs(doom)/doom): 0))
+  } else if (dom.matches('#comrades') || dom.matches('#comradesPerSec')) {
+    // Comrade count/comrades per second
+    if (rawValue === 0 && doom > 0) {
+      // set to 1 and return
+      dom.value = 1
+      return
+    } else if (doom <= 5 && doom >= -5) {
+      let coefficient = (dom.matches('#comrades') ? 3 : 2)
+      let newValue = rawValue + Math.pow(10, (coefficient * (Math.abs(doom) - 1))) * (Math.abs(doom)/doom);
+      dom.value = (bigNum(newValue) === 'NaN undefined' || newValue < 0) ? 0 : bigNum(newValue);
+    }
+  } else {
+    console.warn(`Invalid input selector ${dom}; please report this!`)
+  }
 }
 
 main();
