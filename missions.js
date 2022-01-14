@@ -1606,19 +1606,19 @@ function getResearcherFullDetailsHtml(researcher) {
 
 // Given a root.Researchers object, returns a plaintext description of that researcher's effect.
 function getResearcherBasicDetails(researcher) {
-  let vals, resources;
+  let resources;
+  let vals = [
+               getValueForResearcherLevel(researcher, 1),
+               getValueForResearcherLevel(researcher, 2),
+               getValueForResearcherLevel(researcher, 3)
+             ];
+             
   switch (researcher.ModType) {
     case "GenManagerAndSpeedMult":
-      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       return `Speeds up ${resourceName(researcher.TargetIds[0])} by ${vals[0]}x/${vals[1]}x/${vals[2]}x/...`;
       break;
       
     case "TradePayoutMultiplier":
-      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       resources = researcher.TargetIds[0].split(/, ?/).map(res => resourceName(res));
       if (resources.length == getData().Industries.length) {
         return `All ${ENGLISH_MAP['conditionmodel.trade.plural']} grant ${vals[0]}x/${vals[1]}x/${vals[2]}x/... ${resourceName('comrade')}`;
@@ -1629,9 +1629,6 @@ function getResearcherBasicDetails(researcher) {
       break;
       
     case "GeneratorPayoutMultiplier":
-      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       // This is either a multiplier to a single generator (like "Farmer") or a set of industries ("Farming,Landwork,Mining")
       resources = getData().Resources.find(r => r.Id == researcher.TargetIds[0].toLowerCase());
       if (resources) {
@@ -1647,9 +1644,6 @@ function getResearcherBasicDetails(researcher) {
       break;
       
     case "GeneratorCritChance":
-      vals = [researcher.BasePower + 1 * researcher.CurveModifier + 1 * researcher.UpgradePower,
-              researcher.BasePower + 2 * researcher.CurveModifier + 4 * researcher.UpgradePower,
-              researcher.BasePower + 3 * researcher.CurveModifier + 9 * researcher.UpgradePower];
       vals = vals.map(v => `${+(v * 100).toFixed(2)}%`);
       resources = researcher.TargetIds[0].split(/, ?/);
       if (resources.length == getData().Industries.length) {
@@ -1661,9 +1655,6 @@ function getResearcherBasicDetails(researcher) {
       break;
       
     case "GeneratorCostReduction":
-      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       // TargetIds[0] is a set of industries ("Baking, NorthPole, SnowArmy, SantaWorkshop")
       resources = researcher.TargetIds[0].split(/, ?/).map(ind => industryName(ind));
       if (resources.length == getData().Industries.length) {
@@ -1674,9 +1665,6 @@ function getResearcherBasicDetails(researcher) {
       break;
     
     case "GeneratorCritPowerMult":
-      vals = [researcher.ExpoMultiplier * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth,
-              researcher.ExpoMultiplier * researcher.ExpoGrowth * researcher.ExpoGrowth * researcher.ExpoGrowth];
       // TargetIds[0] is a set of industries ("Baking, NorthPole, SnowArmy, SantaWorkshop")
       resources = researcher.TargetIds[0].split(/, ?/).map(ind => industryName(ind));
       if (resources.length == getData().Industries.length) {
@@ -2739,12 +2727,11 @@ function getValueForResearcherLevel(researcher, level) {
   if (level == -1) {
     // This is a special case that indicates a custom value.
     return getFormValuesObject().ResearcherOverrides[researcher.Id];
-  } else if (researcher.ExpoMultiplier) {
-    // It's exponential
-    return researcher.ExpoMultiplier * Math.pow(researcher.ExpoGrowth, level);
   } else {
-    // It's quadratic
-    return researcher.BasePower + level * researcher.CurveModifier + level * level * researcher.UpgradePower;
+    let exponentialTotal = researcher.ExpoMultiplier * Math.pow(researcher.ExpoGrowth, level);
+    let quadraticTotal = researcher.BasePower + level * researcher.CurveModifier + level * level * researcher.UpgradePower;
+    
+    return exponentialTotal + quadraticTotal;
   }
 }
 
