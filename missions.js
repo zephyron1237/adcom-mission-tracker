@@ -2194,7 +2194,7 @@ function renderCalculator(mission) {
         <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Simplify and speed up calculation by assuming production is irrelevant.">&#9432;</a></div>`;
     }
     
-    html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
+    html += `<p class="mt-2"><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
     html += `<p><button id="calcButton" class="btn btn-primary" type="button" onclick="doProductionSim()" title="Run simulation to calculate ETA">Calculate!</button>`;
     html += `<button id="importButton" class="btn btn-primary float-right" type="button" onclick="importCounts()">Import Counts</button></p>`;
@@ -3555,7 +3555,7 @@ function calcOfflineProduction(simData) {
   }
   
   // Iterate x1 = x0 - f(x0) / f'(x0) until |x1 - x0| < 0.1
-  let x = 10000;
+  let x = 1;
   for (let chances = 1000; chances > 0; chances--) {
     let oldX = x;
     x = x - evaluatePolynomial(poly, x) / evaluatePolynomial(deriv, x);
