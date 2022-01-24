@@ -3620,10 +3620,17 @@ function evaluatePolynomial(poly, value) {
 
 // The core "simulation."  Returns seconds until goal is met, or -1 if goal is not met in MaxDays.
 function simulateProductionMission(simData, deltaTime = 1.0) {
+  const TIME_LIMIT_MS = 10000; // Max simulation time, should be a multiple of DELTA_INCREASE_TIME_MS
+  // Delta increases handle longer runs on lower powered devices without much loss in precision.
+  const DELTA_INCREASE_TIME_MS = 2000; // Time between delta increases
+  const DELTA_INCREASE_MULT = 2; // How much deltaTime is multiplied each increase.
+  
+  
   // First, handle autobuy, if enabled.
   let autobuyGenerator = null;
   let nextAutobuyGenerator = null;
   let genesisTime = new Date();
+  let lastIncreaseTime = new Date();
   
   // search backwards through the generators for the first one with Qty > 0
   if (simData.Config.Autobuy) {
@@ -3684,9 +3691,16 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   let time;
   for (time = 0; time < maxTime && !metGoals(simData, goals); time += deltaTime) {
     // Cancel simulation after 10 seconds (we don't want to crash the page.)
-    if (new Date() - genesisTime > 10000) {
-      return -time;
+    if (new Date() - lastIncreaseTime > DELTA_INCREASE_TIME_MS) {
+      // Only check time limit on delta increases for a small performance gain.
+      if (new Date() - genesisTime > TIME_LIMIT_MS) {
+        return -time;
+      }
+      
+      deltaTime *= DELTA_INCREASE_MULT;
+      lastIncreaseTime = new Date();
     }
+    
 
     // Run each generator, starting from comrades and lowest-tier first.
     for (let genIndex in simData.Generators) {
