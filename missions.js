@@ -2194,8 +2194,6 @@ function renderCalculator(mission) {
         <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Simplify and speed up calculation by assuming production is irrelevant.">&#9432;</a></div>`;
     }
     
-    html += `<div class="form-inline"><label for="configMaxDays" id="configMaxDaysLabel" class="mr-2">Max Days:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxDays" placeholder="Max Days"><a class="infoButton ml-2" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Higher Max Days allows you to simulate further, but increases time when simulation doesn't succeed. The simulation will automatically stop after ten seconds if it has not yet finished (consider upgrading some researchers at this point.)">&#9432;</a></div>`;
-    
     html += `<p><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
     html += `<p><button id="calcButton" class="btn btn-primary" type="button" onclick="doProductionSim()" title="Run simulation to calculate ETA">Calculate!</button>`;
@@ -3089,12 +3087,7 @@ function clickComradeLimited(generatorId) {
 
 function clickOffline() {
   let checked = $('#configOffline').is(':checked');
-  $("#configAutobuy,#configComradeLimited,#configMaxDays").prop("disabled", checked);
-  if (checked) {
-    $("#configMaxDaysLabel").addClass("disabled");
-  } else {
-    $("#configMaxDaysLabel").removeClass("disabled");
-  }
+  $("#configAutobuy,#configComradeLimited").prop("disabled", checked);
 }
 
 // Called OnClick for "Calculate!"  Interprets input, runs calc/sim, and outputs result.
@@ -3130,7 +3123,7 @@ function doProductionSim() {
     if (simData.Config.Offline) {
       $('#result').text(`Offline calculation did not succeed. This may be due to invalid parameters.`);
     } else {
-      $('#result').text(`Simulation did not complete in ${simData.Config.MaxDays} day(s). Try to increase the simulation time.`);
+      $('#result').text(`Simulation did not complete.`);
     }
   } else if (result < -1) {
     $('#result').text(`Simulation automatically terminated after 10 seconds (${getEta(-result)} had been simulated.)`);
@@ -3271,9 +3264,6 @@ function getProductionSimDataFromForm() {
   simData.Config.Autobuy = $('#configAutobuy').is(':checked');
   simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');
   simData.Config.Offline = $('#configOffline').is(':checked');
-  
-  simData.Config.MaxDays = getValueFromForm('#configMaxDays', 1, simData);
-  formValues.Config.MaxDays = simData.Config.MaxDays;
   
   formValues.Counts["comrade"].TimeStamp = (new Date()).getTime();
   formValues.Counts[resourceId].TimeStamp = formValues.Counts["comrade"].TimeStamp;
@@ -3618,7 +3608,7 @@ function evaluatePolynomial(poly, value) {
   return result;
 }
 
-// The core "simulation."  Returns seconds until goal is met, or -1 if goal is not met in MaxDays.
+// The core "simulation."  Returns seconds until goal is met, or -N if N seconds pass before TIME_LIMIT_MS
 function simulateProductionMission(simData, deltaTime = 1.0) {
   const TIME_LIMIT_MS = 10000; // Max simulation time, should be a multiple of DELTA_INCREASE_TIME_MS
   // Delta increases handle longer runs on lower powered devices without much loss in precision.
@@ -3687,9 +3677,8 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   }
   
   // Now do the iteration
-  let maxTime = simData.Config.MaxDays * 24 * 60 * 60; // convert max days to max seconds
   let time;
-  for (time = 0; time < maxTime && !metGoals(simData, goals); time += deltaTime) {
+  for (time = 0; !metGoals(simData, goals); time += deltaTime) {
     // Cancel simulation after 10 seconds (we don't want to crash the page.)
     if (new Date() - lastIncreaseTime > DELTA_INCREASE_TIME_MS) {
       // Only check time limit on delta increases for a small performance gain.
@@ -3741,11 +3730,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
     
   }
   
-  if (time >= maxTime) {
-    return -1;
-  } else {
-    return time - 1; // subtract 1 second from this value (insta-complete missions are now accurately marked as instant)
-  }
+  return time - 1; // subtract 1 second from this value (insta-complete missions are now accurately marked as instant)
 }
 
 function metGoals(simData, goals) {
