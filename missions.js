@@ -3712,8 +3712,6 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   
   // Now do the iteration
   let time;
-  let totalBuildup = null;
-
   for (time = 0; !metGoals(simData, goals); time += deltaTime) {
     // Cancel simulation after 10 seconds (we don't want to crash the page.)
     if (new Date() - lastIncreaseTime > DELTA_INCREASE_TIME_MS) {
@@ -3737,13 +3735,6 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
         simData.Counts["comradeProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
       } else if (genIndex == 1) {
         simData.Counts["resourceProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
-        if (time > 60) { // attempt simulation for one minute
-          if (totalBuildup === null) {
-            totalBuildup = simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
-          } else {
-            totalBuildup += simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
-          }
-        }
       }
     }
     
@@ -3770,12 +3761,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
         }
       }
     }
-
-    if (totalBuildup <= 0 && totalBuildup !== null) {
-      // kill simulation if we were able to attempt buildup but there was none
-      return -1;
-    }
-    totalBuildup = null;
+    
   }
   
   return time - 1; // subtract 1 second from this value (insta-complete missions are now accurately marked as instant)
