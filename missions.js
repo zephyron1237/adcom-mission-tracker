@@ -3544,7 +3544,12 @@ function calcOffline(simData) {
 }
 
 /*
-  Do a binary search to calculate offline production, using a range of [2^0, 2^63] seconds
+  There appears to be a bug in the game's offline calculations, where the deepest generator
+  is "run" for entire offline duration, followed by the second-deepest, etc., instead of
+  continuously running it.  This can make long offline sessions more effective than online.
+
+  This method uses a binary search to calculate offline production, using a maximum range
+  of [2^0, 2^63] seconds, and calls the actual offline simulation method as needed.
 */
 function calcOfflineProduction(simData) {
   const DEFAULT_LOW_BOUND = Math.pow(2, 0);
@@ -3587,7 +3592,7 @@ function calcOfflineProduction(simData) {
   }
 }
 
-// simulate offline mission for duration
+// actual offline simulation, given mission data and duration
 function calcOfflineProductionResult(simData, duration) {
   let generatorOutput = {};
   let hasDeepestGenerator = false;
