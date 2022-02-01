@@ -2199,6 +2199,8 @@ function renderCalculator(mission) {
         <a class="infoButton ml-1" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-content="Simplify and speed up calculation by assuming production is irrelevant.">&#9432;</a></div>`;
     }
     
+    html += `<div class="form-inline"><label for="configMaxSimSeconds" id="configMaxSimSecondsLabel" class="mr-2">Max Sim Time:</label><input type="number" class="form-control w-25" min="1" value="1" id="configMaxSimSeconds" placeholder="Max Sim Seconds"><a class="infoButton ml-2" tabindex="-1" role="button" data-toggle="popover" data-trigger="focus" data-html="true" data-content="Higher Max Sim Time (<strong>in seconds</strong>) allows you to simulate further, but increases time when simulation doesn't succeed.  If it fails, double-check your Generators, ${upperCaseFirstLetter(ENGLISH_MAP['conditionmodel.researcher.plural'])}, and ${resourceName('comrade')}.">&#9432;</a></div>`;
+    
     html += `<p class="mt-2"><strong>Result:</strong> <span id="result"></span></p>`;
     html += `<input type="hidden" id="missionId" value="${mission.Id}"><input type="hidden" id="industryId" value="${industryId}">`;
     html += `<p><button id="calcButton" class="btn btn-primary" type="button" onclick="doProductionSim()" title="Run simulation to calculate ETA">Calculate!</button>`;
@@ -3092,7 +3094,12 @@ function clickComradeLimited(generatorId) {
 
 function clickOffline() {
   let checked = $('#configOffline').is(':checked');
-  $("#configAutobuy,#configComradeLimited").prop("disabled", checked);
+  $("#configAutobuy,#configComradeLimited,#configMaxSimSeconds").prop("disabled", checked);
+  if (checked) {
+    $("#configMaxSimSecondsLabel").addClass("disabled");
+  } else {
+    $("#configMaxSimSecondsLabel").removeClass("disabled");
+  }
 }
 
 // Called OnClick for "Calculate!"  Interprets input, runs calc/sim, and outputs result.
@@ -3128,10 +3135,10 @@ function doProductionSim() {
     if (simData.Config.Offline) {
       $('#result').text(`Offline calculation did not succeed. This may be due to invalid parameters.`);
     } else {
-      $('#result').text(`Simulation did not complete.`);
+      $('#result').text(`Simulation did not complete in ${simData.Config.MaxSimSeconds} second(s). Double-check your Generators, ${ENGLISH_MAP['conditionmodel.researcher.plural']}, ${resourceName('comrade')}, and Max Sim Time.`);
     }
   } else if (result < -1) {
-    $('#result').text(`Simulation automatically terminated after 10 seconds (${getEta(-result)} had been simulated.)`);
+    $('#result').text(`Failed: Reached Max Sim Time (${getEta(-result)} had been simulated.) Double-check your Generators, ${ENGLISH_MAP['conditionmodel.researcher.plural']}, ${resourceName('comrade')}, and Max Sim Time.`);
   } else {
     $('#result').text(`ETA: ${getEta(result)}`);
   
@@ -3290,6 +3297,9 @@ function getProductionSimDataFromForm() {
   simData.Config.Autobuy = $('#configAutobuy').is(':checked');
   simData.Config.ComradeLimited = $('#configComradeLimited').is(':checked');
   simData.Config.Offline = $('#configOffline').is(':checked');
+  
+  simData.Config.MaxSimSeconds = getValueFromForm('#configMaxSimSeconds', 1, simData);
+  formValues.Config.MaxSimSeconds = simData.Config.MaxSimSeconds;
   
   formValues.Counts["comrade"].TimeStamp = (new Date()).getTime();
   formValues.Counts[resourceId].TimeStamp = formValues.Counts["comrade"].TimeStamp;
@@ -3642,19 +3652,21 @@ function getOfflineResourceGoal(simData) {
   }
 }
 
-// The core "simulation."  Returns seconds until goal is met, or -N if N seconds pass before TIME_LIMIT_MS
+// The core "simulation."  Returns seconds until goal is met, or -N if N seconds pass before MaxSimSeconds
 function simulateProductionMission(simData, deltaTime = 1.0) {
-  const TIME_LIMIT_MS = 10000; // Max simulation time, should be a multiple of DELTA_INCREASE_TIME_MS
   // Delta increases handle longer runs on lower powered devices without much loss in precision.
   const DELTA_INCREASE_TIME_MS = 2000; // Time between delta increases
   const DELTA_INCREASE_MULT = 2; // How much deltaTime is multiplied each increase.
+  const TIME_CHECK_MS = 1000; // How frequently to check on the other time checks (Delta Increase and Max Time)
   
+  let now = new Date();
+  let maxSimTime = new Date(now.getTime() + simData.Config.MaxSimSeconds * 1000);
+  let nextIncreaseTime = new Date(now.getTime() + DELTA_INCREASE_TIME_MS);
+  let nextTimeCheck = new Date(now.getTime() + TIME_CHECK_MS);
   
   // First, handle autobuy, if enabled.
   let autobuyGenerator = null;
   let nextAutobuyGenerator = null;
-  let genesisTime = new Date();
-  let lastIncreaseTime = new Date();
   
   // search backwards through the generators for the first one with Qty > 0
   if (simData.Config.Autobuy) {
@@ -3713,18 +3725,22 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
   // Now do the iteration
   let time;
   for (time = 0; !metGoals(simData, goals); time += deltaTime) {
-    // Cancel simulation after 10 seconds (we don't want to crash the page.)
-    if (new Date() - lastIncreaseTime > DELTA_INCREASE_TIME_MS) {
-      // Only check time limit on delta increases for a small performance gain.
-      if (new Date() - genesisTime > TIME_LIMIT_MS) {
-        return -time;
-      }
-      
-      deltaTime *= DELTA_INCREASE_MULT;
-      lastIncreaseTime = new Date();
+    // Every one second, check real-time sensitive things
+    now = new Date();
+    if (now >= nextTimeCheck) {
+        if (now >= maxSimTime) {
+          // Simulation took longer than MaxSimSeconds, cancelling.
+          return -time + 1;
+          
+        } else if (now >= nextIncreaseTime) {
+          // Gradually increase deltaTime to simulate further without losing much precision
+          deltaTime *= DELTA_INCREASE_MULT;
+          nextIncreaseTime = new Date(now.getTime() + DELTA_INCREASE_TIME_MS);
+        }
+        
+        nextTimeCheck = new Date(now.getTime() + TIME_CHECK_MS);
     }
     
-
     // Run each generator, starting from comrades and lowest-tier first.
     for (let genIndex in simData.Generators) {
       let generator = simData.Generators[genIndex];
