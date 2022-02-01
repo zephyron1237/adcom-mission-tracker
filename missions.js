@@ -1250,9 +1250,7 @@ function getMissionEtaString(etaTimeStamp) {
       let localeDate = getTimeStampLocaleString(etaTimeStamp);
       return `${getEta(milliDifference / 1000)} (${localeDate})`;
     } catch (e) {
-      if (e instanceof RangeError) {
-        return 'Many, many years in the future';
-      }
+      return 'Invalid time';
     }
   }
 }
@@ -1382,7 +1380,8 @@ function bigNum(x, minimumCutoff = 1e+6, significantCharacters = 100, localeOver
 
 // This is like bigNum but enforces 3 sig figs after 9999
 function shortBigNum(x) {
-  return bigNum(x, 1e4, 3);
+  let shortString = bigNum(x, 1e4, 3);
+  return shortString.replace(/[^0-9] /g, ' '); // three sig figs could result in something like "129. M", we will remove the superfluous decimal point
 }
 
 // Converts AdCom style numbers to normal. fromBigNum("1 CC") => 1E21
@@ -3139,12 +3138,17 @@ function doProductionSim() {
     // Since we got a successful ETA, save it for future use.
     let missionEtas = getMissionEtas();
     let currentTimeStamp = (new Date()).getTime();
-    missionEtas[simData.Mission.Id] = (new Date(currentTimeStamp + result * 1000)).getTime();
-    
-    saveMissionEtas(missionEtas);
-    
-    updateMissionButtonTitles(simData.Mission.Id);
-    $('#lastEta').text(getMissionEtaString(missionEtas[simData.Mission.Id]));
+    let endTimestamp = new Date(currentTimeStamp + result * 1000);
+
+    // ONLY save timestamp if it can be represented as a JS date (upper limit 8.64e+15 seconds)
+    if (!isNaN(endTimestamp)) {
+      missionEtas[simData.Mission.Id] = (new Date(currentTimeStamp + result * 1000)).getTime();
+      
+      saveMissionEtas(missionEtas);
+      
+      updateMissionButtonTitles(simData.Mission.Id);
+      $('#lastEta').text(getMissionEtaString(missionEtas[simData.Mission.Id]));
+    }
   }
   
   $('#result').effect('highlight', {}, 2000);
@@ -3153,40 +3157,46 @@ function doProductionSim() {
 // Returns a string 
 function getEta(timeSeconds) {
   /* From https://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript */
-  let years = Math.floor(timeSeconds / (60 * 60 * 24 * 365.2425)) // VERY long times
   let eta = '';
+  let offset;
 
-  if (years >= 1) {
-    eta += `${years}y `
-  }
-
-  timeSeconds -= (years * 60 * 60 * 24 * 365.2425);
-
-  let days = Math.floor(timeSeconds / (60 * 60 * 24));
-  let [hours, minutes, seconds] = new Date(timeSeconds * 1000).toISOString().substr(11, 8).split(':');
-
-  if (days > 0) {
-    eta += `${days}d ${hours}h ${minutes}m ${seconds}s`;
-  } else if (hours > 0) {
-    eta += `${hours}h ${minutes}m ${seconds}s`;
-  } else if (minutes > 0) {
-    eta += `${minutes}m ${seconds}s`;
-  } else if (seconds > 0) {
-    eta += `${seconds}s`;
-  } else if (timeSeconds > 0.5) {
-    eta += '1s';
-  } else if (timeSeconds > 1e-3) {
-    eta += `${Math.floor(timeSeconds*1e3)} ms`;
-  } else if (timeSeconds > 1e-6) {
-    eta += `${Math.floor(timeSeconds*1e6)} ${String.fromCharCode(181)}s`;
-  } else if (timeSeconds > 1e-9) {
-    eta += `${Math.floor(timeSeconds*1e9)} ns`;
+  if (timeSeconds >= 253402300800) {
+    offset = 14; // if the Date object has an ISO-8601 representation greater than 9999-12-31T23:59:59Z, substr needs to be adjusted
   } else {
-    eta += 'Instant';
+    offset = 11;
   }
-  
-  // Strip any leading 0's off
-  return eta.replace(/^0*/, '');
+
+  try {
+    let years = Math.floor(timeSeconds / (60 * 60 * 24 * 365));
+    let days = Math.floor(timeSeconds / (60 * 60 * 24)) % 365;
+    let [hours, minutes, seconds] = new Date(timeSeconds * 1000).toISOString().substr(offset, 8).split(':');
+
+    if (years > 0) {
+      eta = `${years}y ${days}d ${hours}h ${minutes}m ${seconds}s`;
+    } else if (days > 0) {
+      eta = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    } else if (hours > 0) {
+      eta = `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      eta = `${minutes}m ${seconds}s`;
+    } else if (seconds > 0) {
+      eta = `${seconds}s`;
+    } else if (timeSeconds > 0.5) {
+      eta = '1s';
+    } else if (timeSeconds > 1e-6) {
+      eta = `1/${Math.floor(1/timeSeconds)}s`;
+    } else {
+      eta = 'Instant';
+    }
+    
+    // Strip any leading 0's off
+    return eta.replace(/^0*/, '');
+  } catch (error) {
+    if (error instanceof RangeError) {
+      // can't represent h:m:s with a date object, only years are significant at this point
+      return `${shortBigNum(years)} years`;
+    }
+  }
 }
 
 // Called OnClick for "Import Counts".  Takes past formData counts, simulates them forward to now, and then sets the inputs
@@ -3533,50 +3543,51 @@ function calcOffline(simData) {
   }
 }
 
+/*
+  Do a binary search to calculate offline production, using a range of [2^0, 2^63] seconds
+*/
 function calcOfflineProduction(simData) {
-  // Newer version of offline production calculator which simply uses a converging search.
-  const INITIAL_TIME_SECONDS = 1;
-  const BASE_POWER = 16;
-  const DIRECTION_CHANGE_COEFFICIENT = 0.9;
+  const DEFAULT_LOW_BOUND = Math.pow(2, 0);
+  const DEFAULT_HIGH_BOUND = Math.pow(2, 63);
 
-  let result;
   let requirement = simData.Mission.Condition.Threshold;
-  let workingTime = INITIAL_TIME_SECONDS;
-  let deltaCount = 0;
-  let currentDirection = 1;
-  
-  while (deltaCount < 10_000) {
-    result = calcOfflineProductionResult(simData, workingTime);
+  let currentBounds = [
+    DEFAULT_LOW_BOUND,
+    DEFAULT_HIGH_BOUND
+  ];
+  let currentMidpoint = (currentBounds[1] - currentBounds[0] + 1) / 2 + currentBounds[0];
 
-    if (Math.abs(result / requirement) - 1 + Math.abs(requirement / result) - 1 < 1e-24) {
-      return workingTime; // we have found our answer within 1 "instant"
-    } else if (result > requirement) { 
-      // we are overshooting, go down
-      workingTime /= Math.pow(BASE_POWER, Math.pow(DIRECTION_CHANGE_COEFFICIENT, deltaCount));
+  if (requirement > calcOfflineProductionResult(simData, DEFAULT_HIGH_BOUND)) {
+    // too long
+    return -1;
+  } else {
+    while (currentBounds[1] - currentBounds[0] >= DEFAULT_LOW_BOUND) {
+      let midpointResult = calcOfflineProductionResult(simData, currentMidpoint);
 
-      if (currentDirection === 1) {
-        // narrow in on an answer when switching directions
-        deltaCount++;
-        currentDirection = -1;
+      if (midpointResult < requirement) {
+        // increase LOWER bound
+        currentBounds[0] += (currentBounds[1] - currentBounds[0] + 1) / 2;
+      } else {
+        // increase UPPER bound
+        currentBounds[1] -= (currentBounds[1] - currentBounds[0] + 1) / 2;
       }
-    } else if (result < requirement) {
-      // we are undershooting, go up
-      workingTime *= Math.pow(BASE_POWER, Math.pow(DIRECTION_CHANGE_COEFFICIENT, deltaCount));
 
-      if (currentDirection === -1) {
-        // narrow in on an answer when switching directions
-        deltaCount++;
-        currentDirection = 1;
-      }
+      currentMidpoint = (currentBounds[1] - currentBounds[0] + 1) / 2 + currentBounds[0];
     }
 
-    deltaCount++;
-  }
+    let final1sCheck = calcOfflineProductionResult(simData, currentBounds[1]); // this check prevents 1s from showing as "Instant"
 
-  // if we have gotten this far, the calculation took way too long (500ms is more than enough)
-  return -1;
+    if (currentBounds[1] === DEFAULT_LOW_BOUND && final1sCheck > requirement) {
+      // we have reached the lowest bound, assume "instant"
+      return 0;
+    } else {
+      // return upper-bound (worst case) value, although it shouldn't really be that significant of a difference
+      return currentBounds[1]; 
+    }
+  }
 }
 
+// simulate offline mission for duration
 function calcOfflineProductionResult(simData, duration) {
   let generatorOutput = {};
   let hasDeepestGenerator = false;
@@ -3585,7 +3596,6 @@ function calcOfflineProductionResult(simData, duration) {
   }
 
   for (let genIndex = simData.Generators.length - 1; genIndex > 0; genIndex--) {
-    debugger
     let generatorReference = simData.Generators[genIndex]; // current generator that we're looking at
     let preExistingResources = 0;
 
@@ -3598,9 +3608,6 @@ function calcOfflineProductionResult(simData, duration) {
 
     let resourcesGeneratedInPeriod = generatorReference.QtyPerSec * duration * preExistingResources; // all resources generated in a period
     generatorOutput[generatorReference.Resource] = Boolean(generatorReference.QtyPerSec) * (resourcesGeneratedInPeriod + preExistingResources); // adds the values together
-    
-    console.log(generatorReference.QtyPerSec )
-
   }
 
   return generatorOutput[simData.Generators[1].Resource];
@@ -3628,17 +3635,6 @@ function getOfflineResourceGoal(simData) {
   } else {
     console.error(`Unknown condition type: ${condition.ConditionType}`);
   }
-}
-
-// Evaluates a polynomial at a value given the coefficients
-function evaluatePolynomial(poly, value) {
-  let result = 0;
-  
-  for (let power = 0; power < poly.length; power++) {
-    result += poly[power] * Math.pow(value, power);
-  }
-  
-  return result;
 }
 
 // The core "simulation."  Returns seconds until goal is met, or -N if N seconds pass before TIME_LIMIT_MS
