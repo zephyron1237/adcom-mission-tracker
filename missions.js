@@ -3589,15 +3589,7 @@ function calcOfflineProduction(simData) {
     }
   }
 
-  let final1sCheck = calcOfflineProductionResult(simData, currentBounds[1]); // this check prevents 1s from showing as "Instant"
-
-  if (currentBounds[1] === INITIAL_LOW_BOUND && final1sCheck > requirement) {
-    // We have reached the lowest bound, assume "Instant"
-    return 0;
-  } else {
-    // Return upper-bound (worst case) value, although it shouldn't really be that significant of a difference
-    return Math.floor(currentBounds[1]);
-  }
+  return Math.floor(currentBounds[0]); // A teensy underestimation, but accurately reports 0 (Instant)
 }
 
 // Actual offline simulation, given mission data and duration.  Returns # of resources at the end of duration.
@@ -3728,7 +3720,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
     if (now >= nextTimeCheck) {
         if (now >= maxSimTime) {
           // Simulation took longer than MaxSimSeconds, cancelling.
-          return -time + 1;
+          return -time;
           
         } else if (now >= nextIncreaseTime) {
           // Gradually increase deltaTime to simulate further without losing much precision
@@ -3744,7 +3736,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
       let generator = simData.Generators[genIndex];
       simData.Counts[generator.Resource] += simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
       
-      // index 0 & 1 make comrades & resources, so they also counts toward "comradeProgress" & "resourceProgress"
+      // Index 0 & 1 make comrades & resources, so they also counts toward "comradeProgress" & "resourceProgress"
       if (genIndex == 0) {
         simData.Counts["comradeProgress"] += simData.Counts[generator.Id] * generator.QtyPerSec * deltaTime;
       } else if (genIndex == 1) {
@@ -3767,7 +3759,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
         simData.Counts[autobuyGenerator.Id] = 1;
         
         let autobuyGeneratorIndex = simData.Generators.indexOf(autobuyGenerator);
-        nextAutobuyGenerator = simData.Generators[autobuyGeneratorIndex + 1]; // may be undefined if at the last tier
+        nextAutobuyGenerator = simData.Generators[autobuyGeneratorIndex + 1]; // May be undefined if at the last tier
         
         // If the next generator won't produce anything, don't switch to it.
         if (nextAutobuyGenerator && nextAutobuyGenerator.QtyPerSec == 0) {
@@ -3778,7 +3770,7 @@ function simulateProductionMission(simData, deltaTime = 1.0) {
     
   }
   
-  return time - 1; // subtract 1 second from this value (insta-complete missions are now accurately marked as instant)
+  return time;
 }
 
 function metGoals(simData, goals) {
