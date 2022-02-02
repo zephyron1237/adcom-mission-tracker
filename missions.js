@@ -3565,7 +3565,7 @@ function calcOfflineProduction(simData) {
   const INITIAL_HIGH_BOUND = Math.pow(2, 63);
   const ACCURACY = 1;  // Final result will be within ACCURACY of correct answer.
 
-  let requirement = simData.Mission.Condition.Threshold;
+  let requirement = getOfflineResourceGoal(simData);
   let currentBounds = [
     INITIAL_LOW_BOUND,
     INITIAL_HIGH_BOUND
