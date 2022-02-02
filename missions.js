@@ -3561,7 +3561,7 @@ function calcOffline(simData) {
   of [2^0, 2^63] seconds, and calls the actual offline simulation method as needed.
 */
 function calcOfflineProduction(simData) {
-  const INITIAL_LOW_BOUND = Math.pow(2, 0);
+  const INITIAL_LOW_BOUND = 0;
   const INITIAL_HIGH_BOUND = Math.pow(2, 63);
   const ACCURACY = 1;  // Final result will be within ACCURACY of correct answer.
 
@@ -3576,8 +3576,8 @@ function calcOfflineProduction(simData) {
     return -1;
   }
   
-  while (currentBounds[1] - currentBounds[0] >= ACCURACY) {
-    let currentMidpoint = (currentBounds[1] - currentBounds[0] + 1) / 2 + currentBounds[0];
+  while (currentBounds[1] - currentBounds[0] > ACCURACY) {
+    let currentMidpoint = (currentBounds[1] - currentBounds[0]) / 2 + currentBounds[0];
     let midpointResult = calcOfflineProductionResult(simData, currentMidpoint);
 
     if (midpointResult < requirement) {
