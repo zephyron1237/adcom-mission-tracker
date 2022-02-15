@@ -7,7 +7,8 @@ var POWERS = ['K', 'M', 'B', 'T', 'AA', 'BB', 'CC', 'DD', 'EE', 'FF', 'GG', 'HH'
 var THEME_ID_TITLE_OVERRIDES = {
   "main": "Motherland",
   "attack": "Oil",
-  "defense": "Shield"
+  "defense": "Shield",
+  "potatofactory": "Factory",
 };
 
 // For game-specific documentation and social channels
