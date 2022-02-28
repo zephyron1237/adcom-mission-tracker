@@ -24,8 +24,8 @@
       }
     }
     
-    /* If main-Completed is too big and causes problems, here you could pair it down to the last 100 (or something smarter) */
-    // data["main-Completed"] = data["main-Completed"].split(',').slice(-100).join(',')
+    /* Since main-Completed is too big and causes problems, here we pair it down to the last 50 (or something smarter) */
+     data["main-Completed"] = data["main-Completed"].split(',').slice(-50).join(',')
     
     const dataJson = JSON.stringify(data);
     const data64 = btoa(encodeURIComponent(dataJson)); // Unicode -> Base64
