@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Adventure Communist Mission Tracker</title>
+  <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
+</head>
+<body>
+  <p id="errorParagraph"></p>
+  <script>
+  window.addEventListener('load', function () {
+  
+    const searchParams = new URLSearchParams(window.location.search);
+    
+    if (searchParams.has("data")) {
+      const data64 = searchParams.get("data");
+      const dataJson = decodeURIComponent(atob(data64));  // Base64 -> Unicode
+      const data = JSON.parse(dataJson);
+      
+      for (const [key, value] of Object.entries(data)) {
+        localStorage[key] = value;
+      }
+      
+      document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/`;
+    } else {
+      document.getElementById("errorParagraph").innerHTML = "Invalid URL Error (does not contain 'data' parameter).  This page is not intended to be visited directly.";
+    }
+  });
+  </script>
+</body>
+</html>

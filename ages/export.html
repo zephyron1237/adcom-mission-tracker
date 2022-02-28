@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script>
+    const keysToStore = [
+      "Ages-main-CurrentRank",
+      "Ages-main-CompletedVisible",
+      "Ages-main-Completed",
+      "Ages-main-FormValues",
+
+      "Ages-CurrentMode",
+      "Ages-abTestGroups",
+
+      "IconConfig",
+      "StyleConfig",
+      "ListStyleActiveConfig",
+    ];
+    
+    const data = {};
+    
+    for (const key of keysToStore) {
+      if (key in localStorage) {
+        data[key] = localStorage[key];
+      }
+    }
+    
+    /* If main-Completed is too big and causes problems, here you could pair it down to the last 100 (or something smarter) */
+    // data["Ages-main-Completed"] = data["Ages-main-Completed"].split(',').slice(-100).join(',')
+    
+    const dataJson = JSON.stringify(data);
+    const data64 = btoa(encodeURIComponent(dataJson)); // Unicode -> Base64
+    
+    document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/ages/import.html?data=${data64}`;
+  </script>
+
+  <title>Adventure Ages Mission Tracker</title>
+  <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
+</head>
+<body>
+</body>
+</html>
