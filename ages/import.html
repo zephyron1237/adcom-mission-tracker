@@ -5,24 +5,47 @@
   <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
 </head>
 <body>
-  <p id="errorParagraph"></p>
+  <div id="manualExport" style="visibility: none">
+    <h2>Import</h2>
+    <p>Only use this page if you have manually copied a code, and only once per game.  Paste the code below (or paste <a href="#" onclick="pasteCode()">automatically)</a> and then click "Import.".</p>
+    <textarea id="exportCode" rows=10 cols=30></textarea>
+    <div><input type="button" value="Import" onclick="importFromBox()" /></div>
+  </div>
   <script>
+  function importData(data64) {
+    const dataJson = decodeURIComponent(atob(data64));  // Base64 -> Unicode
+    const data = JSON.parse(dataJson);
+      
+    for (const [key, value] of Object.entries(data)) {
+      localStorage[key] = value;
+      console.log(`Importing: ${key} = ${value}`);
+    }
+      
+    document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/ages/`;
+  }
+  
+  function importFromBox() {
+    const data64 = document.getElementById("exportCode").value;
+    importData(data64);
+  }
+  
+  function pasteCode() {
+    navigator.permissions.query({name: "clipboard-read"}).then(result => {
+      if (result.state == "granted" || result.state == "prompt") {
+        navigator.clipboard.readText().then(code => document.getElementById("exportCode").value = code);
+      }
+    });
+  }
+  
   window.addEventListener('load', function () {
   
     const searchParams = new URLSearchParams(window.location.search);
     
     if (searchParams.has("data")) {
       const data64 = searchParams.get("data");
-      const dataJson = decodeURIComponent(atob(data64));  // Base64 -> Unicode
-      const data = JSON.parse(dataJson);
-      
-      for (const [key, value] of Object.entries(data)) {
-        localStorage[key] = value;
-      }
-      
-      document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/ages/`;
+      importData(data64);
     } else {
-      document.getElementById("errorParagraph").innerHTML = "Invalid URL Error (does not contain 'data' parameter).  This page is not intended to be visited directly.";
+      document.getElementById("manualExport").style.visibility = "block";
     }
   });
   </script>

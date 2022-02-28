@@ -1,7 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>Adventure Communist Mission Tracker</title>
+  <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
+</head>
+<body>
+  <div id="manualExport" style="visibility:none">
+    <h2>Export</h2>
+    <p>Your export code was too big to be sent automatically.  Copy the code below (or copy <a href="#" onclick="copyCode()">automatically</a>), then go to <a href="https://darrenrs.github.io/adcom-mission-tracker/import.html">Enigma's AdCom Tracker</a> to paste and import.</p>
+    <textarea id="exportCode" rows=10 cols=30>Error.</textarea>
+  </div>
+  
   <script>
+  function copyCode() {
+    navigator.permissions.query({name: "clipboard-write"}).then(result => {
+      if (result.state == "granted" || result.state == "prompt") {
+        const code = document.getElementById("exportCode").value;
+        navigator.clipboard.writeText(data);
+      }
+    });
+  }
+  
+  window.addEventListener('load', function () {
     const keysToStore = [
       "main-CurrentRank",
       "main-CompletedVisible",
@@ -25,17 +45,18 @@
     }
     
     /* Since main-Completed is too big and causes problems, here we pair it down to the last 50 (or something smarter) */
-     data["main-Completed"] = data["main-Completed"].split(',').slice(-50).join(',')
+    //data["main-Completed"] = data["main-Completed"].split(',').slice(-50).join(',')
     
     const dataJson = JSON.stringify(data);
     const data64 = btoa(encodeURIComponent(dataJson)); // Unicode -> Base64
     
-    document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/import.html?data=${data64}`;
+    if (data64.length < 8000) {
+      document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/import.html?data=${data64}`;
+    } else {
+      document.getElementById("exportCode").value = data64;
+      document.getElementById("manualExport").style.visibility = "block";
+    }
+  });
   </script>
-
-  <title>Adventure Communist Mission Tracker</title>
-  <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
-</head>
-<body>
 </body>
 </html>
