@@ -48,7 +48,7 @@
     const data64 = btoa(encodeURIComponent(dataJson)); // Unicode -> Base64
     
     if (data64.length < 8000) {
-      document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/import.html?data=${data64}`;
+      document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/ages/import.html?data=${data64}`;
     } else {
       document.getElementById("exportCode").value = data64;
       document.getElementById("manualExport").style.display = "block";
