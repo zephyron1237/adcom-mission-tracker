@@ -5,7 +5,7 @@
   <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
 </head>
 <body>
-  <div id="manualExport" style="visibility:none">
+  <div id="manualExport" style="display: none">
     <h2>Export</h2>
     <p>Your export code was too big to be sent automatically.  Copy the code below (or copy <a href="#" onclick="copyCode()">automatically</a>), then go to <a href="https://darrenrs.github.io/adcom-mission-tracker/import.html">Enigma's AdCom Tracker</a> to paste and import.</p>
     <textarea id="exportCode" rows=10 cols=30>Error.</textarea>
@@ -54,7 +54,7 @@
       document.location.href = `https://darrenrs.github.io/adcom-mission-tracker/import.html?data=${data64}`;
     } else {
       document.getElementById("exportCode").value = data64;
-      document.getElementById("manualExport").style.visibility = "block";
+      document.getElementById("manualExport").style.display = "block";
     }
   });
   </script>

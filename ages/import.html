@@ -5,7 +5,7 @@
   <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
 </head>
 <body>
-  <div id="manualExport" style="visibility: none">
+  <div id="manualExport" style="display: none">
     <h2>Import</h2>
     <p>Only use this page if you have manually copied a code, and only once per game.  Paste the code below (or paste <a href="#" onclick="pasteCode()">automatically)</a> and then click "Import.".</p>
     <textarea id="exportCode" rows=10 cols=30></textarea>
@@ -45,7 +45,7 @@
       const data64 = searchParams.get("data");
       importData(data64);
     } else {
-      document.getElementById("manualExport").style.visibility = "block";
+      document.getElementById("manualExport").style.display = "block";
     }
   });
   </script>
