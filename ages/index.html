@@ -11,221 +11,43 @@
     gtag('config', 'UA-142480721-1');
   </script>
 
-  <title>Adventure Ages Mission Tracker</title>
+  <title>Farewell</title>
   <link id="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../missions_base.css" rel="stylesheet">
-  <link href="missions_img.css" rel="stylesheet">
-  <link href="missions_ages.css" rel="stylesheet">
   <link rel="shortcut icon" type="image/png" href="img/main/capsule-stone.png">
 </head>
 <body id="body">
   <nav class="navbar navbar-expand navbar-dark bg-dark">
-    <span class="dropdown">
-      <a id="mode-select-title" class="navbar-brand mb-0 h1 dropdown-toggle collapse" href="#" id="modeMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Ages</a>
-      <ul class="dropdown-menu" aria-labelledby="settingsDropdownMenuLink">
-        <a href="?mode=main" class="dropdown-item" id="mode-select-main" title="Switch to Ages"><img class="scheduleIcon mx-1" src="img/main/schedule.png"> Ages</a>
-        <a href="?mode=event" class="dropdown-item" id="mode-select-event" title="Switch to Current Event"><img class="scheduleIcon" src="img/event/egypt/schedule.png"> Event</a>
-        <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item" id="mode-select-schedule" data-toggle="modal" data-target="#schedulePopup" title="View Schedule"><img class="scheduleIcon" src="img/shared/calendar.png"> Schedule</a>
-      </ul>
-    </span>
-    <ul class="navbar-nav ml-auto">
-      <li class="nav-item">
-        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-generators-tab" title="View Generators"><div id="viewAllGeneratorsButton" class="resourceIcon">&nbsp;</div></a>
-      </li>
-      <li class="nav-item">
-        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-researchers-tab" title="View Researchers"><div class="resourceIcon cardIcon">&nbsp;</div></a>
-      </li>
-      <li class="nav-item">
-        <a href="#" class="nav-link" data-toggle="modal" data-target="#allInfoPopup" data-tab="all-trades-tab" title="View Trades"><div class="resourceIcon comradesPerSec">&nbsp;</div></a>
-      </li>
-      <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Settings">
-          &equiv;
-        </a>
-        <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="settingsDropdownMenuLink">
-          <h6 class="dropdown-header text-center">Style</h6>
-          <button class="dropdown-item" id="config-style-dark" onclick="toggleDarkStyle()"><span class="active-checkbox"></span> Dark</button>
-          <button class="dropdown-item" id="config-style-list" onclick="toggleListStyle()"><span class="active-checkbox"></span> List</button>
-          <button class="dropdown-item" id="config-style-icons" onclick="toggleIconsStyle()"><span class="active-checkbox"></span> Icons</button>
-          <div class="dropdown-divider"></div>
-          <h6 class="dropdown-header text-center">Progress</h6>
-          <button class="dropdown-item" data-toggle="modal" data-target="#rankPopup" onclick="focusRankSelectPrompt()">Advance To Rank</button>
-          <button class="dropdown-item" data-toggle="modal" data-target="#dataPopup">Reset Data</button>
-          <div class="dropdown-divider"></div>
-          <h6 class="dropdown-header text-center">Help</h6>
-          <button class="dropdown-item" data-toggle="modal" data-target="#helpPopup">General Help</button>
-          <button class="dropdown-item" data-toggle="modal" data-target="#keyboardPopup">Keyboard Shortcuts</button>
-        </ul>
-      </li>
-    </ul>
+    <span class="navbar-brand mb-0 h1">Tracker has a new home</span>
   </nav>
-  <div class="modal fade" id="infoPopup" tabindex="-1" role="dialog" aria-labelledby="infoTitle" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="infoTitle">Mission</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <form>
-            <p><strong>Reward:</strong> <span id="infoReward"></span></p>
-            <p id="completionTimeContainer" class="collapse"><strong>Completed at:</strong> <span id="completionTime"></span></p>
-            <p id="lastEtaContainer" class="collapse"><strong>Last ETA:</strong> <span id="lastEta"></span></p>
-            <div class ="alert alert-info" role="alert">
-              Calculator is imperfect. Be wary of results. <a href="#calcDetails" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="calcDetails" class="alert-link">(Details/Tips)</a>
-              <div class="collapse" id="calcDetails"><div class="mt-2"><strong>Details:</strong> The calculator does a basic simulation, normalizing each generator's output rate and running until reaching the goal or max simulation time.  Normalizing averages out things like crits and very long/quick run speeds, which introduces some error.  The calculator currently does not take time pods into account.  Please let me know if you find any issues or have any suggestions.</div>
-                <div class="mt-2"><strong>Tips:</strong><ul>
-                  <li>Enter numbers like <code id="numberExample">1.52 AA</code>.  Periods and commas are based on your browser's locale settings.</li>
-                  <li>You can simulate running non-automated generators by setting a <strong>Custom Value</strong> for that generator's Common.  Setting the Speed to <code>1</code> means that you're constantly running the generator, <code>0.5</code> means that you're keeping it running half the time, etc.  You can set custom values for a researcher by clicking the # button that replaces &#x25BC; when at level 0.  Careful, abnormal values may cause abnormal behavior.</li>
-                </ul></div>
-              </div>
-            </div>
-            <p><strong>Calculator:</strong> <div id="calc"></div></p>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal fade" id="allInfoPopup" tabindex="-1" role="dialog" aria-labelledby="allInfoTitle" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="allInfoTitle">All Ages</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div id="allInfoPopupBody"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal fade" id="schedulePopup" tabindex="-1" role="dialog" aria-labelledby="schedulePopupTitle" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="schedulePopupTitle">Event Schedule</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="alert alert-info mb-4 collapse">This is where I would put any schedule notifcations and remove collapse.</div>
-          <div class="alert alert-info mb-4 collapse">The following schedule is from an unreleased version and subject to change.</div>
-          <div id="schedulePopupBody"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal fade" id="rankPopup" tabindex="-1" role="dialog" aria-labelledby="rankPopupTitle" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="helpPopupTitle">Select Rank</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div id="rankPopupBody"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal fade" id="dataPopup" tabindex="-1" role="dialog" aria-labelledby="dataPopupTitle" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="helpPopupTitle">Reset Data</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div id="dataPopupBody"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal fade" id="helpPopup" tabindex="-1" role="dialog" aria-labelledby="helpPopupTitle" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="helpPopupTitle">Help</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div id="helpPopupBody"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal fade" id="keyboardPopup" tabindex="-1" role="dialog" aria-labelledby="keyboardPopupTitle" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="keyboardPopupTitle">Keyboard Shortcuts</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div id="keyboardPopupBody"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="alertNoSchedule" class="alert alert-warning collapse mx-2 my-2" role="alert">There is no additional schedule data.  Please contact /u/Zephyron1237 to update the schedule.</div>
-  <div id="alertUnconfirmed" class="alert alert-warning collapse mx-2 my-2" role="alert">This mission list has been datamined from a future version and may not be final.</div>
-  <div id="alertFakeEvent" class="alert alert-warning collapse mx-2 my-2" role="alert">This event is new content, and will be added to the Tracker shortly before the event begins.</div>
-  <div id="overrideWarning" class="alert alert-warning collapse mx-2 my-2" role="alert">You are in <strong>Event Override</strong> mode.  Event progress is temporary.</div>
-  <div id="alertReset" class="alert alert-info alert-dismissable collapse mx-2 my-2" role="alert">
-    The mission list has changed since your last visit.
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-  <div id="missions"></div>
-  <footer>
-    <div class="ml-2">
-     <table class="small text-muted">
-      <tr>
-       <td class="px-2"><img class="scheduleIcon" src="../img/main/schedule.png" title="AdVenture Communist"></td>
-       <td class="px-2"><a href='https://docs.google.com/document/d/1a314ZQM1f4ggFCtsC__Nb3B_1Hrc02cS0ZhY7_T08v8/'>Game Guide/FAQ</a></td>
-       <td class="px-2"><a href='https://zephyron1237.github.io/adcom-mission-tracker/'>Missions</a></td>
-       <td class="px-2"><a href='https://zephyron1237.github.io/adcom-capsule-tracker/'>Capsules</a></td>
-      </tr>
-      <tr>
-       <td class="px-2"><img class="scheduleIcon" src="img/main/schedule.png" title="AdVenture Ages"></td>
-       <td class="px-2"><a href='https://docs.google.com/document/d/1CVjPm2FAcCThtZyfwguFIj8ICpmOr8tLA_fANXOdtmU/'>Game Guide/FAQ</a></td>
-       <td class="px-2">Missions</td>
-       <td class="px-2"><a href='https://zephyron1237.github.io/adcom-capsule-tracker/ages/'>Capsules</a></td>
-      </tr>
-     </table>
-     <small class="text-muted ml-2">
-     Issues?  Suggestions?  Want to contribute?  Project on <a href='https://github.com/zephyron1237/adcom-mission-tracker'>GitHub</a>.  Version 8 "Future's Future"
-     </small>
-    </div>
-  </footer>
+  <div class="mx-2">
+    <h2>Farewell</h2>
+
+    <p>After almost 3 years of developing and maintaining tools for AdCom and Ages, I am stepping down and leaving the tools to Enigma.  I truly appreciate all the support I received from the community; it's all meant a lot to me.  I'd like to explain my discomfort I've had with Hyper Hippo's business model, but if you just want to know where the tools have moved, I totally get that, and you can skip to the end.</p>
+
+    <h2>Playing with Fire</h2>
+
+    <p>While I share many players' concerns about HH's content and priorities, my biggest issue is its business model (and that of many similar games).  Put simply, I think each of these three is separately playing with fire: designing games that specifically appeal to a young audience; designing addictive, data-driven games; and monetizing via gambling.  Together, I think it's a dangerous recipe with a lot of potential mental health harm that I feel game developers downplay and overlook because the recipe has proven very lucrative.  And if you're thinking that I basically just described a significant portion of the mobile game market, I'd agree and say I'm broadly concerned about that being one of the most accessible forms of entertainment to younger players.  And if you're thinking that HH's games are nowhere near as bad as other popular ones, I'd agree and say most of us probably wouldn't be here if we did, but I've come to feel like this is a lot like the <a target="_" href="https://en.wikipedia.org/wiki/Door-in-the-face_technique">Door-in-the-face Technique</a>, where the existence of an extreme makes you more comfortable with something than you would otherwise be.  And <a target="_" href="https://en.wikipedia.org/wiki/Foot-in-the-door_technique">similarly</a>, the existence of many "not as bad" examples makes the extreme ones more legitimate.</p>
+
+    <h2>Gambling is Gambling</h2>
+
+    <p>Unlike, for example, violence in video games, which almost never attempts to evoke the same feelings as being involved in real violence, simulated gambling is virtually identical to the traditional idea of gambling.  It's just different stakes, and I'd argue in some cases the stakes are bigger in games (especially when you're gambling for something with limited time availability, unlike money).  We don't just have a minimum legal age for gambling because we're worried kids will lose their allowance, but because gambling is a dangerous and habit-forming activity that can be exacerbated by mixing it with other forms of habituation and reward systems that are common in free-to-play games.  In fact, gambling addiction appears to be on the rise in young adults, which is likely due to how widespread and integrated into everything it has become.  Gambling addiction is nothing to play around with, either.  Even among other mental health challenges, gambling addiction has some very serious outcomes.  <a target="_" href="https://www.theage.com.au/national/gambling-linked-to-one-in-five-suicidal-patients-20100420-srri.html">One study</a> found nearly 1 in 5 patients diagnosed with suicidal ideations were also diagnosed with gambling addiction.  And even when it doesn't go to that extreme, there's still often significant harm to themselves, their loved ones and community.</p>
+
+    <h2>Freemium isn't Free, it's Negging</h2>
+
+    <p>While people have been <a target="_" href="https://www.youtube.com/watch?v=H_LfN7emtg4">critical of freemium games</a> for a long time, another way to think about freemium games is like social media, since they have similar incentives and use a lot of the same psychological techniques in order to monetize.  The problem is, <a target="_" href="https://www.jec.senate.gov/public/index.cfm/republicans/2021/12/is-instagram-causing-poorer-mental-health-among-teen-girls">more and more evidence</a> is piling up that social media is very likely hurting our collective mental health, and I think that's because there's no incentive for companies to prioritize that over making more money.  And like social media, I think there is a ton of potential benefit to having access to free games, I just think we're not being honest about the real cost.</p>
+
+    <p>Because it's so lucrative, there's a wealth of psychological tricks that free-to-play games use in order to make money.  I'd recommend googling the basics yourself if you're unfamiliar.  One of the biggest groups are variations on "subtly/directly make all players feel bad regularly until their defenses wear down and a small percentage of all the bad-feeling players spend money to stop feeling bad temporarily."  Most of the bad experiences you've had inside AdCom or Ages are an intentional part of its design.  Every time you got frustrated and stuck for a big portion of an event because the Common you need doesn't have a scripted drop is to sell more loot boxes.  Same with every sudden jump in difficulty, or even simply Collect/Upgrade Card missions which are intended to suddenly appear.  While those are acutely frustrating experiences, data-driven live-service games have lots of tools to do this in more subtle or targeted ways, or even predict when you're about to healthily quit the game and draw you back in.  A non-freemium addictive game like Hades or Siralim Ultimate has almost no incentive to make you depressed or screw with your head while you play them for hundreds of hours.</p>
+
+    <p>Sure, you can use the Mission Tracker to alleviate some issues, but most players don't use external resources for their games, and the business model depends on that fact.  I don't think we should be ok with predatory tactics just because we feel like they're not working on us, or because they're happening to people who aren't in-the-know.  Similarly, I can't blame somebody for choosing to wake up in the middle of the night and harm themselves to open their capped free event capsules because of all the addictive incentive systems built-in, since people are not the fabled <a target="_" href="https://en.wikipedia.org/wiki/Homo_economicus">Homo Economicus</a> who constantly act in our own self-interest, but I can blame companies that take advantage of that gray area to make money, while taking no responsibility for the effects of their incentives.  I think it is particularly concerning for the Incremental genre HH works in.  Since Incremental games strip away most traditional game elements to focus solely on a core progression loop for regular hits of dopamine, a lot more of their audience than, say, Mario, is going to have struggles with addiction, impulse control, or other mental health issues (for example, r/IncrementalGames prominently displays gaming addiction help resources).  I think anybody working in this space should try to take extra care to be mindful and respectful of its players, and not take advantage of their vulnerability for a profit.  And that goes doubly true when your games are very clearly designed to appeal to a younger audience, who are additionally vulnerable to the sorts of behavioral programming freemium games use.  And when you have a young audience and all these incentive systems and programming that are designed to funnel players into monetization, I think that's dangerous, but when you're funneling them into gambling (regardless of whether that audience spends much or can even opt into spending real money), that crosses a line for me.</p>
+
+    <h2>New Management</h2>
+
+    <p>While I no longer want to support Hyper Hippo and other similar games personally, I don't want to punish all the players who don't feel as strongly as me about this issue.  So I asked Enigma to become the new owner of the tools, and he has graciously agreed.  Y'all are in great hands; Enigma has already contributed a ton to the community in the half-year he's been around, he's very active and constantly helping people on Discord, and has been assisting with the Tracker and other technical projects.</p>
+
+    <p>Enigma's Mission Trackers will be hosted from his own account and URL, so your data will not automatically transfer.  You will need to import your data from this site by visiting these links, which will automatically import your data or walk you through the process.  These will overwrite your data on Enigma's Trackers, so do not import a game more than once.</p>
+    <ul>
+     <li><a target="_" href="../export.html">Import AdCom Mission Tracker data</a></li>
+     <li><a target="_" href="export.html">Import Ages Mission Tracker data</a></li>
+    </ul>
 </body>
-<script
-  src="https://code.jquery.com/jquery-3.4.1.min.js"
-  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
-  crossorigin="anonymous"></script>
-<script
-  src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
-  integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
-  crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-<script src="config.js"></script>
-<script src="data.js"></script>
-<script src="../missions.js"></script>
 </html>
